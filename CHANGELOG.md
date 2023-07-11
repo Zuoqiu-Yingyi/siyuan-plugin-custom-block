@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.0.0...v1.0.1) (2023-07-11)
+
+
+### Performance Improvements
+
+* **custom-block:** 优化列表导图视图 | Optimize list mind-map view. ([346e78e](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/346e78e1a30cffe6604ef02c92e2eddf8d61dc0e))
+
+
+### Documentation
+
+* **custom-block:** 在 `README.md` 中添加常见问题 | Add Q&A in `README.md`. ([4f24582](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/4f24582736e70d9efafa909ac6cbddf21a72b163))
+
+
+### Miscellaneous
+
+* **custom-block:** release v1.0.1 ([203e2b6](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/203e2b69e6638ff77ae704d51ea2b44caa929337))
+
 ## 1.0.0 (2023-07-09)
 
 
