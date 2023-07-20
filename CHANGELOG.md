@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.1.0](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.0.1...v1.1.0) (2023-07-20)
+
+
+### Features
+
+* **custom-block:** 添加重置设置选项提示对话框 | Add reset settings option prompt dialog. ([b3562da](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/b3562da792dbe4ce905bf3c0708f856cbe324bf0))
+* **webview:** 添加块引用菜单 | Add block reference menu. ([19b4806](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/19b48063a2b5c881f90c90b3792196e57da06e1b))
+* **webview:** 添加超链接菜单 | Add hyperlink menu. ([94d4a30](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/94d4a3068d6ddaab12742cd502309873b760c59f))
+
+
+### Bug Fixes
+
+* **custom-block:** 修复列表导图视图滚动条异常问题 | Fix the issue of abnormal scroll bar in list mind-map view. ([08c6e95](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/08c6e9531e75d71421a924728cf2b518ded845cf))
+
+
+### Performance Improvements
+
+* **webview:** 优化思源静态文件服务的判断 | Optimize the judgment of siyuan static file service. ([6e67f00](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/6e67f00bcbc55b6dffdde75c78b04ab832a6b8fa))
+
+
+### Documentation
+
+* **custom-block:** Optimize document ([c84f1c1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/c84f1c102d64a50322a179ee1be4b820f95df3ad))
+
+
+### Miscellaneous
+
+* **custom-block:** release v1.0.2 ([e005544](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/e0055444aba8d54d979db25d2aa44564ad82ac06))
+* **webview:** release v1.3.0 ([6af1519](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/6af1519a1ec21e8f4d30afb7af10334326a91c37))
+
 ## [1.0.1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.0.0...v1.0.1) (2023-07-11)
 
 
