@@ -1,11 +1,12 @@
 {
     "name": "custom-block",
     "private": true,
-    "version": "1.0.1",
+    "version": "1.0.2",
     "type": "module",
     "scripts": {
         "dev": "vite",
         "build": "vite build",
+        "build:dev": "vite build --sourcemap inline",
         "preview": "vite preview",
         "check": "svelte-check --tsconfig ./tsconfig.json"
     },
@@ -14,11 +15,11 @@
         "@tsconfig/svelte": "^4.0.1",
         "less": "^4.1.3",
         "svelte": "^3.59.2",
-        "svelte-check": "^3.4.5",
+        "svelte-check": "^3.4.6",
         "svelte-preprocess-less": "^0.4.0",
         "tslib": "^2.6.0",
         "typescript": "^5.1.6",
-        "vite": "^4.4.2"
+        "vite": "^4.4.4"
     },
     "dependencies": {
         "@workspace/components": "workspace:^",
