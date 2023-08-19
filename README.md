@@ -1,47 +1,41 @@
-# Svelte + TS + Vite
+> **[READ ONLY] Subtree split of the [siyuan-packages-monorepo](https://github.com/Zuoqiu-Yingyi/siyuan-packages-monorepo) [/workspace/plugins/template](https://github.com/Zuoqiu-Yingyi/siyuan-packages-monorepo/tree/main/workspace/plugins/template)**
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+<div align="center">
+<img alt="icon" src="./public/icon.png" style="width: 8em; height: 8em;">
 
-## Recommended IDE Setup
+---
+[![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/Zuoqiu-Yingyi/siyuan-plugin-template?include_prereleases)](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-template/releases/latest)
+[![GitHub Release Date](https://img.shields.io/github/release-date/Zuoqiu-Yingyi/siyuan-plugin-template)](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-template/releases/latest)
+[![GitHub License](https://img.shields.io/github/license/Zuoqiu-Yingyi/siyuan-plugin-template)](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-template/blob/main/LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/Zuoqiu-Yingyi/siyuan-plugin-template)](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-template/commits/main)
+![GitHub repo size](https://img.shields.io/github/repo-size/Zuoqiu-Yingyi/siyuan-plugin-template)
+<!-- ![hits](https://hits.b3log.org/Zuoqiu-Yingyi/siyuan-plugin-template.svg) -->
+![jsDelivr hits (GitHub)](https://img.shields.io/jsdelivr/gh/hy/Zuoqiu-Yingyi/siyuan-packages-template)
+[![GitHub all releases](https://img.shields.io/github/downloads/Zuoqiu-Yingyi/siyuan-plugin-template/total)](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-template/releases)
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+---
+</div>
 
-## Need an official Svelte framework?
+## USER GUIDE
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+[简体中文](./public/README_zh_CN.md) \| [English](./public/README.md)
 
-## Technical considerations
+## DEVELOPER GUIDE
 
-**Why use this over SvelteKit?**
+### RELEASE STEPS
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+1. Update the version number in `<subrepo-root-dir>/package.json` and `<subrepo-root-dir>/public/plugin.json`, then commit the changes in [monorepo](https://github.com/Zuoqiu-Yingyi/siyuan-packages-monorepo).
+2. Run script `./scripts/git-subtree/template/push.ps1` with the folowing command in **monorepo root dir** to push the subtree to sub-repository (`dev` branch).
+   ```powershell
+   pwsh -f "./scripts/git-subtree/template/push.ps1"
+   ```
+3. Create a pull request from `dev` branch to `main` branch in sub-repository.
+4. Merge the pull request.
+5. Await for the CD workflow `release-please.yml` to complete, it will create a *release pull request* in sub-repository.
+6. Merge the *release pull request*, it will create a new *pre-release* with current [changelog](./CHANGELOG.md) and a new *tag* with [semantic version](https://semver.org/) in sub-repository.
+7. Await for the CD workflow `build.yml` to complete, it will update the distribution files to `publish` branch in sub-repository.
+8. Await for the CD workflow `release-distribution.yml` to complete, it will create a new *pre-release* with an asset named `package.zip` and a new *tag* with timestamp in sub-repository.
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+## CHANGELOG
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
-```
+[CHANGE LOG](./CHANGELOG.md)

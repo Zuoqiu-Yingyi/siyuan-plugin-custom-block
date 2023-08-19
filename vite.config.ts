@@ -30,29 +30,26 @@ export default defineConfig({
             },
         }),
     ],
+    resolve: {
+        alias: {
+            "~": resolve(__dirname, "./"),
+            "@": resolve(__dirname, "./src"),
+        }
+    },
     build: {
-        // REF https://cn.vitejs.dev/config/build-options.html#build-minify
         minify: true,
+        // sourcemap: "inline",
         lib: {
-            // Could also be a dictionary or array of multiple entry points
             entry: resolve(__dirname, "src/index.ts"),
-            // the proper extensions will be added
             fileName: "index",
             formats: ["cjs"],
         },
         rollupOptions: {
             external: [
-                'siyuan',
+                "siyuan",
+                /^@electron\/.*$/,
             ],
-            // input: {
-            //     index: "./src/index.ts",
-            // },
             output: {
-                // format: 'iife',
-                // format: "cjs",
-                // format: "es",
-
-                // entryFileNames: '[name].js',
                 entryFileNames: chunkInfo => {
                     // console.log(chunkInfo);
                     switch (chunkInfo.name) {

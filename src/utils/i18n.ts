@@ -15,31 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// REF https://github.com/kaisermann/svelte-i18n/blob/main/docs/Getting%20Started.md
-
 import {
-    init,
-    addMessages,
-    getLocaleFromNavigator,
-} from 'svelte-i18n';
+    i18nCheck,
+    i18nChecks,
+} from "@workspace/types/siyuan/i18n";
 
-import { mapLang } from '@workspace/utils/locale/language';
-import { type SiyuanWindow } from '@workspace/types/siyuan/window';
+import zh_Hans from "~/public/i18n/zh_CN.json";
+import zh_Hant from "~/public/i18n/zh_CHT.json";
+import en from "~/public/i18n/en_US.json";
 
-import en from './../locales/en.json';
-import zh_Hans from './../locales/zh-Hans.json';
-import zh_Hant from './../locales/zh-Hant.json';
+export type I18N = typeof zh_Hans;
 
-addMessages('en', en);
-addMessages('zh-Hans', zh_Hans);
-addMessages('zh-Hant', zh_Hant);
-
-export function localizeInit(lang: string = (window as unknown as SiyuanWindow)?.siyuan?.config?.lang): void | Promise<void> {
-    return init({
-        fallbackLocale: 'en',
-        initialLocale: mapLang(
-            lang ?? getLocaleFromNavigator(),
-            ['en', 'zh-Hans', 'zh-Hant'],
-        ),
-    });
-}
+i18nChecks([
+    i18nCheck<I18N, typeof zh_Hans>(),
+    i18nCheck<I18N, typeof zh_Hant>(),
+    i18nCheck<I18N, typeof en>(),
+]);

@@ -1,6 +1,13 @@
 {
     "displayName": "Jupyter Client",
-    "document_settings": "Document Settings",
-    "global_settings": "Global Settings",
-    "top_bar_title": "Jupyter Client"
+    "settings": {
+        "generalSettings": {
+            "reset": {
+                "description": "Reset all settings options to default options (refresh page after reset)",
+                "text": "Reset",
+                "title": "Reset settings options"
+            },
+            "title": "General"
+        }
+    }
 }

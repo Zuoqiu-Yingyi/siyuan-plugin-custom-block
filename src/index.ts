@@ -15,95 +15,101 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import "./index.less";
-
 import siyuan from "siyuan";
-import { dataURL2svg } from "@workspace/utils/misc/dataurl";
-import { FLAG_MOBILE } from "@workspace/utils/env/front-end";
 
-import Global from './Global.svelte'
-import icon from "./assets/jupyter-icon.svg";
+import "./index.less";
+import icon_jupyter_client from "./assets/symbols/icon-jupyter-client.symbol?raw";
+import icon_jupyter_client_simple from "./assets/symbols/icon-jupyter-client-simple.symbol?raw";
 
+import {
+    Client,
+    type types,
+} from "@siyuan-community/siyuan-sdk";
 
-export default class JupyterClientPlugin extends siyuan.Plugin {
-    private readonly ICON: string;
-    private readonly TOP_BAR_MENU_ID: string;
-    private readonly SETTINGS_DIALOG_ID: string;
+import Settings from "./components/Settings.svelte";
 
-    private top_bar_element: HTMLElement;
+import {
+    FLAG_MOBILE,
+} from "@workspace/utils/env/front-end";
+import { Logger } from "@workspace/utils/logger";
+import { mergeIgnoreArray } from "@workspace/utils/misc/merge";
+import { DEFAULT_CONFIG } from "./configs/default";
+import type { I18N } from "./utils/i18n";
+import type { IConfig } from "./types/config";
 
-    constructor(options) {
+export default class TemplatePlugin extends siyuan.Plugin {
+    static readonly GLOBAL_CONFIG_NAME = "global-config";
+
+    declare public readonly i18n: I18N;
+
+    public readonly siyuan = siyuan;
+    public readonly logger: InstanceType<typeof Logger>;
+    public readonly client: InstanceType<typeof Client>;
+
+    protected readonly SETTINGS_DIALOG_ID: string;
+
+    protected config: IConfig = DEFAULT_CONFIG;
+
+    constructor(options: any) {
         super(options);
 
-        this.ICON = dataURL2svg(icon); // svg 图标
-        this.TOP_BAR_MENU_ID = `${this.name}-top-bar-menu`;
+        this.logger = new Logger(this.name);
+        this.client = new Client(undefined, "fetch");
+
         this.SETTINGS_DIALOG_ID = `${this.name}-settings-dialog`;
     }
 
-    onload() {
-        /* 添加标题栏按钮 */
-        this.top_bar_element = this.addTopBar({
-            icon: this.ICON,
-            title: this.i18n.top_bar_title,
-            position: "right",
-            callback: () => {
-                this.openTopBarMenu(this.top_bar_element.getBoundingClientRect());
+    onload(): void {
+        // this.logger.debug(this);
+
+        /* 注册图标 */
+        this.addIcons([
+            icon_jupyter_client,
+            icon_jupyter_client_simple,
+        ].join(""));
+
+        this.loadData(TemplatePlugin.GLOBAL_CONFIG_NAME)
+            .then(config => {
+                this.config = mergeIgnoreArray(DEFAULT_CONFIG, config || {}) as IConfig;
+            })
+            .catch(error => this.logger.error(error))
+            .finally(() => {
+            });
+    }
+
+    onLayoutReady(): void {
+    }
+
+    onunload(): void {
+    }
+
+    openSetting(): void {
+        const that = this;
+        const dialog = new siyuan.Dialog({
+            title: `${this.i18n.displayName} <code class="fn__code">${this.name}</code>`,
+            content: `<div id="${that.SETTINGS_DIALOG_ID}" class="fn__flex-column" />`,
+            width: FLAG_MOBILE ? "92vw" : "720px",
+            height: FLAG_MOBILE ? undefined : "640px",
+        });
+        const settings = new Settings({
+            target: dialog.element.querySelector(`#${that.SETTINGS_DIALOG_ID}`),
+            props: {
+                config: this.config,
+                plugin: this,
             },
         });
     }
 
-    onunload() {
+    /* 重置插件配置 */
+    public async resetConfig(): Promise<void> {
+        return this.updateConfig(mergeIgnoreArray(DEFAULT_CONFIG) as IConfig);
     }
 
-    openSetting() {
-        this.openGlobalSettingsDialog(`${this.i18n.displayName} <code class="fn__code">${this.name}</code>`);
-    }
-
-    private async openGlobalSettingsDialog(title: string) {
-        const dialog = new siyuan.Dialog({
-            title,
-            content: `<div id="${this.SETTINGS_DIALOG_ID}"/>`,
-            width: FLAG_MOBILE ? "92vw" : "520px",
-        });
-        const global = new Global({
-            target: dialog.element.querySelector(`#${this.SETTINGS_DIALOG_ID}`),
-        });
-    }
-
-    private async openTopBarMenu(rect: DOMRect) {
-        const menu = new siyuan.Menu(this.TOP_BAR_MENU_ID);
-
-        /* 添加全局设置菜单项 */
-        menu.addItem({
-            icon: "iconSettings",
-            label: this.i18n.global_settings,
-            click: () => this.openGlobalSettingsDialog(this.i18n.global_settings),
-        });
-
-        /* 添加文档设置菜单项 */
-        menu.addItem({
-            icon: "iconFile",
-            label: this.i18n.document_settings,
-            click: () => {
-                new siyuan.Dialog({
-                    title: this.i18n.document_settings,
-                    content: '<div class="b3-dialog__content">This is a dialog</div>',
-                    width: FLAG_MOBILE ? "92vw" : "520px",
-                });
-            }
-        });
-
-        // menu.addSeparator();
-
-        /* 显示菜单 */
-        if (FLAG_MOBILE) {
-            menu.fullscreen();
-        } else {
-            menu.open({
-                x: rect.right,
-                y: rect.bottom,
-                // isLeft: true,
-            });
+    /* 更新插件配置 */
+    public async updateConfig(config?: IConfig): Promise<void> {
+        if (config && config !== this.config) {
+            this.config = config;
         }
+        return this.saveData(TemplatePlugin.GLOBAL_CONFIG_NAME, this.config);
     }
-}
+};
