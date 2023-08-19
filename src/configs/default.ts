@@ -18,4 +18,16 @@
 import type { IConfig } from "@/types/config";
 
 export const DEFAULT_CONFIG: IConfig = {
+    jupyter: {
+        server: {
+            enable: false,
+            settings: {
+                baseUrl: "",
+                appUrl: "",
+                wsUrl: "",
+                token: "",
+                appendToken: false,
+            },
+        },
+    },
 };

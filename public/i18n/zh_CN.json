@@ -1,5 +1,20 @@
 {
     "displayName": "Jupyter 客户端",
+    "dock": {
+        "refresh": {
+            "ariaLabel": "刷新"
+        },
+        "kernelspecs": {
+            "text": "可用的内核"
+        },
+        "kernels": {
+            "text": "启用的内核"
+        },
+        "sessions": {
+            "text": "启用的会话"
+        },
+        "title": "Jupyter"
+    },
     "settings": {
         "generalSettings": {
             "reset": {
@@ -8,6 +23,35 @@
                 "title": "重置设置选项"
             },
             "title": "常规设置"
+        },
+        "jupyterSettings": {
+            "globalTab": {
+                "enable": {
+                    "description": "开启后将尝试与 Jupyter 服务建立连接",
+                    "title": "启用 Jupyter 客户端"
+                },
+                "title": "全局设置"
+            },
+            "serviceTab": {
+                "appUrl": {
+                    "description": "Jupyter 服务的应用路径",
+                    "title": "Jupyter 应用路径"
+                },
+                "baseUrl": {
+                    "description": "Jupyter 服务的基址 URL",
+                    "title": "Jupyter 服务 URL"
+                },
+                "title": "服务设置",
+                "token": {
+                    "description": "Jupyter 服务访问 Token",
+                    "title": "Jupyter Token"
+                },
+                "wsUrl": {
+                    "description": "Jupyter 内核交互 URL",
+                    "title": "内核 Web Socket URL"
+                }
+            },
+            "title": "Jupyter 设置"
         }
     }
 }

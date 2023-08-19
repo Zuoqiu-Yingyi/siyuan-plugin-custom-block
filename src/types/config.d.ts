@@ -15,5 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import type { ServerConnection } from "@jupyterlab/services";
+
+export interface IJupyterServerSettings extends Partial<ServerConnection.ISettings> {
+    baseUrl: string; // The base url of the server.
+    appUrl: string; // The app url of the JupyterLab application.
+    wsUrl: string; // The base ws url of the server.
+    token: string; // The authentication token for requests.  Use an empty string to disable.
+}
+
+export interface IJupyterServer {
+    enable: boolean; // 是否启用客户端
+    settings: IJupyterServerSettings;
+}
+
+export interface IJupyter {
+    server: IJupyterServer;
+}
+
 export interface IConfig {
+    jupyter: IJupyter;
 }
