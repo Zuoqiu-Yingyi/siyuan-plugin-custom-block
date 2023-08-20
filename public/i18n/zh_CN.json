@@ -2,6 +2,7 @@
     "displayName": "Jupyter 客户端",
     "dock": {
         "refresh": {
+            "label": "刷新",
             "ariaLabel": "刷新"
         },
         "kernelspecs": {
@@ -12,6 +13,20 @@
         },
         "sessions": {
             "text": "启用的会话"
+        },
+        "menu": {
+            "shutdownKernel": {
+                "label": "关闭内核"
+            },
+            "shutdownSession": {
+                "label": "关闭会话"
+            },
+            "shutdownAllKernels": {
+                "label": "关闭所有内核"
+            },
+            "shutdownAllSessions": {
+                "label": "关闭所有会话"
+            }
         },
         "title": "Jupyter"
     },

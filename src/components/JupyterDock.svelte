@@ -16,12 +16,13 @@
 -->
 
 <script lang="ts">
-    import { onDestroy, createEventDispatcher, type ComponentEvents } from "svelte";
+    import { onDestroy, type ComponentEvents } from "svelte";
     import Bar from "@workspace/components/siyuan/dock/Bar.svelte";
     import FileTree from "@workspace/components/siyuan/tree/file/FileTree.svelte";
-    import type Node from "@workspace/components/siyuan/tree/file/Node.svelte";
+    import Node from "@workspace/components/siyuan/tree/file/Node.svelte";
 
     import { TooltipsDirection } from "@workspace/components/siyuan/misc/tooltips";
+    import { washMenuItems } from "@workspace/utils/siyuan/menu/wash";
     import moment from "@workspace/utils/date/moment";
 
     import type { IBar } from "@workspace/components/siyuan/dock/index";
@@ -38,6 +39,17 @@
     export let kernels: Kernel.IModel[] = []; // 活动的内核列表
     export let sessions: Session.IModel[] = []; // 活动的会话列表
 
+    const ROOT_DIRECTORY = "/"; // 根目录
+
+    const KERNELSPECS_DIRECTORY = "/kernelspecs"; // 内核清单目录
+    const KERNELSPECS_ICON = "#icon-jupyter-client-kernelspec"; // 内核清单默认图标
+
+    const KERNELS_DIRECTORY = "/kernels"; // 内核目录
+    const KERNELS_ICON = "#icon-jupyter-client-kernel"; // 内核默认图标
+
+    const SESSIONS_DIRECTORY = "/sessions"; // 会话目录
+    const SESSIONS_ICON = "#icon-jupyter-client-session"; // 会话默认图标
+
     /* 内核名称 -> object URL */
     const kernelName2objectURL = new Map<string, string>();
     const kernelName2language = new Map<string, string>();
@@ -48,9 +60,9 @@
             const node: IFileTreeFileNode = {
                 type: FileTreeNodeType.File,
                 name,
-                path: `/kernelspecs/${name}`,
-                directory: "/kernelspecs",
-                icon: "#icon-jupyter-client-kernelspec",
+                path: `${KERNELSPECS_DIRECTORY}/${name}`,
+                directory: KERNELSPECS_DIRECTORY,
+                icon: KERNELSPECS_ICON,
                 text: name,
                 textAriaLabel: spec.display_name,
             };
@@ -102,10 +114,10 @@
             const datetime = moment(kernel.last_activity);
             nodes.push({
                 type: FileTreeNodeType.File,
-                name: kernel.name,
-                path: `/kernels/${kernel.id}`,
-                directory: "/kernels",
-                icon: kernelName2objectURL.get(kernel.name) ?? "#icon-jupyter-client-kernel",
+                name: kernel.id,
+                path: `${KERNELS_DIRECTORY}/${kernel.id}`,
+                directory: KERNELS_DIRECTORY,
+                icon: kernelName2objectURL.get(kernel.name) ?? KERNELS_ICON,
                 iconAriaLabel: kernelName2language.get(kernel.name),
                 text: kernel.name,
                 textAriaLabel: `${datetime.format("YYYY-MM-DD hh:mm:ss")}<br/>${datetime.fromNow()}`,
@@ -123,10 +135,10 @@
             nodes.push({
                 type: FileTreeNodeType.File,
                 name: session.id,
-                path: `/sessions/${session.id}`,
-                directory: "/sessions",
+                path: `${SESSIONS_DIRECTORY}/${session.id}`,
+                directory: SESSIONS_DIRECTORY,
 
-                icon: kernelName2objectURL.get(session.kernel.name) ?? "#icon-jupyter-client-session",
+                icon: kernelName2objectURL.get(session.kernel.name) ?? SESSIONS_ICON,
                 iconAriaLabel: kernelName2language.get(session.kernel.name),
                 text: session.name,
                 textAriaLabel: `${session.kernel.name}<br/>${session.path}`,
@@ -170,32 +182,32 @@
     let roots: IFileTreeRootNode[] = [
         {
             type: FileTreeNodeType.Root,
-            name: "/kernelspec",
-            path: "/kernelspec",
-            directory: "/",
+            name: "kernelspec",
+            path: KERNELSPECS_DIRECTORY,
+            directory: ROOT_DIRECTORY,
             depth: 0,
             folded: false,
-            icon: "#icon-jupyter-client-kernelspec",
+            icon: KERNELSPECS_ICON,
             text: plugin.i18n.dock.kernelspecs.text,
         },
         {
             type: FileTreeNodeType.Root,
-            name: "/kernels",
-            path: "/kernels",
-            directory: "/",
+            name: "kernels",
+            path: KERNELS_DIRECTORY,
+            directory: ROOT_DIRECTORY,
             depth: 0,
             folded: false,
-            icon: "#icon-jupyter-client-kernel",
+            icon: KERNELS_ICON,
             text: plugin.i18n.dock.kernels.text,
         },
         {
             type: FileTreeNodeType.Root,
-            name: "/sessions",
-            path: "/sessions",
-            directory: "/",
+            name: "sessions",
+            path: SESSIONS_DIRECTORY,
+            directory: ROOT_DIRECTORY,
             depth: 0,
             folded: false,
-            icon: "#icon-jupyter-client-session",
+            icon: SESSIONS_ICON,
             text: plugin.i18n.dock.sessions.text,
         },
     ];
@@ -241,10 +253,106 @@
         const node = e.detail.props;
         node.folded.set(false);
     }
+
+    /* 菜单 */
+    function menu(e: ComponentEvents<Node>["menu"]) {
+        // plugin.logger.debug(e);
+        const node = e.detail.props;
+        const name = get(node.name);
+        const path = get(node.path);
+        const directory = get(node.directory);
+
+        const items: import("siyuan").IMenuItemOption[] = [];
+
+        if (path === KERNELSPECS_DIRECTORY) {
+            // 可用内核目录
+            items.push({
+                icon: "iconRefresh",
+                label: plugin.i18n.dock.refresh.label,
+                click: async () => {
+                    await plugin.jupyter?.kernelspecs.refreshSpecs();
+                },
+            });
+        }
+
+        if (path === KERNELS_DIRECTORY) {
+            // 内核目录
+            items.push({
+                icon: "iconRefresh",
+                label: plugin.i18n.dock.refresh.label,
+                click: async () => {
+                    await plugin.jupyter?.kernels.refreshRunning();
+                },
+            });
+            items.push({ type: "separator" });
+            items.push({
+                icon: "iconClose",
+                label: plugin.i18n.dock.menu.shutdownAllKernels.label,
+                click: async () => {
+                    await plugin.jupyter?.kernels.shutdownAll();
+                },
+            });
+        }
+
+        if (directory === KERNELS_DIRECTORY) {
+            // 内核
+            items.push({
+                icon: "iconClose",
+                label: plugin.i18n.dock.menu.shutdownKernel.label,
+                click: async () => {
+                    await plugin.jupyter?.kernels.shutdown(name);
+                },
+            });
+        }
+
+        if (path === SESSIONS_DIRECTORY) {
+            // 会话目录
+            items.push({
+                icon: "iconRefresh",
+                label: plugin.i18n.dock.refresh.label,
+                click: async () => {
+                    await plugin.jupyter?.sessions.refreshRunning();
+                },
+            });
+            items.push({ type: "separator" });
+            items.push({
+                icon: "iconClose",
+                label: plugin.i18n.dock.menu.shutdownAllSessions.label,
+                click: async () => {
+                    await plugin.jupyter?.sessions.shutdownAll();
+                },
+            });
+        }
+
+        if (directory === SESSIONS_DIRECTORY) {
+            // 会话
+            items.push({
+                icon: "iconClose",
+                label: plugin.i18n.dock.menu.shutdownSession.label,
+                click: async () => {
+                    await plugin.jupyter?.sessions.shutdown(name);
+                },
+            });
+        }
+
+        washMenuItems(items);
+        if (items.length > 0) {
+            const menu = new plugin.siyuan.Menu();
+            items.forEach(item => menu.addItem(item));
+
+            const event = e.detail.e;
+            menu.open({
+                x: event.clientX,
+                y: event.clientY,
+                isLeft: false,
+            });
+        }
+    }
 </script>
 
 <Bar {...bar} />
 <FileTree
+    on:menu={menu}
     on:fold={fold}
     on:unfold={unfold}
     {roots}
