@@ -38,6 +38,8 @@ export class Jupyter extends ServiceManager {
     }
 
     protected onload(): void {
+        this.connectionFailure.connect(this.errorEventListener);
+
         this.kernelspecs.specsChanged.connect(this.plugin.kernelSpecsChangedEventListener);
         this.kernelspecs.connectionFailure.connect(this.errorEventListener);
 
@@ -49,6 +51,8 @@ export class Jupyter extends ServiceManager {
     }
 
     protected unload(): void {
+        this.connectionFailure.disconnect(this.errorEventListener);
+
         this.kernelspecs.specsChanged.disconnect(this.plugin.kernelSpecsChangedEventListener);
         this.kernelspecs.connectionFailure.disconnect(this.errorEventListener);
 

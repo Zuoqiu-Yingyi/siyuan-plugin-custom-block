@@ -49,6 +49,7 @@ import type {
     Session,
 } from "@jupyterlab/services";
 import { DEFAULT_SETTINGS } from "./jupyter/settings";
+import type { ComponentEvents } from "svelte";
 export default class TemplatePlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
 
@@ -219,7 +220,6 @@ export default class TemplatePlugin extends siyuan.Plugin {
             init,
         );
     }
-
 
     /* 内核清单更改 */
     public readonly kernelSpecsChangedEventListener = (manager: KernelSpec.IManager, models: KernelSpec.ISpecModels) => {

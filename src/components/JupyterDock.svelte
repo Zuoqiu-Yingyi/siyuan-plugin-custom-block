@@ -16,9 +16,10 @@
 -->
 
 <script lang="ts">
-    import { onDestroy, createEventDispatcher } from "svelte";
+    import { onDestroy, createEventDispatcher, type ComponentEvents } from "svelte";
     import Bar from "@workspace/components/siyuan/dock/Bar.svelte";
     import FileTree from "@workspace/components/siyuan/tree/file/FileTree.svelte";
+    import type Node from "@workspace/components/siyuan/tree/file/Node.svelte";
 
     import { TooltipsDirection } from "@workspace/components/siyuan/misc/tooltips";
     import moment from "@workspace/utils/date/moment";
@@ -27,6 +28,7 @@
     import type Plugin from "@/index";
     import { FileTreeNodeType, type IFileTreeFileNode, type IFileTreeRootNode } from "@workspace/components/siyuan/tree/file";
     import type { KernelSpec, Kernel, Session } from "@jupyterlab/services";
+    import { get } from "svelte/store";
 
     export let plugin: InstanceType<typeof Plugin>; // 插件对象
     export let kernelspecs: KernelSpec.ISpecModels = {
@@ -225,7 +227,25 @@
             URL.revokeObjectURL(objectURL);
         }
     });
+
+    /* 折叠文件夹 */
+    function fold(e: ComponentEvents<Node>["fold"]) {
+        // plugin.logger.debug(e);
+        const node = e.detail.props;
+        node.folded.set(true);
+    }
+
+    /* 展开文件夹 */
+    async function unfold(e: ComponentEvents<Node>["unfold"]) {
+        // plugin.logger.debug(e);
+        const node = e.detail.props;
+        node.folded.set(false);
+    }
 </script>
 
 <Bar {...bar} />
-<FileTree {roots} />
+<FileTree
+    on:fold={fold}
+    on:unfold={unfold}
+    {roots}
+/>
