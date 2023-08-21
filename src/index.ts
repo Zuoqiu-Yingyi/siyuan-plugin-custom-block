@@ -66,12 +66,14 @@ import {
 
 export default class WebviewPlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
+    static readonly WEBVIEW_TAB_TYPE = "-webview-tag";
 
     public readonly siyuan = siyuan;
     public readonly logger: InstanceType<typeof Logger>;
 
     protected readonly TOP_BAR_MENU_ID: string;
     protected readonly SETTINGS_DIALOG_ID: string;
+    protected readonly WEBVIEW_TAB_ID: string;
     protected readonly webview_tab: ReturnType<siyuan.Plugin["addTab"]>;
     protected tab_bar_item: ReturnType<siyuan.Plugin["addTopBar"]>;
     protected config: IConfig;
@@ -82,10 +84,11 @@ export default class WebviewPlugin extends siyuan.Plugin {
         this.logger = new Logger(this.name);
         this.TOP_BAR_MENU_ID = `${this.name}-top-bar-menu`;
         this.SETTINGS_DIALOG_ID = `${this.name}-settings-dialog`;
+        this.WEBVIEW_TAB_ID = `${this.name}${WebviewPlugin.WEBVIEW_TAB_TYPE}`;
 
         const plugin = this;
         this.webview_tab = this.addTab({
-            type: "-webview-tag",
+            type: WebviewPlugin.WEBVIEW_TAB_TYPE,
             init() {
                 // pluginContext.logger.debug(this)
 
@@ -289,7 +292,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
             custom: {
                 icon,
                 title: title || this.name,
-                fn: this.webview_tab,
+                id: this.WEBVIEW_TAB_ID,
                 data: {
                     href,
                     title: title || this.name,
