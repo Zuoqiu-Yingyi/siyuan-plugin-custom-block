@@ -29,8 +29,18 @@ export interface IJupyterServer {
     settings: IJupyterServerSettings;
 }
 
+export interface IJupyterImportParams {
+    escaped: boolean; // 是否转义
+    cntrl: boolean; // 是否解析控制字符
+}
+
+export interface IJupyterImport {
+    params: IJupyterImportParams;
+}
+
 export interface IJupyter {
     server: IJupyterServer;
+    import: IJupyterImport;
 }
 
 export interface IConfig {

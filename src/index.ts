@@ -39,14 +39,20 @@ import {
     type types,
 } from "@siyuan-community/siyuan-sdk";
 
+import Item from "@workspace/components/siyuan/menu/Item.svelte"
 import Settings from "./components/Settings.svelte";
 import JupyterDock from "./components/JupyterDock.svelte";
 
 import {
     FLAG_MOBILE,
 } from "@workspace/utils/env/front-end";
+import {
+    getBlockMenuContext,
+} from "@workspace/utils/siyuan/menu/block";
 import { Logger } from "@workspace/utils/logger";
 import { mergeIgnoreArray } from "@workspace/utils/misc/merge";
+import { fn__code } from "@workspace/utils/siyuan/text/span";
+import { DEFAULT_SETTINGS } from "./jupyter/settings";
 import { DEFAULT_CONFIG } from "./configs/default";
 import type { I18N } from "./utils/i18n";
 import type { IConfig } from "./types/config";
@@ -56,7 +62,12 @@ import type {
     Kernel,
     Session,
 } from "@jupyterlab/services";
-import { DEFAULT_SETTINGS } from "./jupyter/settings";
+import type {
+    IClickBlockIconEvent,
+    IClickEditorTitleIconEvent,
+} from "@workspace/types/siyuan/events";
+import { IpynbImport } from "./jupyter/import";
+import type { BlockID } from "@workspace/types/siyuan";
 
 export default class TemplatePlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
@@ -69,7 +80,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
 
     protected readonly SETTINGS_DIALOG_ID: string;
 
-    protected config: IConfig = DEFAULT_CONFIG;
+    public config: IConfig = DEFAULT_CONFIG;
 
     public jupyter?: InstanceType<typeof Jupyter>; // jupyter 客户端
     protected jupyterDock: {
@@ -78,6 +89,45 @@ export default class TemplatePlugin extends siyuan.Plugin {
         model?: siyuan.IModel,
         component?: InstanceType<typeof JupyterDock>,
     }; // Jupyter 管理面板
+    public readonly attrs = {
+        kernel: {
+            id: "custom-jupyter-kernel-id", // 内核 ID
+            name: "custom-jupyter-kernel-name", // 内核名称
+            language: "custom-jupyter-kernel-language", // 内核语言
+            display_name: 'custom-jupyter-kernel-display-name', // 内核友好名称
+        },
+        session: {
+            id: "custom-jupyter-session-id", // 会话 ID
+            name: "custom-jupyter-session-name", // 会话名称
+            path: "custom-jupyter-session-path", // 会话路径
+        },
+        code: {
+            type: {
+                key: "custom-jupyter-block-type",
+                value: "code",
+            },
+            time: "custom-jupyter-time", // 上次运行时间+运行时长
+            output: "custom-jupyter-output-block-id", // 对应的输出块 ID
+            index: "custom-jupyter-index", // 块运行序号
+        },
+        output: {
+            type: {
+                key: "custom-jupyter-block-type",
+                value: "output",
+            },
+            code: "custom-jupyter-code-block-id", // 对应的代码块 ID
+            index: "custom-jupyter-index", // 块运行序号
+        },
+        other: {
+            prompt: `custom-prompt`, // 提示文本
+        },
+    } as const; // 块属性
+    public readonly styles = {
+        success: 'color: var(--b3-card-success-color); background-color: var(--b3-card-success-background);',
+        info: 'color: var(--b3-card-info-color); background-color: var(--b3-card-info-background);',
+        warning: 'color: var(--b3-card-warning-color); background-color: var(--b3-card-warning-background);',
+        error: 'color: var(--b3-card-error-color); background-color: var(--b3-card-error-background);',
+    } as const; // 样式
 
     constructor(options: any) {
         super(options);
@@ -152,6 +202,8 @@ export default class TemplatePlugin extends siyuan.Plugin {
             })
             .catch(error => this.logger.error(error))
             .finally(() => {
+                this.eventBus.on("click-editortitleicon", this.blockMenuEventListener);
+                this.eventBus.on("click-blockicon", this.blockMenuEventListener);
             });
     }
 
@@ -163,6 +215,8 @@ export default class TemplatePlugin extends siyuan.Plugin {
     }
 
     onunload(): void {
+        this.eventBus.off("click-editortitleicon", this.blockMenuEventListener);
+        this.eventBus.off("click-blockicon", this.blockMenuEventListener);
     }
 
     openSetting(): void {
@@ -205,6 +259,10 @@ export default class TemplatePlugin extends siyuan.Plugin {
         return this.config?.jupyter.server.settings.baseUrl || DEFAULT_SETTINGS.baseUrl;
     }
 
+    public get newNodeID(): string {
+        return globalThis.Lute.NewNodeID();
+    }
+
     /**
      * jupyter 请求
      */
@@ -237,6 +295,94 @@ export default class TemplatePlugin extends siyuan.Plugin {
         );
     }
 
+    /* 块菜单菜单弹出事件监听器 */
+    protected readonly blockMenuEventListener = (e: IClickBlockIconEvent | IClickEditorTitleIconEvent) => {
+        // this.logger.debug(e);
+
+        const detail = e.detail;
+        const context = getBlockMenuContext(detail); // 获取块菜单上下文
+        if (context) {
+            const submenu: siyuan.IMenuItemOption[] = [];
+            if (context.isDocumentBlock) {
+                submenu.push({
+                    icon: "iconUpload",
+                    label: this.i18n.menu.import.label,
+                    accelerator: fn__code(this.i18n.menu.import.accelerator),
+                    submenu: [
+                        { // 覆写
+                            element: globalThis.document.createElement("div"), // 避免生成其他内容
+                            bind: element => {
+                                /* 挂载一个 svelte 菜单项组件 */
+                                const item = new Item({
+                                    target: element,
+                                    props: {
+                                        file: true,
+                                        icon: "#iconEdit",
+                                        label: this.i18n.menu.override.label,
+                                        accept: ".ipynb",
+                                        multiple: false,
+                                        webkitdirectory: false,
+                                    },
+                                });
+
+                                item.$on("selected", async e => {
+                                    // this.plugin.logger.debug(e);
+                                    const files = e.detail.files;
+                                    if (files.length > 0) {
+                                        const file = files.item(0);
+                                        await this.importIpynb(
+                                            context.id,
+                                            file,
+                                            "override",
+                                        );
+                                    }
+                                });
+                            },
+                        },
+                        { // 追加
+                            element: globalThis.document.createElement("div"), // 避免生成其他内容
+                            bind: element => {
+                                /* 挂载一个 svelte 菜单项组件 */
+                                const item = new Item({
+                                    target: element,
+                                    props: {
+                                        file: true,
+                                        icon: "#iconAfter",
+                                        label: this.i18n.menu.append.label,
+                                        accept: ".ipynb",
+                                        multiple: false,
+                                        webkitdirectory: false,
+                                    },
+                                });
+
+                                item.$on("selected", async e => {
+                                    // this.plugin.logger.debug(e);
+                                    const files = e.detail.files;
+                                    if (files.length > 0) {
+                                        const file = files.item(0);
+                                        await this.importIpynb(
+                                            context.id,
+                                            file,
+                                            "append",
+                                        );
+                                    }
+                                });
+                            },
+                        },
+                    ]
+                })
+                submenu.push();
+            }
+
+            detail.menu.addItem({
+                submenu,
+                icon: "icon-jupyter-client-simple",
+                label: this.i18n.displayName,
+                accelerator: this.name,
+            });
+        }
+    };
+
     /* 内核清单更改 */
     public readonly kernelSpecsChangedEventListener = (manager: KernelSpec.IManager, models: KernelSpec.ISpecModels) => {
         // this.logger.debug(models);
@@ -259,5 +405,47 @@ export default class TemplatePlugin extends siyuan.Plugin {
         this.jupyterDock.component?.$set({
             sessions: models,
         });
+    }
+
+    /**
+     * 导入 *.ipynb 文件
+     * @param id 文档块 ID
+     * @param file 文件
+     * @param type 写入类型
+     */
+    public async importIpynb(
+        id: BlockID,
+        file: File,
+        type: "override" | "append",
+    ): Promise<void> {
+        const ipynb_import = new IpynbImport(this);
+        await ipynb_import.loadFile(file)
+        await ipynb_import.parse();
+        const kramdown = ipynb_import.kramdown;
+        const attrs = ipynb_import.attrs;
+
+        /* 设置文档块属性 */
+        await this.client.setBlockAttrs({
+            id,
+            attrs,
+        });
+
+        /* 更改文档块内容 */
+        switch (type) {
+            case "override":
+                await this.client.updateBlock({
+                    id,
+                    data: kramdown,
+                    dataType: "markdown",
+                });
+                break;
+            case "append":
+                await this.client.appendBlock({
+                    parentID: id,
+                    data: kramdown,
+                    dataType: "markdown",
+                });
+                break;
+        }
     }
 };

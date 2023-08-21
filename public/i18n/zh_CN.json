@@ -1,15 +1,29 @@
 {
     "displayName": "Jupyter 客户端",
     "dock": {
-        "refresh": {
-            "label": "刷新",
-            "ariaLabel": "刷新"
+        "kernels": {
+            "text": "运行的内核"
         },
         "kernelspecs": {
             "text": "已安装内核"
         },
-        "kernels": {
-            "text": "运行的内核"
+        "menu": {
+            "shutdownAllKernels": {
+                "label": "关闭所有内核"
+            },
+            "shutdownAllSessions": {
+                "label": "关闭所有会话"
+            },
+            "shutdownKernel": {
+                "label": "关闭内核"
+            },
+            "shutdownSession": {
+                "label": "关闭会话"
+            }
+        },
+        "refresh": {
+            "ariaLabel": "刷新",
+            "label": "刷新"
         },
         "resources": {
             "text": "Jupyter 资源列表"
@@ -17,21 +31,19 @@
         "sessions": {
             "text": "运行的会话"
         },
-        "menu": {
-            "shutdownKernel": {
-                "label": "关闭内核"
-            },
-            "shutdownSession": {
-                "label": "关闭会话"
-            },
-            "shutdownAllKernels": {
-                "label": "关闭所有内核"
-            },
-            "shutdownAllSessions": {
-                "label": "关闭所有会话"
-            }
-        },
         "title": "Jupyter"
+    },
+    "menu": {
+        "append": {
+            "label": "追加到当前文档末尾"
+        },
+        "import": {
+            "accelerator": "*.ipynb",
+            "label": "导入 Jupyter 文件"
+        },
+        "override": {
+            "label": "覆盖当前文档"
+        }
     },
     "settings": {
         "generalSettings": {

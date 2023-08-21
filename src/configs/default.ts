@@ -29,5 +29,11 @@ export const DEFAULT_CONFIG: IConfig = {
                 appendToken: false,
             },
         },
+        import: {
+            params: {
+                escaped: true,
+                cntrl: true,
+            },
+        },
     },
 };

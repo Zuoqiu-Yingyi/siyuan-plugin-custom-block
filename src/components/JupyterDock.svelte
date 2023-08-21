@@ -94,8 +94,8 @@
 
     async function respurces2node(
         kernelspecs: KernelSpec.ISpecModels, //
-        kernels: Kernel.IModel[], //
-        sessions: Session.IModel[], //
+        _kernels: Kernel.IModel[], // 使用 running() 获取最新的状态
+        _sessions: Session.IModel[], // 使用 running() 获取最新的状态
     ): Promise<IFileTreeFolderNode[]> {
         /* 内核清单列表 */
         const spec_nodes: IFileTreeFolderNode[] = [];
@@ -118,7 +118,7 @@
             /* 内核列表 */
             spec_node.children = (() => {
                 const kernel_nodes: IFileTreeFolderNode[] = [];
-                for (const kernel of kernels) {
+                for (const kernel of plugin.jupyter.kernels.running()) {
                     if (kernel.name !== spec.name) {
                         continue;
                     }
@@ -141,7 +141,7 @@
                     /* 会话列表 */
                     kernel_node.children = (() => {
                         const session_nodes: IFileTreeFileNode[] = [];
-                        for (const session of sessions) {
+                        for (const session of plugin.jupyter.sessions.running()) {
                             if (session.kernel.id !== kernel.id) {
                                 continue;
                             }
