@@ -22,9 +22,17 @@ import icon_jupyter_client from "./assets/symbols/icon-jupyter-client.symbol?raw
 import icon_jupyter_client_simple from "./assets/symbols/icon-jupyter-client-simple.symbol?raw";
 import icon_jupyter_client_kernelspec from "./assets/symbols/icon-jupyter-client-kernelspec.symbol?raw";
 import icon_jupyter_client_kernel from "./assets/symbols/icon-jupyter-client-kernel.symbol?raw";
+import icon_jupyter_client_kernel_unknown from "./assets/symbols/icon-jupyter-client-kernel-unknown.symbol?raw";
+import icon_jupyter_client_kernel_starting from "./assets/symbols/icon-jupyter-client-kernel-starting.symbol?raw";
+import icon_jupyter_client_kernel_idle from "./assets/symbols/icon-jupyter-client-kernel-idle.symbol?raw";
+import icon_jupyter_client_kernel_busy from "./assets/symbols/icon-jupyter-client-kernel-busy.symbol?raw";
+import icon_jupyter_client_kernel_terminating from "./assets/symbols/icon-jupyter-client-kernel-terminating.symbol?raw";
+import icon_jupyter_client_kernel_restarting from "./assets/symbols/icon-jupyter-client-kernel-restarting.symbol?raw";
+import icon_jupyter_client_kernel_autorestarting from "./assets/symbols/icon-jupyter-client-kernel-autorestarting.symbol?raw";
+import icon_jupyter_client_kernel_dead from "./assets/symbols/icon-jupyter-client-kernel-dead.symbol?raw";
 import icon_jupyter_client_session from "./assets/symbols/icon-jupyter-client-session.symbol?raw";
-import icon_jupyter_client_console from "./assets/symbols/icon-jupyter-client-console.symbol?raw";
-import icon_jupyter_client_notebook from "./assets/symbols/icon-jupyter-client-notebook.symbol?raw";
+import icon_jupyter_client_session_console from "./assets/symbols/icon-jupyter-client-session-console.symbol?raw";
+import icon_jupyter_client_session_notebook from "./assets/symbols/icon-jupyter-client-session-notebook.symbol?raw";
 
 import {
     Client,
@@ -49,7 +57,7 @@ import type {
     Session,
 } from "@jupyterlab/services";
 import { DEFAULT_SETTINGS } from "./jupyter/settings";
-import type { ComponentEvents } from "svelte";
+
 export default class TemplatePlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
 
@@ -89,9 +97,17 @@ export default class TemplatePlugin extends siyuan.Plugin {
             icon_jupyter_client_simple,
             icon_jupyter_client_kernelspec,
             icon_jupyter_client_kernel,
+            icon_jupyter_client_kernel_unknown,
+            icon_jupyter_client_kernel_starting,
+            icon_jupyter_client_kernel_idle,
+            icon_jupyter_client_kernel_busy,
+            icon_jupyter_client_kernel_terminating,
+            icon_jupyter_client_kernel_restarting,
+            icon_jupyter_client_kernel_autorestarting,
+            icon_jupyter_client_kernel_dead,
             icon_jupyter_client_session,
-            icon_jupyter_client_console,
-            icon_jupyter_client_notebook,
+            icon_jupyter_client_session_console,
+            icon_jupyter_client_session_notebook,
         ].join(""));
 
         /* 注册侧边栏 */

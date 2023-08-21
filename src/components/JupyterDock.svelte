@@ -27,7 +27,7 @@
 
     import type { IBar } from "@workspace/components/siyuan/dock/index";
     import type Plugin from "@/index";
-    import { FileTreeNodeType, type IFileTreeFileNode, type IFileTreeRootNode } from "@workspace/components/siyuan/tree/file";
+    import { FileTreeNodeType, type IFileTreeFileNode, type IFileTreeFolderNode, type IFileTreeRootNode } from "@workspace/components/siyuan/tree/file";
     import type { KernelSpec, Kernel, Session } from "@jupyterlab/services";
     import { get } from "svelte/store";
 
@@ -38,8 +38,12 @@
     }; // 内核清单
     export let kernels: Kernel.IModel[] = []; // 活动的内核列表
     export let sessions: Session.IModel[] = []; // 活动的会话列表
+    export let currentSession: string = ""; // 当前的会话
 
     const ROOT_DIRECTORY = "/"; // 根目录
+
+    const RESOURCES_DIRECTORY = "/respurces"; // 资源清单目录
+    const RESOURCES_ICON = "#icon-jupyter-client-simple"; // 资源清单默认图标
 
     const KERNELSPECS_DIRECTORY = "/kernelspecs"; // 内核清单目录
     const KERNELSPECS_ICON = "#icon-jupyter-client-kernelspec"; // 内核清单默认图标
@@ -50,9 +54,129 @@
     const SESSIONS_DIRECTORY = "/sessions"; // 会话目录
     const SESSIONS_ICON = "#icon-jupyter-client-session"; // 会话默认图标
 
+    const DATETIME_FORMAT = "YYYY-MM-DD hh:mm:ss"; // 日期时间格式
+
     /* 内核名称 -> object URL */
     const kernelName2objectURL = new Map<string, string>();
     const kernelName2language = new Map<string, string>();
+
+    /* 加载内核图标 */
+    async function loadKernelSpecIcon(spec: KernelSpec.ISpecModel, defaultIcon: string = KERNELSPECS_ICON): Promise<string> {
+        const pathname = (() => {
+            switch (true) {
+                case "logo-svg" in spec.resources:
+                    return spec.resources["logo-svg"];
+                case "logo-32x32" in spec.resources:
+                    return spec.resources["logo-32x32"];
+                case "logo-64x64" in spec.resources:
+                    return spec.resources["logo-64x64"];
+                default:
+                    if (Object.keys(spec.resources).length > 0) {
+                        return Object.values(spec.resources)[0];
+                    } else {
+                        return "";
+                    }
+            }
+        })();
+        if (pathname) {
+            const response = await plugin.jupyterFetch(pathname, {
+                method: "GET",
+            });
+            const blob = await response.blob();
+            const objectURL = URL.createObjectURL(blob);
+
+            kernelName2objectURL.set(spec.name, objectURL);
+            return objectURL;
+        } else {
+            return defaultIcon;
+        }
+    }
+
+    async function respurces2node(
+        kernelspecs: KernelSpec.ISpecModels, //
+        kernels: Kernel.IModel[], //
+        sessions: Session.IModel[], //
+    ): Promise<IFileTreeFolderNode[]> {
+        /* 内核清单列表 */
+        const spec_nodes: IFileTreeFolderNode[] = [];
+        for (const [name, spec] of Object.entries(kernelspecs.kernelspecs)) {
+            const spec_path = `${RESOURCES_DIRECTORY}/${spec.name}`;
+            const spec_node: IFileTreeFolderNode = {
+                type: FileTreeNodeType.Folder,
+                name: spec.name,
+                path: spec_path,
+                directory: RESOURCES_DIRECTORY,
+                folded: false,
+                icon: kernelName2objectURL.has(spec.name) //
+                    ? kernelName2objectURL.get(spec.name) //
+                    : await loadKernelSpecIcon(spec),
+                iconAriaLabel: spec.language,
+                text: spec.name,
+                textAriaLabel: spec.display_name,
+            };
+
+            /* 内核列表 */
+            spec_node.children = (() => {
+                const kernel_nodes: IFileTreeFolderNode[] = [];
+                for (const kernel of kernels) {
+                    if (kernel.name !== spec.name) {
+                        continue;
+                    }
+
+                    const kernel_path = `${spec_path}/${kernel.id}`;
+                    const datetime = moment(kernel.last_activity);
+                    const kernel_node: IFileTreeFolderNode = {
+                        type: FileTreeNodeType.Folder,
+                        name: kernel.id,
+                        path: kernel_path,
+                        directory: spec_path,
+                        folded: false,
+                        icon: `#icon-jupyter-client-kernel-${kernel.execution_state}`,
+                        iconAriaLabel: kernel.execution_state,
+                        text: kernel.name,
+                        textAriaLabel: `${datetime.format(DATETIME_FORMAT)}<br/>${datetime.fromNow()}`,
+                        title: kernel.id,
+                    };
+
+                    /* 会话列表 */
+                    kernel_node.children = (() => {
+                        const session_nodes: IFileTreeFileNode[] = [];
+                        for (const session of sessions) {
+                            if (session.kernel.id !== kernel.id) {
+                                continue;
+                            }
+
+                            const session_path = `${kernel_path}/${session.id}`;
+                            const session_node: IFileTreeFileNode = {
+                                type: FileTreeNodeType.File,
+                                name: session.id,
+                                path: session_path,
+                                directory: kernel_path,
+
+                                icon: `#icon-jupyter-client-session-${session.type}`,
+                                iconAriaLabel: session.type,
+                                text: session.name,
+                                textAriaLabel: session.path,
+                                title: session.id,
+                            };
+
+                            session_nodes.push(session_node);
+                        }
+                        return session_nodes;
+                    })();
+                    kernel_node.count = kernel_node.children.length;
+
+                    kernel_nodes.push(kernel_node);
+                }
+                return kernel_nodes;
+            })();
+            spec_node.count = spec_node.children.length;
+
+            kernelName2language.set(spec.name, spec.language);
+            spec_nodes.push(spec_node);
+        }
+        return spec_nodes;
+    }
 
     async function kernelspecs2node(kernelspecs: KernelSpec.ISpecModels): Promise<IFileTreeFileNode[]> {
         const nodes: IFileTreeFileNode[] = [];
@@ -72,33 +196,9 @@
             if (icon) {
                 node.icon = icon;
             } else {
-                const pathname = (() => {
-                    switch (true) {
-                        case "logo-svg" in spec.resources:
-                            return spec.resources["logo-svg"];
-                        case "logo-32x32" in spec.resources:
-                            return spec.resources["logo-32x32"];
-                        case "logo-64x64" in spec.resources:
-                            return spec.resources["logo-64x64"];
-                        default:
-                            if (Object.keys(spec.resources).length > 0) {
-                                return Object.values(spec.resources)[0];
-                            } else {
-                                return "";
-                            }
-                    }
-                })();
-                if (pathname) {
-                    const response = await plugin.jupyterFetch(pathname, {
-                        method: "GET",
-                    });
-                    const blob = await response.blob();
-                    const objectURL = URL.createObjectURL(blob);
-
-                    kernelName2objectURL.set(name, objectURL);
-                    node.icon = objectURL;
-                }
+                node.icon = await loadKernelSpecIcon(spec);
             }
+
             node.iconAriaLabel = spec.language;
             kernelName2language.set(name, spec.language);
 
@@ -120,9 +220,11 @@
                 icon: kernelName2objectURL.get(kernel.name) ?? KERNELS_ICON,
                 iconAriaLabel: kernelName2language.get(kernel.name),
                 text: kernel.name,
-                textAriaLabel: `${datetime.format("YYYY-MM-DD hh:mm:ss")}<br/>${datetime.fromNow()}`,
+                textAriaLabel: `${datetime.format(DATETIME_FORMAT)}<br/>${datetime.fromNow()}`,
+                symlink: true,
+                symlinkIcon: `#icon-jupyter-client-kernel-${kernel.execution_state}`,
+                symlinkAriaLabel: kernel.execution_state,
                 count: kernel.connections,
-                countAriaLabel: kernel.execution_state,
                 title: kernel.id,
             });
         }
@@ -143,7 +245,7 @@
                 text: session.name,
                 textAriaLabel: `${session.kernel.name}<br/>${session.path}`,
                 symlink: true,
-                symlinkIcon: `#icon-jupyter-client-${session.type}`,
+                symlinkIcon: `#icon-jupyter-client-session-${session.type}`,
                 symlinkAriaLabel: session.type,
                 count: session.kernel.connections,
                 countAriaLabel: session.kernel.execution_state,
@@ -182,6 +284,16 @@
     let roots: IFileTreeRootNode[] = [
         {
             type: FileTreeNodeType.Root,
+            name: "respurces",
+            path: RESOURCES_DIRECTORY,
+            directory: ROOT_DIRECTORY,
+            depth: 0,
+            folded: false,
+            icon: RESOURCES_ICON,
+            text: plugin.i18n.dock.resources.text,
+        },
+        {
+            type: FileTreeNodeType.Root,
             name: "kernelspec",
             path: KERNELSPECS_DIRECTORY,
             directory: ROOT_DIRECTORY,
@@ -215,22 +327,42 @@
     /* 动态更新 jupyter 服务状态 */
     $: {
         roots[0].count = Object.keys(kernelspecs.kernelspecs).length;
-        kernelspecs2node(kernelspecs).then(children => {
-            /* 确保内核图标已加载 */
+        respurces2node(kernelspecs, kernels, sessions).then(children => {
             roots[0].children = children;
-            roots[1].children = kernels2node(kernels);
-            roots[2].children = sessions2node(sessions);
         });
     }
 
     $: {
-        roots[1].count = kernels.length;
-        roots[1].children = kernels2node(kernels);
+        roots[1].count = Object.keys(kernelspecs.kernelspecs).length;
+        kernelspecs2node(kernelspecs).then(async children => {
+            /* 确保内核图标已加载 */
+            roots[1].children = children;
+            roots[2].children = kernels2node(kernels);
+            roots[3].children = sessions2node(sessions);
+        });
     }
 
     $: {
-        roots[2].count = sessions.length;
-        roots[2].children = sessions2node(sessions);
+        roots[2].count = kernels.length;
+        roots[2].children = kernels2node(kernels);
+    }
+
+    $: {
+        roots[3].count = sessions.length;
+        roots[3].children = sessions2node(sessions);
+    }
+
+    /* 动态更新当前会话 */
+    $: {
+        if (roots[2].children?.length > 0) {
+            roots[2].children.forEach(session => {
+                if (session.name === currentSession) {
+                    session.focus = true;
+                } else {
+                    session.focus = false;
+                }
+            });
+        }
     }
 
     /* 回收资源 */
