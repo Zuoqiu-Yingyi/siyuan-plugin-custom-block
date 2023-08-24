@@ -15,13 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { defineConfig } from "vite";
+import {
+    defineConfig,
+    type BuildOptions,
+} from "vite";
 import { resolve } from "path"
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { less } from "svelte-preprocess-less";
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(async env => ({
     base: `./`,
     plugins: [
         svelte({
@@ -39,11 +42,6 @@ export default defineConfig({
     build: {
         minify: true,
         // sourcemap: "inline",
-        lib: {
-            entry: resolve(__dirname, "src/index.ts"),
-            fileName: "index",
-            formats: ["cjs"],
-        },
         rollupOptions: {
             external: [
                 "siyuan",
@@ -54,10 +52,12 @@ export default defineConfig({
                     // console.log(chunkInfo);
                     switch (chunkInfo.name) {
                         case "index":
-                            return "[name].js";
+                            return "index.js";
+                        case "jupyter":
+                            return "workers/jupyter.js";
 
                         default:
-                            return "assets/[name]-[hash].js";
+                            return "entries/[name]-[hash].js";
                     }
                 },
                 assetFileNames: assetInfo => {
@@ -73,5 +73,31 @@ export default defineConfig({
                 },
             },
         },
+        ...build(env.mode),
     },
-});
+}));
+
+function build(mode: string): BuildOptions {
+    switch (mode) {
+        default:
+        case "plugin":
+            return {
+                emptyOutDir: true,
+                lib: {
+                    entry: resolve(__dirname, "src/index.ts"),
+                    fileName: "index",
+                    formats: ["cjs"],
+                }
+            };
+
+        case "workers":
+            return {
+                emptyOutDir: false,
+                lib: {
+                    entry: resolve(__dirname, "src/workers/jupyter.ts"),
+                    fileName: "jupyter",
+                    formats: ["es"],
+                }
+            };
+    }
+}

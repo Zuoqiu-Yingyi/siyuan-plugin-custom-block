@@ -24,9 +24,10 @@ import { createIAL, createStyle } from "@workspace/utils/siyuan/ial";
 import { Output } from "./output";
 import type { IJupyterImportParams } from "@/types/config";
 import type Plugin from "@/index";
+import type { Client } from "@siyuan-community/siyuan-sdk";
 
 export interface IData {
-    [key: string]: string;
+    [key: string]: string | string[];
 }
 
 /**
@@ -36,7 +37,7 @@ export interface IData {
  * @returns 解析后的文本
  */
 export function parseText(
-    text: string,
+    text: string = "",
     params: IJupyterImportParams,
 ): string {
     const output = new Output(text);
@@ -55,19 +56,26 @@ export function parseText(
  * @returns 解析后的文本
  */
 export async function parseData(
-    plugin: InstanceType<typeof Plugin>,
+    client: InstanceType<typeof Client>,
     data: IData,
     metadata: Record<string, string>,
     params: IJupyterImportParams,
 ): Promise<string> {
     let filedata: string;
     const markdowns = new PriorityQueue<string>();
-    for (const [mime, value] of Object.entries(data)) {
+    for (const [mime, datum] of Object.entries(data)) {
+        if (Array.isArray(datum) && datum.length === 0) continue;
+
         // REF: https://www.iana.org/assignments/media-types/media-types.xhtml
-        const main = mime.split("/")[0];
-        const sub = mime.split("/")[1];
+        const types = mime.split(";")[0];
+        const main = types.split("/")[0];
+        const sub = types.split("/")[1];
         const ext = sub.split("+")[0];
         const serialized = sub.split("+")[1];
+
+        const value = Array.isArray(datum)
+            ? datum.join("\n")
+            : datum;
 
         switch (main) {
             case "text":
@@ -99,18 +107,27 @@ export async function parseData(
                         filedata = value.split("\n")[0];
                         break;
                 }
-                const title = data["text/plain"];
+                const text = data["text/plain"];
+                const title = Array.isArray(text)
+                    ? text.join(" ")
+                    : text;
+
                 const filename = `jupyter-output.${ext}`;
-                const response = await plugin.client.upload({
-                    files: [
-                        base64ToFile(filedata, mime, filename),
-                    ],
-                });
-                const filepath = response.data.succMap[filename];
-                const style = "needs_background" in metadata
-                    ? createIAL({ style: createStyle({ background: metadata.needs_background === "light" ? "white" : "black" }) })
-                    : "";
-                if (filepath) markdowns.enqueue(`![${filename}](${filepath}${isString(title) ? ` "${title.replaceAll("\"", "&quot;")}"` : ""})${style}`, 3);
+                const file = base64ToFile(filedata, mime, filename);
+                if (file) {
+                    const response = await client.upload({ files: [file] });
+                    const filepath = response.data.succMap[filename];
+                    const style = "needs_background" in metadata
+                        ? createIAL({
+                            style: createStyle({
+                                background: metadata.needs_background === "light"
+                                    ? "white"
+                                    : "black"
+                            })
+                        })
+                        : "";
+                    if (filepath) markdowns.enqueue(`![${filename}](${filepath}${isString(title) ? ` "${title.replaceAll("\"", "&quot;")}"` : ""})${style}`, 3);
+                }
                 break;
             }
             case "audio": {
@@ -120,13 +137,12 @@ export async function parseData(
                         break;
                 }
                 const filename = `jupyter-output.${ext}`;
-                const response = await plugin.client.upload({
-                    files: [
-                        base64ToFile(filedata, mime, filename),
-                    ],
-                });
-                const filepath = response.data.succMap[filename];
-                if (filepath) markdowns.enqueue(`<audio controls="controls" src="${filepath}" data-src="${filepath}"/>`, 3);
+                const file = base64ToFile(filedata, mime, filename);
+                if (file) {
+                    const response = await client.upload({ files: [file] });
+                    const filepath = response.data.succMap[filename];
+                    if (filepath) markdowns.enqueue(`<audio controls="controls" src="${filepath}" data-src="${filepath}"/>`, 3);
+                }
                 break;
             }
             case "video": {
@@ -136,13 +152,12 @@ export async function parseData(
                         break;
                 }
                 const filename = `jupyter-output.${ext}`;
-                const response = await plugin.client.upload({
-                    files: [
-                        base64ToFile(filedata, mime, filename),
-                    ],
-                });
-                const filepath = response.data.succMap[filename];
-                if (filepath) markdowns.enqueue(`<video controls="controls" src="${filepath}" data-src="${filepath}"/>`, 3);
+                const file = base64ToFile(filedata, mime, filename);
+                if (file) {
+                    const response = await client.upload({ files: [file] });
+                    const filepath = response.data.succMap[filename];
+                    if (filepath) markdowns.enqueue(`<video controls="controls" src="${filepath}" data-src="${filepath}"/>`, 3);
+                }
             }
                 break;
             case "application":

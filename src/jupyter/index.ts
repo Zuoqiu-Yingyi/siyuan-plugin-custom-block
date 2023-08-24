@@ -23,13 +23,16 @@ import {
 } from "@jupyterlab/services";
 import { makeSettings } from "./settings";
 
-import type Plugin from "@/index";
-import type { IJupyterServerSettings } from "../types/config";
+import type { Logger } from "@workspace/utils/logger";
+import type { IJupyterServerSettings } from "@/types/config";
 
 export class Jupyter extends ServiceManager {
     constructor(
-        protected plugin: InstanceType<typeof Plugin>,
         settings: IJupyterServerSettings,
+        protected readonly logger: InstanceType<typeof Logger>,
+        protected readonly kernelSpecsChangedEventListener: (manager: KernelSpec.IManager, models: KernelSpec.ISpecModels) => void,
+        protected readonly kernelsChangedEventListener: (manager: Kernel.IManager, models: Kernel.IModel[]) => void,
+        protected readonly sessionsChangedEventListener: (manager: Session.IManager, models: Session.IModel[]) => void,
     ) {
         super({
             serverSettings: makeSettings(settings),
@@ -40,31 +43,31 @@ export class Jupyter extends ServiceManager {
     protected onload(): void {
         this.connectionFailure.connect(this.errorEventListener);
 
-        this.kernelspecs.specsChanged.connect(this.plugin.kernelSpecsChangedEventListener);
+        this.kernelspecs.specsChanged.connect(this.kernelSpecsChangedEventListener);
         this.kernelspecs.connectionFailure.connect(this.errorEventListener);
 
-        this.kernels.runningChanged.connect(this.plugin.kernelsChangedEventListener);
+        this.kernels.runningChanged.connect(this.kernelsChangedEventListener);
         this.kernels.connectionFailure.connect(this.errorEventListener);
 
-        this.sessions.runningChanged.connect(this.plugin.sessionsChangedEventListener);
+        this.sessions.runningChanged.connect(this.sessionsChangedEventListener);
         this.sessions.connectionFailure.connect(this.errorEventListener);
     }
 
     protected unload(): void {
         this.connectionFailure.disconnect(this.errorEventListener);
 
-        this.kernelspecs.specsChanged.disconnect(this.plugin.kernelSpecsChangedEventListener);
+        this.kernelspecs.specsChanged.disconnect(this.kernelSpecsChangedEventListener);
         this.kernelspecs.connectionFailure.disconnect(this.errorEventListener);
 
-        this.kernels.runningChanged.disconnect(this.plugin.kernelsChangedEventListener);
+        this.kernels.runningChanged.disconnect(this.kernelsChangedEventListener);
         this.kernels.connectionFailure.disconnect(this.errorEventListener);
 
-        this.sessions.runningChanged.disconnect(this.plugin.sessionsChangedEventListener);
+        this.sessions.runningChanged.disconnect(this.sessionsChangedEventListener);
         this.sessions.connectionFailure.disconnect(this.errorEventListener);
     }
 
-    protected readonly errorEventListener = (...args) => {
-        this.plugin.logger.warns(...args);
+    protected readonly errorEventListener = (...args: any[]) => {
+        this.logger.warn(...args);
     }
 
     /* 刷新状态 */
@@ -93,14 +96,14 @@ export class Jupyter extends ServiceManager {
             try {
                 prop.dispose();
             } catch (error) {
-                this.plugin.logger.warn(error);
+                this.logger.warn(error);
             }
         });
 
         try {
             super.dispose();
         } catch (error) {
-            this.plugin.logger.warn(error);
+            this.logger.warn(error);
         }
     }
 }

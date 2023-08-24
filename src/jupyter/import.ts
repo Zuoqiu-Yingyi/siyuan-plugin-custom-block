@@ -15,13 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import Plugin from "@/index";
+import CONSTANTS from "@/constants";
+import { moment } from "@workspace/utils/date/moment";
 import { createIAL } from "@workspace/utils/siyuan/ial";
 import { base64ToFile } from "@workspace/utils/misc/dataurl";
 import {
     parseText,
     parseData,
 } from "./parse";
+import type { Client } from "@siyuan-community/siyuan-sdk";
+import type { IConfig } from "../types/config";
 
 export interface IOutput {
     output_type: string;
@@ -37,14 +40,14 @@ export interface ICell {
     id: string;
     cell_type: "markdown" | "code" | "raw";
     source: string[];
-    metadata: {
+    metadata?: {
         jupyter: {
             source_hidden: boolean;
             outputs_hidden: boolean;
         };
         [key: string]: any;
     };
-    attachments: Record<string, any>;
+    attachments?: Record<string, any>;
     execution_count: number;
     outputs: IOutput[];
 }
@@ -64,6 +67,14 @@ export interface IMetadata {
     };
 }
 
+export interface IAttachment {
+    [mime: string]: string;
+}
+
+export interface IAttachments {
+    [filename: string]: IAttachment;
+}
+
 export interface Ipynb {
     cells: ICell[];
     metadata: IMetadata;
@@ -71,21 +82,26 @@ export interface Ipynb {
     nbformat_minor: number;
 }
 
+
 export class IpynbImport {
-    protected ipynb: Ipynb; // 文件内容
-    protected cells: Ipynb["cells"]; // 内容块
-    protected language: string; // 单元格语言
-    protected metadata: Ipynb["metadata"]; // notebook 元数据
-    protected nbformat: Ipynb["nbformat"]; // 缩进长度
-    protected nbformat_minor: Ipynb["nbformat_minor"]; // 次要缩进长度
-    protected kramdowns: string[]; // 导入的 kramdown 字符串数组
-    protected attributes: Record<string, string>; // 导入的文档块属性
+    protected readonly timestamp = moment(new Date()).format("YYYYMMDDhhmmss"); // 用于 ID 生成的时间戳
+    protected counter = 0; // 用于 ID 生成的计数器
+
+    protected ipynb!: Ipynb; // 文件内容
+    protected cells!: Ipynb["cells"]; // 内容块
+    protected language!: string; // 单元格语言
+    protected metadata!: Ipynb["metadata"]; // notebook 元数据
+    protected nbformat!: Ipynb["nbformat"]; // 缩进长度
+    protected nbformat_minor!: Ipynb["nbformat_minor"]; // 次要缩进长度
+    protected kramdowns!: string[]; // 导入的 kramdown 字符串数组
+    protected attributes!: Record<string, string>; // 导入的文档块属性
 
     constructor(
-        public plugin: InstanceType<typeof Plugin>,
+        public client: InstanceType<typeof Client>,
+        public config: IConfig,
     ) { }
-    /* 从文件导入 */
 
+    /* 从文件导入 */
     public async loadFile(file: File): Promise<this> {
         const json = await file.text();
         return this.loadJson(json);
@@ -119,10 +135,17 @@ export class IpynbImport {
         return this;
     }
 
+    /* 获取新的块 ID */
+    public get id(): string {
+        return `${this.timestamp}-${(this.counter++).toString(36).padStart(7, '0')}`;
+    }
+
+    /* 获取转换后的 kramdown */
     public get kramdown(): string {
         return this.kramdowns.join("\n\n");
     }
 
+    /* 获取文档块属性 */
     public get attrs(): Record<string, string> {
         return this.attributes;
     }
@@ -130,38 +153,41 @@ export class IpynbImport {
     /**解析文档元数据
      * REF: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
      */
-    parseMetadata() {
+    parseMetadata(): this {
         this.language =
             this.metadata.kernelspec.language
             ?? this.metadata.language_info.name
             ?? this.metadata.language_info.nbconvert_exporter;
-        this.attributes[this.plugin.attrs.kernel.language] = this.language;
+        this.attributes[CONSTANTS.attrs.kernel.language] = this.language;
 
         const kernel_name =
             this.metadata.kernelspec.name
             ?? this.metadata.kernel_info.name;
-        this.attributes[this.plugin.attrs.kernel.name] = kernel_name;
+        this.attributes[CONSTANTS.attrs.kernel.name] = kernel_name;
 
         const display_name =
             this.metadata.kernelspec.display_name
             ?? this.metadata.kernelspec.name
             ?? this.metadata.kernel_info.name;
-        this.attributes[this.plugin.attrs.kernel.display_name] = display_name;
+        this.attributes[CONSTANTS.attrs.kernel.display_name] = display_name;
 
-        this.attributes[this.plugin.attrs.other.prompt] = `${this.language} | ${display_name}`;
+        this.attributes[CONSTANTS.attrs.other.prompt] = `${this.language} | ${display_name}`;
+
+        return this;
     }
 
     /* 解析单元格 */
-    async parseCells() {
+    async parseCells(): Promise<this> {
         for (let i = 0; i < this.cells.length; ++i) {
             this.kramdowns.push(await this.parseCell(this.cells[i]));
         }
+        return this;
     }
 
     /**解析单个块
      * REF: https://nbformat.readthedocs.io/en/latest/format_description.html#cell-types
      */
-    async parseCell(cell: ICell) {
+    async parseCell(cell: ICell): Promise<string> {
         switch (cell.cell_type) {
             case "markdown":
                 return await this.parseMarkdown(cell);
@@ -175,9 +201,9 @@ export class IpynbImport {
     /**解析 markdown 块
      * REF: https://nbformat.readthedocs.io/en/latest/format_description.html#markdown-cells
      */
-    async parseMarkdown(cell: ICell) {
+    async parseMarkdown(cell: ICell): Promise<string> {
         /* 标题折叠 */
-        if (cell.metadata["jp-MarkdownHeadingCollapsed"]) {
+        if (cell.metadata?.["jp-MarkdownHeadingCollapsed"]) {
             let index = -1; // 级别最高的标题所有序号
             let top_level = 7; // 当前级别最高的标题级别
             for (let i = 0; i < cell.source.length; ++i) {
@@ -200,8 +226,8 @@ export class IpynbImport {
         }
         var markdown = cell.source.join(""); // markdown 文本
         const attachments = await this.parseAttachments(cell.attachments); // 附件
-        for (const filename in attachments) {
-            markdown = markdown.replace(`attachment:${filename}`, attachments[filename]);
+        for (const [filename, filepath] of Object.entries(attachments)) {
+            markdown = markdown.replace(`attachment:${filename}`, filepath);
         }
         // TODO: 解析 metadata 为块属性, 属性嵌套使用 `-` 展开
         /**幻灯片类型
@@ -217,26 +243,26 @@ export class IpynbImport {
     /**解析 code 块
      * REF: https://nbformat.readthedocs.io/en/latest/format_description.html#code-cells
      */
-    async parseCode(cell: ICell) {
+    async parseCode(cell: ICell): Promise<string> {
         const markdown = [];
         const execution_count = cell.execution_count?.toString() ?? "*"; // 当前块运行计数器
         const source_hidden = cell.metadata?.jupyter?.source_hidden; // 代码是否折叠
         const outputs_hidden = cell.metadata?.jupyter?.outputs_hidden; // 输出是否折叠
-        const code_id = this.plugin.newNodeID; // 代码块 ID
-        const output_id = this.plugin.newNodeID; // 输出块 ID
+        const code_id = this.id; // 代码块 ID
+        const output_id = this.id; // 输出块 ID
 
         const code_attrs = {
             id: code_id,
-            [this.plugin.attrs.code.index]: execution_count,
-            [this.plugin.attrs.code.output]: output_id,
-            [this.plugin.attrs.code.type.key]: this.plugin.attrs.code.type.value,
+            [CONSTANTS.attrs.code.index]: execution_count,
+            [CONSTANTS.attrs.code.output]: output_id,
+            [CONSTANTS.attrs.code.type.key]: CONSTANTS.attrs.code.type.value,
             fold: source_hidden ? "1" : null,
         }; // 代码块属性
         const output_attrs = {
             id: output_id,
-            [this.plugin.attrs.output.index]: execution_count,
-            [this.plugin.attrs.output.code]: code_id,
-            [this.plugin.attrs.output.type.key]: this.plugin.attrs.output.type.value,
+            [CONSTANTS.attrs.output.index]: execution_count,
+            [CONSTANTS.attrs.output.code]: code_id,
+            [CONSTANTS.attrs.output.type.key]: CONSTANTS.attrs.output.type.value,
             fold: outputs_hidden ? "1" : null,
         }; // 输出块属性
 
@@ -264,9 +290,9 @@ export class IpynbImport {
     /**解析 raw 块
      * REF: https://nbformat.readthedocs.io/en/latest/format_description.html#raw-nbconvert-cells
      */
-    async parseRaw(cell: ICell) {
+    async parseRaw(cell: ICell): Promise<string> {
         var mime_main, mime_sub;
-        const mime = cell.metadata.raw_mimetype ?? "/";
+        const mime = cell.metadata?.raw_mimetype ?? "/";
         [mime_main, mime_sub] = mime.split("/");
         const markdown = [];
         switch (mime_main) {
@@ -324,22 +350,24 @@ export class IpynbImport {
         return markdown.join("\n");
     }
 
-    /**解析附件
+    /**
+     * 解析附件
      * REF: https://nbformat.readthedocs.io/en/latest/format_description.html#cell-attachments
-     * @return {object}: 附件引用名(attachment:xxx.ext) -> 附件文件引用(assets/xxx.ext)
+     * @returns 附件引用名(attachment:xxx.ext) -> 附件文件引用(assets/xxx.ext)
      */
-    async parseAttachments(attachments) {
-        const map = {}; // attachment -> assets
-        for (const filename in attachments) {
-            const attachment = attachments[filename];
-            for (const mime in attachment) {
-                const response = await this.plugin.client.upload({
-                    files: [
-                        base64ToFile(attachment[mime], mime, filename),
-                    ],
-                });
-                const filepath = response.data.succMap[filename];
-                map[filename] = filepath;
+    async parseAttachments(attachments: IAttachments | undefined): Promise<Map<string, string>> {
+        const map = new Map<string, string>; // attachment -> assets
+        if (attachments) {
+            for (const [filename, attachment] of Object.entries(attachments)) {
+                for (const [mine, base64] of Object.entries(attachment)) {
+                    const file = base64ToFile(base64, mine, filename);
+                    if (file) {
+                        const response = await this.client.upload({ files: [file] });
+                        const filepath = response.data.succMap[filename];
+                        map.set(filename, filepath);
+                        break;
+                    }
+                }
             }
         }
         return map;
@@ -350,14 +378,14 @@ export class IpynbImport {
      * @params {array} outputs: 输出对象列表
      * @return {string}: 最终结果
      */
-    async parseOutputs(outputs: IOutput[]) {
+    async parseOutputs(outputs: IOutput[]): Promise<string> {
         const markdowns = [];
         for (let i = 0; i < outputs.length; ++i) {
             const output = outputs[i];
             switch (output.output_type) {
                 case "stream": {
                     const markdown = parseText(
-                        output.text.join(""),
+                        output.text?.join(""),
                         { // 解析参数
                             escaped: true, // 是否转义
                             cntrl: true, // 是否解析控制字符
@@ -371,7 +399,7 @@ export class IpynbImport {
                             const lines = markdown.split("\n{2,}");
                             for (let j = 0; j < lines.length; ++j) {
                                 markdowns.push(lines[j]);
-                                markdowns.push(createIAL({ style: this.plugin.styles.error }));
+                                markdowns.push(createIAL({ style: CONSTANTS.styles.error }));
                             }
                             break;
                         default:
@@ -381,18 +409,18 @@ export class IpynbImport {
                 }
                 case "error":
                     markdowns.push("{{{row");
-                    markdowns.push(parseText(output.traceback.join("\n"), this.plugin.config.jupyter.import.params));
+                    markdowns.push(parseText(output.traceback?.join("\n"), this.config.jupyter.import.params));
                     markdowns.push("}}}");
-                    markdowns.push(createIAL({ style: this.plugin.styles.error }));
+                    markdowns.push(createIAL({ style: CONSTANTS.styles.error }));
                     markdowns.join("\n");
                     break;
                 case "execute_result":
                 case "display_data":
                     markdowns.push(await parseData(
-                        this.plugin,
+                        this.client,
                         output.data,
                         output.metadata,
-                        this.plugin.config.jupyter.import.params,
+                        this.config.jupyter.import.params,
                     ));
                     break;
             }

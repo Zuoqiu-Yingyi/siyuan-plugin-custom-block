@@ -16,6 +16,9 @@
  */
 
 import siyuan from "siyuan";
+import type { ISiyuanGlobal } from "@workspace/types/siyuan";
+
+import manifest from "~/public/plugin.json";
 
 import "./index.less";
 import icon_jupyter_client from "./assets/symbols/icon-jupyter-client.symbol?raw";
@@ -50,13 +53,17 @@ import {
     getBlockMenuContext,
 } from "@workspace/utils/siyuan/menu/block";
 import { Logger } from "@workspace/utils/logger";
-import { mergeIgnoreArray } from "@workspace/utils/misc/merge";
 import { fn__code } from "@workspace/utils/siyuan/text/span";
+import { mergeIgnoreArray } from "@workspace/utils/misc/merge";
+import { WorkerBridgeMaster } from "@workspace/utils/worker/bridge/master";
+import { sleep } from "@workspace/utils/misc/sleep";
+
+import CONSTANTS from "./constants";
 import { DEFAULT_SETTINGS } from "./jupyter/settings";
 import { DEFAULT_CONFIG } from "./configs/default";
+
 import type { I18N } from "./utils/i18n";
 import type { IConfig } from "./types/config";
-import { Jupyter } from "./jupyter";
 import type {
     KernelSpec,
     Kernel,
@@ -66,8 +73,14 @@ import type {
     IClickBlockIconEvent,
     IClickEditorTitleIconEvent,
 } from "@workspace/types/siyuan/events";
-import { IpynbImport } from "./jupyter/import";
-import type { BlockID } from "@workspace/types/siyuan";
+import type {
+    IHandlers,
+    THandlersWrapper,
+} from "@workspace/utils/worker/bridge";
+import type { WorkerHandlers } from "./workers/jupyter";
+
+declare var globalThis: ISiyuanGlobal;
+export type PluginHandlers = THandlersWrapper<TemplatePlugin["handlers"]>;
 
 export default class TemplatePlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
@@ -81,53 +94,17 @@ export default class TemplatePlugin extends siyuan.Plugin {
     protected readonly SETTINGS_DIALOG_ID: string;
 
     public config: IConfig = DEFAULT_CONFIG;
+    protected worker?: InstanceType<typeof Worker>; // worker
+    public bridge?: InstanceType<typeof WorkerBridgeMaster>; // worker 桥
 
-    public jupyter?: InstanceType<typeof Jupyter>; // jupyter 客户端
-    protected jupyterDock: {
+    protected jupyterDock!: {
         // editor: InstanceType<typeof Editor>,
         dock: ReturnType<siyuan.Plugin["addDock"]>,
         model?: siyuan.IModel,
         component?: InstanceType<typeof JupyterDock>,
     }; // Jupyter 管理面板
-    public readonly attrs = {
-        kernel: {
-            id: "custom-jupyter-kernel-id", // 内核 ID
-            name: "custom-jupyter-kernel-name", // 内核名称
-            language: "custom-jupyter-kernel-language", // 内核语言
-            display_name: 'custom-jupyter-kernel-display-name', // 内核友好名称
-        },
-        session: {
-            id: "custom-jupyter-session-id", // 会话 ID
-            name: "custom-jupyter-session-name", // 会话名称
-            path: "custom-jupyter-session-path", // 会话路径
-        },
-        code: {
-            type: {
-                key: "custom-jupyter-block-type",
-                value: "code",
-            },
-            time: "custom-jupyter-time", // 上次运行时间+运行时长
-            output: "custom-jupyter-output-block-id", // 对应的输出块 ID
-            index: "custom-jupyter-index", // 块运行序号
-        },
-        output: {
-            type: {
-                key: "custom-jupyter-block-type",
-                value: "output",
-            },
-            code: "custom-jupyter-code-block-id", // 对应的代码块 ID
-            index: "custom-jupyter-index", // 块运行序号
-        },
-        other: {
-            prompt: `custom-prompt`, // 提示文本
-        },
-    } as const; // 块属性
-    public readonly styles = {
-        success: 'color: var(--b3-card-success-color); background-color: var(--b3-card-success-background);',
-        info: 'color: var(--b3-card-info-color); background-color: var(--b3-card-info-background);',
-        warning: 'color: var(--b3-card-warning-color); background-color: var(--b3-card-warning-background);',
-        error: 'color: var(--b3-card-error-color); background-color: var(--b3-card-error-background);',
-    } as const; // 样式
+
+    public readonly handlers;
 
     constructor(options: any) {
         super(options);
@@ -136,6 +113,20 @@ export default class TemplatePlugin extends siyuan.Plugin {
         this.client = new Client(undefined, "fetch");
 
         this.SETTINGS_DIALOG_ID = `${this.name}-settings-dialog`;
+        this.handlers = {
+            updateKernelSpecs: {
+                this: this,
+                func: this.updateKernelSpecs,
+            },
+            updateKernels: {
+                this: this,
+                func: this.updateKernels,
+            },
+            updateSessions: {
+                this: this,
+                func: this.updateSessions,
+            },
+        } as const;
     }
 
     onload(): void {
@@ -177,7 +168,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
                 init() {
                     // plugin.logger.debug(this);
 
-                    (this.element as HTMLElement).classList.add("fn__flex-column");
+                    this.element.classList.add("fn__flex-column");
                     const dock = new JupyterDock({
                         target: this.element,
                         props: {
@@ -201,22 +192,51 @@ export default class TemplatePlugin extends siyuan.Plugin {
                 this.config = mergeIgnoreArray(DEFAULT_CONFIG, config || {}) as IConfig;
             })
             .catch(error => this.logger.error(error))
-            .finally(() => {
+            .finally(async () => {
+                /* 初始化 channel */
+                this.initBridge();
+                const runing = await this.isWorkerRunning();
+
+                if (!runing) { // worker 未正常运行
+                    /* 初始化 worker */
+                    this.initWorker();
+
+                    /* 等待 worker 正常运行 */
+                    while (await this.isWorkerRunning()) {
+                        await sleep(1_000)
+                    }
+
+                    /* 初始化 worker 配置 */
+                    await this.bridge?.call<WorkerHandlers["onload"]>("onload");
+                    await this.updateWorkerConfig();
+                }
+
                 this.eventBus.on("click-editortitleicon", this.blockMenuEventListener);
                 this.eventBus.on("click-blockicon", this.blockMenuEventListener);
             });
     }
 
     onLayoutReady(): void {
-        globalThis.jupyter = this;
-        this.jupyter = this.config.jupyter.server.enable
-            ? new Jupyter(this, this.config.jupyter.server.settings)
-            : undefined;
+        // @ts-ignore
+        // globalThis.jupyter = new Jupyter(
+        //     this.config.jupyter.server.settings,
+        //     this.logger,
+        //     (...args: any[]) => null,
+        //     (...args: any[]) => null,
+        //     (...args: any[]) => null,
+        // );
     }
 
     onunload(): void {
         this.eventBus.off("click-editortitleicon", this.blockMenuEventListener);
         this.eventBus.off("click-blockicon", this.blockMenuEventListener);
+
+        this.bridge
+            ?.call<WorkerHandlers["unload"]>("unload")
+            .then(() => {
+                this.bridge?.terminate();
+                this.worker?.terminate();
+            });
     }
 
     openSetting(): void {
@@ -227,13 +247,16 @@ export default class TemplatePlugin extends siyuan.Plugin {
             width: FLAG_MOBILE ? "92vw" : "720px",
             height: FLAG_MOBILE ? undefined : "640px",
         });
-        const settings = new Settings({
-            target: dialog.element.querySelector(`#${that.SETTINGS_DIALOG_ID}`),
-            props: {
-                config: this.config,
-                plugin: this,
-            },
-        });
+        const target = dialog.element.querySelector(`#${that.SETTINGS_DIALOG_ID}`);
+        if (target) {
+            const settings = new Settings({
+                target,
+                props: {
+                    config: this.config,
+                    plugin: this,
+                },
+            });
+        }
     }
 
     /* 重置插件配置 */
@@ -246,21 +269,60 @@ export default class TemplatePlugin extends siyuan.Plugin {
         if (config && config !== this.config) {
             this.config = config;
         }
-
-        this.jupyter?.dispose();
-        this.jupyter = this.config.jupyter.server.enable
-            ? new Jupyter(this, this.config.jupyter.server.settings)
-            : undefined;
-
+        await this.updateWorkerConfig();
         await this.saveData(TemplatePlugin.GLOBAL_CONFIG_NAME, this.config);
+    }
+
+    /* 初始化通讯桥 */
+    protected initBridge(): void {
+        this.bridge?.terminate();
+        this.bridge = new WorkerBridgeMaster(
+            new BroadcastChannel(CONSTANTS.JUPYTER_WORKER_BROADCAST_CHANNEL_NAME),
+            this.logger,
+            this.handlers,
+        );
+    }
+
+    /* 初始化 worker */
+    protected initWorker(): void {
+        this.worker?.terminate();
+        this.worker = new Worker(
+            `${globalThis.document.baseURI}plugins/${this.name}/workers/${CONSTANTS.JUPYTER_WORKER_FILE_NAME}.js?v=${manifest.version}`,
+            {
+                type: "module",
+                name: this.name,
+                credentials: "same-origin",
+            },
+        );
+    }
+
+    /* web worker 是否正在运行 */
+    protected async isWorkerRunning(): Promise<boolean> {
+        try {
+            /* 若 bridge 未初始化, 需要初始化 */
+            if (!this.bridge) this.initBridge();
+
+            /* 检测 Worker 是否已加载完成 */
+            await this.bridge!.ping();
+            return true;
+        }
+        catch (error) {
+            return false;
+        }
     }
 
     public get baseUrl(): string {
         return this.config?.jupyter.server.settings.baseUrl || DEFAULT_SETTINGS.baseUrl;
     }
 
-    public get newNodeID(): string {
-        return globalThis.Lute.NewNodeID();
+
+    /* 更新 worker 配置 */
+    public async updateWorkerConfig(): Promise<void> {
+        await this.bridge?.call<WorkerHandlers["updateConfig"]>(
+            "updateConfig",
+            this.config,
+        );
+        await this.bridge?.call<WorkerHandlers["restart"]>("restart");
     }
 
     /**
@@ -328,9 +390,10 @@ export default class TemplatePlugin extends siyuan.Plugin {
                                 item.$on("selected", async e => {
                                     // this.plugin.logger.debug(e);
                                     const files = e.detail.files;
-                                    if (files.length > 0) {
-                                        const file = files.item(0);
-                                        await this.importIpynb(
+                                    const file = files.item(0);
+                                    if (file) {
+                                        await this.bridge?.call<WorkerHandlers["importIpynb"]>(
+                                            "importIpynb",
                                             context.id,
                                             file,
                                             "override",
@@ -358,9 +421,10 @@ export default class TemplatePlugin extends siyuan.Plugin {
                                 item.$on("selected", async e => {
                                     // this.plugin.logger.debug(e);
                                     const files = e.detail.files;
-                                    if (files.length > 0) {
-                                        const file = files.item(0);
-                                        await this.importIpynb(
+                                    const file = files.item(0);
+                                    if (file) {
+                                        await this.bridge?.call<WorkerHandlers["importIpynb"]>(
+                                            "importIpynb",
                                             context.id,
                                             file,
                                             "append",
@@ -384,68 +448,26 @@ export default class TemplatePlugin extends siyuan.Plugin {
     };
 
     /* 内核清单更改 */
-    public readonly kernelSpecsChangedEventListener = (manager: KernelSpec.IManager, models: KernelSpec.ISpecModels) => {
-        // this.logger.debug(models);
+    public readonly updateKernelSpecs = (kernelspecs: KernelSpec.ISpecModels) => {
+        // this.logger.debug(kernelspecs);
         this.jupyterDock.component?.$set({
-            kernelspecs: models,
+            kernelspecs,
         });
     }
 
     /* 活动的内核列表更改 */
-    public readonly kernelsChangedEventListener = (manager: Kernel.IManager, models: Kernel.IModel[]) => {
-        // this.logger.debug(models);
+    public readonly updateKernels = (kernels: Kernel.IModel[]) => {
+        // this.logger.debug(kernels);
         this.jupyterDock.component?.$set({
-            kernels: models,
+            kernels,
         });
     }
 
     /* 活动的会话列表更改 */
-    public readonly sessionsChangedEventListener = (manager: Session.IManager, models: Session.IModel[]) => {
-        // this.logger.debug(models);
+    public readonly updateSessions = (sessions: Session.IModel[]) => {
+        // this.logger.debug(sessions);
         this.jupyterDock.component?.$set({
-            sessions: models,
+            sessions,
         });
-    }
-
-    /**
-     * 导入 *.ipynb 文件
-     * @param id 文档块 ID
-     * @param file 文件
-     * @param type 写入类型
-     */
-    public async importIpynb(
-        id: BlockID,
-        file: File,
-        type: "override" | "append",
-    ): Promise<void> {
-        const ipynb_import = new IpynbImport(this);
-        await ipynb_import.loadFile(file)
-        await ipynb_import.parse();
-        const kramdown = ipynb_import.kramdown;
-        const attrs = ipynb_import.attrs;
-
-        /* 设置文档块属性 */
-        await this.client.setBlockAttrs({
-            id,
-            attrs,
-        });
-
-        /* 更改文档块内容 */
-        switch (type) {
-            case "override":
-                await this.client.updateBlock({
-                    id,
-                    data: kramdown,
-                    dataType: "markdown",
-                });
-                break;
-            case "append":
-                await this.client.appendBlock({
-                    parentID: id,
-                    data: kramdown,
-                    dataType: "markdown",
-                });
-                break;
-        }
     }
 };

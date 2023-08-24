@@ -5,15 +5,17 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
-        "build:dev": "vite build --sourcemap inline",
+        "build": "npm run build:plugin && npm run build:workers",
+        "build:dev": "vite build --mode plugin --sourcemap inline && vite build --mode workers --sourcemap inline",
+        "build:plugin": "vite build --mode plugin",
+        "build:workers": "vite build --mode workers",
         "preview": "vite preview",
         "check": "svelte-check --tsconfig ./tsconfig.json"
     },
     "devDependencies": {
         "@jupyterlab/services": "^7.0.5",
         "@sveltejs/vite-plugin-svelte": "^2.4.5",
-        "@tsconfig/svelte": "^5.0.0",
+        "@tsconfig/svelte": "^5.0.2",
         "less": "^4.2.0",
         "svelte": "^4.2.0",
         "svelte-check": "^2.10.3",

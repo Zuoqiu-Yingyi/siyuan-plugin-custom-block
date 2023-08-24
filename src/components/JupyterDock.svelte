@@ -15,8 +15,18 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
+<script
+    context="module"
+    lang="ts"
+>
+    import type { ISiyuanGlobal } from "@workspace/types/siyuan";
+    declare var globalThis: ISiyuanGlobal;
+</script>
+
 <script lang="ts">
     import { onDestroy, type ComponentEvents } from "svelte";
+    import { get } from "svelte/store";
+
     import Bar from "@workspace/components/siyuan/dock/Bar.svelte";
     import FileTree from "@workspace/components/siyuan/tree/file/FileTree.svelte";
     import Node from "@workspace/components/siyuan/tree/file/Node.svelte";
@@ -29,7 +39,7 @@
     import type Plugin from "@/index";
     import { FileTreeNodeType, type IFileTreeFileNode, type IFileTreeFolderNode, type IFileTreeRootNode } from "@workspace/components/siyuan/tree/file";
     import type { KernelSpec, Kernel, Session } from "@jupyterlab/services";
-    import { get } from "svelte/store";
+    import type { WorkerHandlers } from "@/workers/jupyter";
 
     export let plugin: InstanceType<typeof Plugin>; // 插件对象
     export let kernelspecs: KernelSpec.ISpecModels = {
@@ -100,6 +110,8 @@
         /* 内核清单列表 */
         const spec_nodes: IFileTreeFolderNode[] = [];
         for (const [name, spec] of Object.entries(kernelspecs.kernelspecs)) {
+            if (!spec) continue;
+
             const spec_path = `${RESOURCES_DIRECTORY}/${spec.name}`;
             const spec_node: IFileTreeFolderNode = {
                 type: FileTreeNodeType.Folder,
@@ -116,9 +128,12 @@
             };
 
             /* 内核列表 */
-            spec_node.children = (() => {
+            spec_node.children = await (async () => {
                 const kernel_nodes: IFileTreeFolderNode[] = [];
-                for (const kernel of plugin.jupyter.kernels.running()) {
+                const kernels = await plugin.bridge?.call<WorkerHandlers["jupyterKernelsRunning"]>(
+                    "jupyterKernelsRunning", //
+                );
+                for (const kernel of kernels ?? []) {
                     if (kernel.name !== spec.name) {
                         continue;
                     }
@@ -139,10 +154,13 @@
                     };
 
                     /* 会话列表 */
-                    kernel_node.children = (() => {
+                    kernel_node.children = await (async () => {
                         const session_nodes: IFileTreeFileNode[] = [];
-                        for (const session of plugin.jupyter.sessions.running()) {
-                            if (session.kernel.id !== kernel.id) {
+                        const sessions = await plugin.bridge?.call<WorkerHandlers["jupyterSessionsRunning"]>(
+                            "jupyterSessionsRunning", //
+                        );
+                        for (const session of sessions ?? []) {
+                            if (session.kernel?.id !== kernel.id) {
                                 continue;
                             }
 
@@ -181,6 +199,8 @@
     async function kernelspecs2node(kernelspecs: KernelSpec.ISpecModels): Promise<IFileTreeFileNode[]> {
         const nodes: IFileTreeFileNode[] = [];
         for (const [name, spec] of Object.entries(kernelspecs.kernelspecs)) {
+            if (!spec) continue;
+
             const node: IFileTreeFileNode = {
                 type: FileTreeNodeType.File,
                 name,
@@ -243,12 +263,12 @@
                 icon: `#icon-jupyter-client-session-${session.type}`,
                 iconAriaLabel: session.type,
                 text: session.name,
-                textAriaLabel: `${session.kernel.name}<br/>${session.path}`,
+                textAriaLabel: `${session.kernel?.name}<br/>${session.path}`,
                 symlink: true,
-                symlinkIcon: kernelName2objectURL.get(session.kernel.name) ?? SESSIONS_ICON,
-                symlinkAriaLabel: kernelName2language.get(session.kernel.name),
-                count: session.kernel.connections,
-                countAriaLabel: session.kernel.execution_state,
+                symlinkIcon: kernelName2objectURL.get(session.kernel?.name ?? "") ?? SESSIONS_ICON,
+                symlinkAriaLabel: kernelName2language.get(session.kernel?.name ?? ""),
+                count: session.kernel?.connections,
+                countAriaLabel: session.kernel?.execution_state,
                 title: session.id,
             });
         }
@@ -266,8 +286,10 @@
                 type: "refresh",
                 ariaLabel: plugin.i18n.dock.refresh.ariaLabel,
                 tooltipsDirection: TooltipsDirection.sw,
-                onClick: (_e, _element, _props) => {
-                    plugin.jupyter?.refresh();
+                onClick: async (_e, _element, _props) => {
+                    await plugin.bridge?.call<WorkerHandlers["jupyterRefresh"]>(
+                        "jupyterRefresh", //
+                    );
                 },
             },
             {
@@ -354,8 +376,8 @@
 
     /* 动态更新当前会话 */
     $: {
-        if (roots[2].children?.length > 0) {
-            roots[2].children.forEach(session => {
+        if ((roots[2].children?.length ?? 0) > 0) {
+            roots[2].children?.forEach(session => {
                 if (session.name === currentSession) {
                     session.focus = true;
                 } else {
@@ -390,8 +412,8 @@
     function menu(e: ComponentEvents<Node>["menu"]) {
         // plugin.logger.debug(e);
         const node = e.detail.props;
-        const name = get(node.name);
-        const path = get(node.path);
+        const name = get(node.name)!;
+        const path = get(node.path)!;
         const directory = get(node.directory);
 
         const items: import("siyuan").IMenuItemOption[] = [];
@@ -402,7 +424,9 @@
                 icon: "iconRefresh",
                 label: plugin.i18n.dock.refresh.label,
                 click: async () => {
-                    await plugin.jupyter?.kernelspecs.refreshSpecs();
+                    await plugin.bridge?.call<WorkerHandlers["jupyterKernelspecsRefreshSpecs"]>(
+                        "jupyterKernelspecsRefreshSpecs", //
+                    );
                 },
             });
         }
@@ -413,7 +437,9 @@
                 icon: "iconRefresh",
                 label: plugin.i18n.dock.refresh.label,
                 click: async () => {
-                    await plugin.jupyter?.kernels.refreshRunning();
+                    await plugin.bridge?.call<WorkerHandlers["jupyterKernelsRefreshRunning"]>(
+                        "jupyterKernelsRefreshRunning", //
+                    );
                 },
             });
             items.push({ type: "separator" });
@@ -421,7 +447,9 @@
                 icon: "iconClose",
                 label: plugin.i18n.dock.menu.shutdownAllKernels.label,
                 click: async () => {
-                    await plugin.jupyter?.kernels.shutdownAll();
+                    await plugin.bridge?.call<WorkerHandlers["jupyterKernelsShutdownAll"]>(
+                        "jupyterKernelsShutdownAll", //
+                    );
                 },
             });
         }
@@ -432,7 +460,9 @@
                 icon: "iconClose",
                 label: plugin.i18n.dock.menu.shutdownKernel.label,
                 click: async () => {
-                    await plugin.jupyter?.kernels.shutdown(name);
+                    await plugin.bridge?.call<WorkerHandlers["jupyterKernelsShutdown"]>(
+                        "jupyterKernelsShutdown", //
+                    );
                 },
             });
         }
@@ -443,7 +473,9 @@
                 icon: "iconRefresh",
                 label: plugin.i18n.dock.refresh.label,
                 click: async () => {
-                    await plugin.jupyter?.sessions.refreshRunning();
+                    await plugin.bridge?.call<WorkerHandlers["jupyterSessionRefreshRunning"]>(
+                        "jupyterSessionRefreshRunning", //
+                    );
                 },
             });
             items.push({ type: "separator" });
@@ -451,7 +483,9 @@
                 icon: "iconClose",
                 label: plugin.i18n.dock.menu.shutdownAllSessions.label,
                 click: async () => {
-                    await plugin.jupyter?.sessions.shutdownAll();
+                    await plugin.bridge?.call<WorkerHandlers["jupyterSessionsShutdownAll"]>(
+                        "jupyterSessionsShutdownAll", //
+                    );
                 },
             });
         }
@@ -462,7 +496,9 @@
                 icon: "iconClose",
                 label: plugin.i18n.dock.menu.shutdownSession.label,
                 click: async () => {
-                    await plugin.jupyter?.sessions.shutdown(name);
+                    await plugin.bridge?.call<WorkerHandlers["jupyterSessionsShutdown"]>(
+                        "jupyterSessionsShutdown", //
+                    );
                 },
             });
         }
