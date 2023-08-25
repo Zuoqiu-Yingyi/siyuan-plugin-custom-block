@@ -107,7 +107,8 @@
         }
     }
 
-    async function respurces2node(
+    /* 将 jupyter 资源转换为节点 */
+    async function resources2node(
         kernelspecs: KernelSpec.ISpecModels, //
         _kernels: Kernel.IModel[], // 使用 running() 获取最新的状态
         _sessions: Session.IModel[], // 使用 running() 获取最新的状态
@@ -135,8 +136,8 @@
             /* 内核列表 */
             spec_node.children = await (async () => {
                 const kernel_nodes: IFileTreeFolderNode[] = [];
-                const kernels = await plugin.bridge?.call<WorkerHandlers["jupyterKernelsRunning"]>(
-                    "jupyterKernelsRunning", //
+                const kernels = await plugin.bridge?.call<WorkerHandlers["jupyter.kernels.running"]>(
+                    "jupyter.kernels.running", //
                 );
                 for (const kernel of kernels ?? []) {
                     if (kernel.name !== spec.name) {
@@ -161,8 +162,8 @@
                     /* 会话列表 */
                     kernel_node.children = await (async () => {
                         const session_nodes: IFileTreeFileNode[] = [];
-                        const sessions = await plugin.bridge?.call<WorkerHandlers["jupyterSessionsRunning"]>(
-                            "jupyterSessionsRunning", //
+                        const sessions = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.running"]>(
+                            "jupyter.sessions.running", //
                         );
                         for (const session of sessions ?? []) {
                             if (session.kernel?.id !== kernel.id) {
@@ -201,6 +202,7 @@
         return spec_nodes;
     }
 
+    /* 将内核清单转换为节点 */
     async function kernelspecs2node(kernelspecs: KernelSpec.ISpecModels): Promise<IFileTreeFileNode[]> {
         const nodes: IFileTreeFileNode[] = [];
         for (const [name, spec] of Object.entries(kernelspecs.kernelspecs)) {
@@ -233,6 +235,7 @@
         return nodes;
     }
 
+    /* 将运行的内核转换为节点 */
     function kernels2node(kernels: Kernel.IModel[]): IFileTreeFileNode[] {
         const nodes: IFileTreeFileNode[] = [];
         for (const kernel of kernels) {
@@ -256,6 +259,7 @@
         return nodes;
     }
 
+    /* 将运行的会话转换为节点 */
     function sessions2node(sessions: Session.IModel[]): IFileTreeFileNode[] {
         const nodes: IFileTreeFileNode[] = [];
         for (const session of sessions) {
@@ -292,8 +296,8 @@
                 ariaLabel: plugin.i18n.dock.refresh.ariaLabel,
                 tooltipsDirection: TooltipsDirection.sw,
                 onClick: async (_e, _element, _props) => {
-                    await plugin.bridge?.call<WorkerHandlers["jupyterRefresh"]>(
-                        "jupyterRefresh", //
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.refresh"]>(
+                        "jupyter.refresh", //
                     );
                 },
             },
@@ -354,7 +358,7 @@
     /* 动态更新 jupyter 服务状态 */
     $: {
         roots[0].count = Object.keys(kernelspecs.kernelspecs).length;
-        respurces2node(kernelspecs, kernels, sessions).then(children => {
+        resources2node(kernelspecs, kernels, sessions).then(children => {
             roots[0].children = children;
         });
     }
@@ -429,8 +433,8 @@
                 icon: "iconRefresh",
                 label: plugin.i18n.dock.refresh.label,
                 click: async () => {
-                    await plugin.bridge?.call<WorkerHandlers["jupyterKernelspecsRefreshSpecs"]>(
-                        "jupyterKernelspecsRefreshSpecs", //
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.kernelspecs.refreshSpecs"]>(
+                        "jupyter.kernelspecs.refreshSpecs", //
                     );
                 },
             });
@@ -442,8 +446,8 @@
                 icon: "iconRefresh",
                 label: plugin.i18n.dock.refresh.label,
                 click: async () => {
-                    await plugin.bridge?.call<WorkerHandlers["jupyterKernelsRefreshRunning"]>(
-                        "jupyterKernelsRefreshRunning", //
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.kernels.refreshRunning"]>(
+                        "jupyter.kernels.refreshRunning", //
                     );
                 },
             });
@@ -452,8 +456,13 @@
                 icon: "iconClose",
                 label: plugin.i18n.dock.menu.shutdownAllKernels.label,
                 click: async () => {
-                    await plugin.bridge?.call<WorkerHandlers["jupyterKernelsShutdownAll"]>(
-                        "jupyterKernelsShutdownAll", //
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.kernels.shutdownAll"]>(
+                        "jupyter.kernels.shutdownAll", //
+                    );
+
+                    /* 关闭后需要手动更新会话列表 */
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.refreshRunning"]>(
+                        "jupyter.sessions.refreshRunning", //
                     );
                 },
             });
@@ -465,8 +474,14 @@
                 icon: "iconClose",
                 label: plugin.i18n.dock.menu.shutdownKernel.label,
                 click: async () => {
-                    await plugin.bridge?.call<WorkerHandlers["jupyterKernelsShutdown"]>(
-                        "jupyterKernelsShutdown", //
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.kernels.shutdown"]>(
+                        "jupyter.kernels.shutdown", //
+                        name,
+                    );
+
+                    /* 关闭后需要手动更新会话列表 */
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.refreshRunning"]>(
+                        "jupyter.sessions.refreshRunning", //
                     );
                 },
             });
@@ -478,8 +493,8 @@
                 icon: "iconRefresh",
                 label: plugin.i18n.dock.refresh.label,
                 click: async () => {
-                    await plugin.bridge?.call<WorkerHandlers["jupyterSessionRefreshRunning"]>(
-                        "jupyterSessionRefreshRunning", //
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.refreshRunning"]>(
+                        "jupyter.sessions.refreshRunning", //
                     );
                 },
             });
@@ -488,8 +503,13 @@
                 icon: "iconClose",
                 label: plugin.i18n.dock.menu.shutdownAllSessions.label,
                 click: async () => {
-                    await plugin.bridge?.call<WorkerHandlers["jupyterSessionsShutdownAll"]>(
-                        "jupyterSessionsShutdownAll", //
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.shutdownAll"]>(
+                        "jupyter.sessions.shutdownAll", //
+                    );
+
+                    /* 关闭后需要手动更新内核列表 */
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.kernels.refreshRunning"]>(
+                        "jupyter.kernels.refreshRunning", //
                     );
                 },
             });
@@ -501,8 +521,14 @@
                 icon: "iconClose",
                 label: plugin.i18n.dock.menu.shutdownSession.label,
                 click: async () => {
-                    await plugin.bridge?.call<WorkerHandlers["jupyterSessionsShutdown"]>(
-                        "jupyterSessionsShutdown", //
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.shutdown"]>(
+                        "jupyter.sessions.shutdown", //
+                        name,
+                    );
+
+                    /* 关闭后需要手动更新内核列表 */
+                    await plugin.bridge?.call<WorkerHandlers["jupyter.kernels.refreshRunning"]>(
+                        "jupyter.kernels.refreshRunning", //
                     );
                 },
             });

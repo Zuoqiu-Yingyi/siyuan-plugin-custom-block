@@ -34,15 +34,57 @@
         "title": "Jupyter"
     },
     "menu": {
-        "append": {
-            "label": "追加到当前文档末尾"
+        "run": {
+            "label": "运行",
+            "submenu": {
+                "all": {
+                    "label": "运行所有单元格"
+                },
+                "restart": {
+                    "label": "运行所有单元格",
+                    "accelerator": "重启内核"
+                }
+            }
+        },
+        "kernel": {
+            "label": "内核",
+            "submenu": {
+                "reconnect": {
+                    "label": "重新连接"
+                },
+                "interrupt": {
+                    "label": "中断内核"
+                },
+                "restart": {
+                    "label": "重启内核"
+                },
+                "shutdown": {
+                    "label": "关闭内核"
+                }
+            }
+        },
+        "session": {
+            "label": "会话",
+            "submenu": {
+                "settings": {
+                    "label": "会话设置"
+                },
+                "shutdown": {
+                    "label": "关闭会话"
+                }
+            }
         },
         "import": {
             "accelerator": "*.ipynb",
-            "label": "导入 Jupyter 文件"
-        },
-        "override": {
-            "label": "覆盖当前文档"
+            "label": "导入文件",
+            "submenu": {
+                "append": {
+                    "label": "追加到当前文档末尾"
+                },
+                "override": {
+                    "label": "覆盖当前文档"
+                }
+            }
         }
     },
     "settings": {

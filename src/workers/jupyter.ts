@@ -30,6 +30,7 @@ import { Jupyter } from "@/jupyter";
 
 import type { IConfig } from "@/types/config";
 import type {
+    IFunction,
     IHandlers,
     THandlersWrapper,
 } from "@workspace/utils/worker/bridge";
@@ -49,6 +50,8 @@ const client = new Client(
     },
     "fetch",
 );
+const id_2_kernel_connection = new Map<string, Kernel.IKernelConnection>();
+const id_2_session_connection = new Map<string, Session.ISessionConnection>();
 var jupyter: InstanceType<typeof Jupyter> | undefined;
 
 /* 👇由插件调用👇 */
@@ -148,29 +151,13 @@ export async function importIpynb(
     }
 }
 
-function _throw(...args: any[]): never {
+/* 客户端未启动时抛出的异常 */
+function _throw<P extends IFunction>(...args: Parameters<P>): never {
     throw new Error(`Jupyter Client not started!`);
 }
 
-function jupyterKernelsRunning(...args: any[]): Kernel.IModel[] {
-    if (jupyter?.kernels.running) {
-        return Array.from(jupyter.kernels.running());
-    }
-    else {
-        return [];
-    }
-}
-
-function jupyterSessionsRunning(...args: any[]): Session.IModel[] {
-    if (jupyter?.sessions.running) {
-        return Array.from(jupyter.sessions.running());
-    }
-    else {
-        return [];
-    }
-}
-
-function _undefined(...args: any[]): undefined {
+/* 客户端未启动时返回 undefined */
+function _undefined<P extends IFunction>(...args: Parameters<P>): undefined {
     return;
 }
 
@@ -191,45 +178,53 @@ const handlers = {
         this: self,
         func: updateConfig,
     },
-    jupyterRefresh: {
-        this: jupyter,
-        func: jupyter?.refresh ?? _undefined,
+    "jupyter.refresh": {
+        get this() { return jupyter },
+        get func() { return jupyter?.refresh ?? _undefined<Jupyter["refresh"]> },
     },
-    jupyterKernelspecsRefreshSpecs: {
-        this: jupyter?.kernelspecs ?? _undefined,
-        func: jupyter?.kernelspecs.refreshSpecs ?? _undefined,
+    "jupyter.kernelspecs.refreshSpecs": {
+        get this() { return jupyter?.kernelspecs },
+        get func() { return jupyter?.kernelspecs.refreshSpecs ?? _undefined<Jupyter["kernelspecs"]["refreshSpecs"]> },
     },
-    jupyterKernelsRunning: {
+    "jupyter.kernels.running": {
         this: self,
-        func: jupyterKernelsRunning,
+        func(): Kernel.IModel[] {
+            return jupyter?.kernels.running
+                ? Array.from(jupyter.kernels.running())
+                : [];
+        },
     },
-    jupyterKernelsRefreshRunning: {
-        this: jupyter?.kernels ?? _undefined,
-        func: jupyter?.kernels.refreshRunning ?? _undefined,
+    "jupyter.kernels.refreshRunning": {
+        get this() { return jupyter?.kernels },
+        get func() { return jupyter?.kernels.refreshRunning ?? _undefined<Jupyter["kernels"]["refreshRunning"]> },
     },
-    jupyterKernelsShutdown: {
-        this: jupyter?.kernels ?? _undefined,
-        func: jupyter?.kernels.shutdown ?? _undefined,
+    "jupyter.kernels.shutdown": {
+        get this() { return jupyter?.kernels },
+        get func() { return jupyter?.kernels.shutdown ?? _undefined<Jupyter["kernels"]["shutdown"]> },
     },
-    jupyterKernelsShutdownAll: {
-        this: jupyter?.kernels ?? _undefined,
-        func: jupyter?.kernels.shutdownAll ?? _undefined,
+    "jupyter.kernels.shutdownAll": {
+        get this() { return jupyter?.kernels },
+        get func() { return jupyter?.kernels.shutdownAll ?? _undefined<Jupyter["kernels"]["shutdownAll"]> },
     },
-    jupyterSessionsRunning: {
+    "jupyter.sessions.running": {
         this: self,
-        func: jupyterSessionsRunning,
+        func(): Session.IModel[] {
+            return jupyter?.sessions.running
+                ? Array.from(jupyter.sessions.running())
+                : [];
+        },
     },
-    jupyterSessionRefreshRunning: {
-        this: jupyter?.sessions ?? _undefined,
-        func: jupyter?.sessions.refreshRunning ?? _undefined,
+    "jupyter.sessions.refreshRunning": {
+        get this() { return jupyter?.sessions },
+        get func() { return jupyter?.sessions.refreshRunning ?? _undefined<Jupyter["sessions"]["refreshRunning"]> },
     },
-    jupyterSessionsShutdown: {
-        this: jupyter?.sessions ?? _undefined,
-        func: jupyter?.sessions.shutdown ?? _undefined,
+    "jupyter.sessions.shutdown": {
+        get this() { return jupyter?.sessions },
+        get func() { return jupyter?.sessions.shutdown ?? _undefined<Jupyter["sessions"]["shutdown"]> },
     },
-    jupyterSessionsShutdownAll: {
-        this: jupyter?.sessions ?? _undefined,
-        func: jupyter?.sessions.shutdownAll ?? _undefined,
+    "jupyter.sessions.shutdownAll": {
+        get this() { return jupyter?.sessions },
+        get func() { return jupyter?.sessions.shutdownAll ?? _undefined<Jupyter["sessions"]["shutdownAll"]> },
     },
     importIpynb: {
         this: self,

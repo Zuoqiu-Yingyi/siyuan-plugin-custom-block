@@ -103,8 +103,9 @@ export default class TemplatePlugin extends siyuan.Plugin {
         model?: siyuan.IModel,
         component?: InstanceType<typeof JupyterDock>,
     }; // Jupyter 管理面板
+    protected readonly doc2session = new Map<string, Session.IModel>(); // 文档 ID 到会话的映射
 
-    public readonly handlers;
+    public readonly handlers; // 插件暴露给 worker 的方法
 
     constructor(options: any) {
         super(options);
@@ -366,8 +367,117 @@ export default class TemplatePlugin extends siyuan.Plugin {
         if (context) {
             const submenu: siyuan.IMenuItemOption[] = [];
             if (context.isDocumentBlock) {
+                const session = this.doc2session.get(context.id);
+
+                /* 运行 */
+                submenu.push({
+                    icon: "iconPlay",
+                    label: this.i18n.menu.run.label,
+                    submenu: [
+                        { // 运行所有单元格
+                            icon: "iconPlay",
+                            label: this.i18n.menu.run.submenu.all.label,
+                            disabled: !session?.kernel,
+                            click: () => {
+                                // TODO: 运行所有单元格
+                            },
+                        },
+                        { // 重启内核并运行所有单元格
+                            icon: "iconRefresh",
+                            label: this.i18n.menu.run.submenu.restart.label,
+                            accelerator: this.i18n.menu.run.submenu.restart.accelerator,
+                            disabled: !session?.kernel,
+                            click: () => {
+                                // TODO: 重启内核并运行所有单元格
+                            },
+                        },
+                    ],
+                });
+
                 /* 会话管理 */
-                
+                submenu.push({
+                    icon: "icon-jupyter-client-session",
+                    label: this.i18n.menu.session.label,
+                    accelerator: session // 当前连接的会话名称
+                        ? fn__code(session.name)
+                        : undefined,
+                    submenu: [
+                        { // 会话设置
+                            icon: "iconSettings",
+                            label: this.i18n.menu.session.submenu.settings.label,
+                            click: () => {
+                                // TODO: 打开会话设置对话框
+                            },
+                        },
+                        { // 关闭会话
+                            icon: "iconRefresh",
+                            label: this.i18n.menu.session.submenu.shutdown.label,
+                            disabled: !session,
+                            click: () => {
+                                if (session) {
+                                    this.bridge?.call<WorkerHandlers["jupyter.sessions.shutdown"]>(
+                                        "jupyter.sessions.shutdown",
+                                        session.id,
+                                    )
+                                }
+                            },
+                        },
+                    ],
+                });
+
+                /* 内核管理 */
+                submenu.push({
+                    icon: "icon-jupyter-client-kernel",
+                    label: this.i18n.menu.kernel.label,
+                    accelerator: session?.kernel // 当前连接的内核名称
+                        ? fn__code(session.kernel.name)
+                        : undefined,
+                    submenu: [
+                        { // 重新连接
+                            icon: "iconRefresh",
+                            label: this.i18n.menu.kernel.submenu.reconnect.label,
+                            disabled: !session?.kernel,
+                            click: () => {
+                                if (session?.kernel) {
+                                    // TODO: 重新连接
+                                }
+                            },
+                        },
+                        { // 中断内核
+                            icon: "iconPause",
+                            label: this.i18n.menu.kernel.submenu.interrupt.label,
+                            disabled: !session?.kernel,
+                            click: () => {
+                                if (session?.kernel) {
+                                    // TODO: 中断内核
+                                }
+                            },
+                        },
+                        { // 重启内核
+                            icon: "iconRefresh",
+                            label: this.i18n.menu.kernel.submenu.restart.label,
+                            disabled: !session?.kernel,
+                            click: () => {
+                                if (session?.kernel) {
+                                    // TODO: 重启内核
+                                }
+                            },
+                        },
+                        { // 关闭内核
+                            icon: "iconClose",
+                            label: this.i18n.menu.kernel.submenu.shutdown.label,
+                            disabled: !session?.kernel,
+                            click: () => {
+                                if (session?.kernel) {
+                                    // TODO: 关闭内核
+                                }
+                            },
+                        },
+                    ],
+                });
+
+                submenu.push({ type: "separator" });
+
                 /* *.ipynb 文件导入 */
                 submenu.push({
                     icon: "iconUpload",
@@ -383,7 +493,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
                                     props: {
                                         file: true,
                                         icon: "#iconEdit",
-                                        label: this.i18n.menu.override.label,
+                                        label: this.i18n.menu.import.submenu.override.label,
                                         accept: ".ipynb",
                                         multiple: false,
                                         webkitdirectory: false,
@@ -414,7 +524,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
                                     props: {
                                         file: true,
                                         icon: "#iconAfter",
-                                        label: this.i18n.menu.append.label,
+                                        label: this.i18n.menu.import.submenu.append.label,
                                         accept: ".ipynb",
                                         multiple: false,
                                         webkitdirectory: false,
@@ -436,8 +546,8 @@ export default class TemplatePlugin extends siyuan.Plugin {
                                 });
                             },
                         },
-                    ]
-                })
+                    ],
+                });
             }
 
             detail.menu.addItem({
