@@ -24,75 +24,27 @@ import {
     parseData,
 } from "./parse";
 import type { Client } from "@siyuan-community/siyuan-sdk";
-import type { IConfig } from "../types/config";
-
-export interface IOutput {
-    output_type: string;
-    execution_count?: number;
-    name?: string;
-    text?: string[];
-    traceback?: string[];
-    data: Record<string, string>;
-    metadata: Record<string, any>;
-}
-
-export interface ICell {
-    id: string;
-    cell_type: "markdown" | "code" | "raw";
-    source: string[];
-    metadata?: {
-        jupyter: {
-            source_hidden: boolean;
-            outputs_hidden: boolean;
-        };
-        [key: string]: any;
-    };
-    attachments?: Record<string, any>;
-    execution_count: number;
-    outputs: IOutput[];
-}
-
-export interface IMetadata {
-    kernelspec: {
-        display_name: string;
-        language: string;
-        name: string;
-    };
-    kernel_info: {
-        name: string;
-    };
-    language_info: {
-        name: string;
-        nbconvert_exporter: string;
-    };
-}
+import type { IConfig } from "@/types/config";
+import type * as Ipynb from "@/types/nbformat";
 
 export interface IAttachment {
-    [mime: string]: string;
+    [mime: string]: string | string[];
 }
 
 export interface IAttachments {
     [filename: string]: IAttachment;
 }
 
-export interface Ipynb {
-    cells: ICell[];
-    metadata: IMetadata;
-    nbformat: number;
-    nbformat_minor: number;
-}
-
-
 export class IpynbImport {
     protected readonly timestamp = moment(new Date()).format("YYYYMMDDhhmmss"); // 用于 ID 生成的时间戳
     protected counter = 0; // 用于 ID 生成的计数器
 
-    protected ipynb!: Ipynb; // 文件内容
-    protected cells!: Ipynb["cells"]; // 内容块
+    protected ipynb!: Ipynb.Notebook; // 文件内容
+    protected cells!: Ipynb.Cell[]; // 内容块
     protected language!: string; // 单元格语言
-    protected metadata!: Ipynb["metadata"]; // notebook 元数据
-    protected nbformat!: Ipynb["nbformat"]; // 缩进长度
-    protected nbformat_minor!: Ipynb["nbformat_minor"]; // 次要缩进长度
+    protected metadata!: Ipynb.NotebookMetadata; // notebook 元数据
+    protected nbformat!: Ipynb.Notebook["nbformat"]; // 缩进长度
+    protected nbformat_minor!: Ipynb.Notebook["nbformat_minor"]; // 次要缩进长度
     protected kramdowns!: string[]; // 导入的 kramdown 字符串数组
     protected attributes!: Record<string, string>; // 导入的文档块属性
 
@@ -113,12 +65,13 @@ export class IpynbImport {
     }
 
     /* 导入 ipynb json 对象 */
-    public loadIpynb(ipynb: Ipynb) {
+    public loadIpynb(ipynb: Ipynb.Notebook) {
         this.ipynb = ipynb;
         return this;
     }
 
-    /**解析
+    /**
+     * 解析
      * REF: https://nbformat.readthedocs.io/en/latest/format_description.html#top-level-structure
      */
     public async parse() {
@@ -150,24 +103,25 @@ export class IpynbImport {
         return this.attributes;
     }
 
-    /**解析文档元数据
+    /**
+     * 解析文档元数据
      * REF: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
      */
     parseMetadata(): this {
         this.language =
-            this.metadata.kernelspec.language
-            ?? this.metadata.language_info.name
-            ?? this.metadata.language_info.nbconvert_exporter;
+            this.metadata.kernelspec?.language
+            ?? this.metadata.language_info?.name
+            ?? this.metadata.language_info?.nbconvert_exporter;
         this.attributes[CONSTANTS.attrs.kernel.language] = this.language;
 
         const kernel_name =
-            this.metadata.kernelspec.name
+            this.metadata.kernelspec?.name
             ?? this.metadata.kernel_info.name;
         this.attributes[CONSTANTS.attrs.kernel.name] = kernel_name;
 
         const display_name =
-            this.metadata.kernelspec.display_name
-            ?? this.metadata.kernelspec.name
+            this.metadata.kernelspec?.display_name
+            ?? this.metadata.kernelspec?.name
             ?? this.metadata.kernel_info.name;
         this.attributes[CONSTANTS.attrs.kernel.display_name] = display_name;
 
@@ -184,10 +138,11 @@ export class IpynbImport {
         return this;
     }
 
-    /**解析单个块
+    /**
+     * 解析单个块
      * REF: https://nbformat.readthedocs.io/en/latest/format_description.html#cell-types
      */
-    async parseCell(cell: ICell): Promise<string> {
+    async parseCell(cell: Ipynb.Cell): Promise<string> {
         switch (cell.cell_type) {
             case "markdown":
                 return await this.parseMarkdown(cell);
@@ -198,37 +153,55 @@ export class IpynbImport {
         }
     }
 
-    /**解析 markdown 块
+    /**
+     * 解析源码
+     */
+    parseSource(source?: string | string[]): string {
+        if (source) {
+            return Array.isArray(source) // 源码文本
+                ? source.join("") // 多行 (原文本自带换行符)
+                : source; // 单行
+        }
+        else {
+            return "";
+        }
+    }
+
+    /**
+     * 解析 markdown 块
      * REF: https://nbformat.readthedocs.io/en/latest/format_description.html#markdown-cells
      */
-    async parseMarkdown(cell: ICell): Promise<string> {
+    async parseMarkdown(cell: Ipynb.Cell): Promise<string> {
         /* 标题折叠 */
         if (cell.metadata?.["jp-MarkdownHeadingCollapsed"]) {
             let index = -1; // 级别最高的标题所有序号
             let top_level = 7; // 当前级别最高的标题级别
-            for (let i = 0; i < cell.source.length; ++i) {
-                const line = cell.source[i];
-                if (/^#{1,6}\s/.test(line)) { // 是否为标题块
-                    for (let j = 0; j < line.length && j < 6; ++j) {
-                        if (line.charAt(j) !== "#") {
-                            if (j + 1 < top_level) {
-                                top_level = j + 1;
-                                index = i;
+            if (Array.isArray(cell.source)) { // 多行
+                for (let i = 0; i < cell.source.length; ++i) {
+                    const line = cell.source[i];
+                    if (/^#{1,6}\s/.test(line)) { // 是否为标题块
+                        for (let j = 0; j < line.length && j < 6; ++j) {
+                            if (line.charAt(j) !== "#") {
+                                if (j + 1 < top_level) {
+                                    top_level = j + 1;
+                                    index = i;
+                                }
+                                break;
                             }
-                            break;
                         }
                     }
                 }
-            }
-            if (index >= 0 && 1 <= top_level && top_level <= 6) { // 存在待折叠的标题
-                cell.source[index] = `${cell.source[index].trim()}\n${createIAL({ fold: "1" })}\n`;
+                if (index >= 0 && 1 <= top_level && top_level <= 6) { // 存在待折叠的标题
+                    cell.source[index] = `${cell.source[index].trim()}\n${createIAL({ fold: "1" })}\n`;
+                }
             }
         }
-        var markdown = cell.source.join(""); // markdown 文本
+        var markdown = this.parseSource(cell.source);
         const attachments = await this.parseAttachments(cell.attachments); // 附件
         for (const [filename, filepath] of Object.entries(attachments)) {
             markdown = markdown.replace(`attachment:${filename}`, filepath);
         }
+
         // TODO: 解析 metadata 为块属性, 属性嵌套使用 `-` 展开
         /**幻灯片类型
          * slideshow.slide_type.slide
@@ -240,10 +213,11 @@ export class IpynbImport {
         return markdown;
     }
 
-    /**解析 code 块
+    /**
+     * 解析 code 块
      * REF: https://nbformat.readthedocs.io/en/latest/format_description.html#code-cells
      */
-    async parseCode(cell: ICell): Promise<string> {
+    async parseCode(cell: Ipynb.Cell): Promise<string> {
         const markdown = [];
         const execution_count = cell.execution_count?.toString() ?? "*"; // 当前块运行计数器
         const source_hidden = cell.metadata?.jupyter?.source_hidden; // 代码是否折叠
@@ -269,7 +243,7 @@ export class IpynbImport {
         /* 代码块 */
         markdown.push(
             `\`\`\`${this.language}`,
-            cell.source.join(""),
+            this.parseSource(cell.source),
             "```",
             createIAL(code_attrs),
         );
@@ -278,7 +252,10 @@ export class IpynbImport {
             `{{{row`,
             "---",
         );
-        markdown.push(await this.parseOutputs(cell.outputs));
+        if (cell.outputs) {
+            markdown.push(await this.parseOutputs(cell.outputs));
+        }
+
         markdown.push(
             `---`,
             "}}}",
@@ -287,10 +264,11 @@ export class IpynbImport {
         return markdown.join("\n");
     }
 
-    /**解析 raw 块
+    /**
+     * 解析 raw 块
      * REF: https://nbformat.readthedocs.io/en/latest/format_description.html#raw-nbconvert-cells
      */
-    async parseRaw(cell: ICell): Promise<string> {
+    async parseRaw(cell: Ipynb.Cell): Promise<string> {
         var mime_main, mime_sub;
         const mime = cell.metadata?.raw_mimetype ?? "/";
         [mime_main, mime_sub] = mime.split("/");
@@ -301,21 +279,21 @@ export class IpynbImport {
                     case "markdown":
                         markdown.push(
                             "{{{row",
-                            cell.source.join(""),
+                            this.parseSource(cell.source),
                             "}}}",
                         );
                         break;
                     case "html":
                         markdown.push(
                             "<div>",
-                            cell.source.join(""),
+                            this.parseSource(cell.source),
                             "</div>",
                         );
                         break;
                     case "x-python":
                         markdown.push(
                             "```python",
-                            cell.source.join(""),
+                            this.parseSource(cell.source),
                             "```",
                         );
                         break;
@@ -325,7 +303,7 @@ export class IpynbImport {
                     default:
                         markdown.push(
                             `\`\`\`${mime_sub}`,
-                            cell.source.join(""),
+                            this.parseSource(cell.source),
                             "```",
                         );
                         break;
@@ -339,7 +317,7 @@ export class IpynbImport {
             default:
                 markdown.push(
                     `\`\`\`${mime_main}`,
-                    cell.source.join(""),
+                    this.parseSource(cell.source),
                     "```",
                 );
                 break;
@@ -359,7 +337,10 @@ export class IpynbImport {
         const map = new Map<string, string>; // attachment -> assets
         if (attachments) {
             for (const [filename, attachment] of Object.entries(attachments)) {
-                for (const [mine, base64] of Object.entries(attachment)) {
+                for (const [mine, source] of Object.entries(attachment)) {
+                    const base64 = Array.isArray(source)
+                        ? source[0]
+                        : source;
                     const file = base64ToFile(base64, mine, filename);
                     if (file) {
                         const response = await this.client.upload({ files: [file] });
@@ -378,14 +359,14 @@ export class IpynbImport {
      * @params {array} outputs: 输出对象列表
      * @return {string}: 最终结果
      */
-    async parseOutputs(outputs: IOutput[]): Promise<string> {
+    async parseOutputs(outputs: Ipynb.Output[]): Promise<string> {
         const markdowns = [];
         for (let i = 0; i < outputs.length; ++i) {
             const output = outputs[i];
             switch (output.output_type) {
                 case "stream": {
                     const markdown = parseText(
-                        output.text?.join(""),
+                        this.parseSource(output.text),
                         { // 解析参数
                             escaped: true, // 是否转义
                             cntrl: true, // 是否解析控制字符
@@ -416,12 +397,14 @@ export class IpynbImport {
                     break;
                 case "execute_result":
                 case "display_data":
-                    markdowns.push(await parseData(
-                        this.client,
-                        output.data,
-                        output.metadata,
-                        this.config.jupyter.import.params,
-                    ));
+                    if (output.data) {
+                        markdowns.push(await parseData(
+                            this.client,
+                            this.config.jupyter.import.params,
+                            output.data,
+                            output.metadata,
+                        ));
+                    }
                     break;
             }
         }

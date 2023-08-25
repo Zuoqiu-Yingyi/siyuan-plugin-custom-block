@@ -152,6 +152,24 @@ function _throw(...args: any[]): never {
     throw new Error(`Jupyter Client not started!`);
 }
 
+function jupyterKernelsRunning(...args: any[]): Kernel.IModel[] {
+    if (jupyter?.kernels.running) {
+        return Array.from(jupyter.kernels.running());
+    }
+    else {
+        return [];
+    }
+}
+
+function jupyterSessionsRunning(...args: any[]): Session.IModel[] {
+    if (jupyter?.sessions.running) {
+        return Array.from(jupyter.sessions.running());
+    }
+    else {
+        return [];
+    }
+}
+
 function _undefined(...args: any[]): undefined {
     return;
 }
@@ -182,8 +200,8 @@ const handlers = {
         func: jupyter?.kernelspecs.refreshSpecs ?? _undefined,
     },
     jupyterKernelsRunning: {
-        this: jupyter?.kernels ?? _undefined,
-        func: jupyter?.kernels.running ?? _undefined,
+        this: self,
+        func: jupyterKernelsRunning,
     },
     jupyterKernelsRefreshRunning: {
         this: jupyter?.kernels ?? _undefined,
@@ -198,8 +216,8 @@ const handlers = {
         func: jupyter?.kernels.shutdownAll ?? _undefined,
     },
     jupyterSessionsRunning: {
-        this: jupyter?.sessions ?? _undefined,
-        func: jupyter?.sessions.running ?? _undefined,
+        this: self,
+        func: jupyterSessionsRunning,
     },
     jupyterSessionRefreshRunning: {
         this: jupyter?.sessions ?? _undefined,

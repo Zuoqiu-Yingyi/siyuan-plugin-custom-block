@@ -57,9 +57,9 @@ export function parseText(
  */
 export async function parseData(
     client: InstanceType<typeof Client>,
-    data: IData,
-    metadata: Record<string, string>,
     params: IJupyterImportParams,
+    data: IData,
+    metadata?: Record<string, string>,
 ): Promise<string> {
     let filedata: string;
     const markdowns = new PriorityQueue<string>();
@@ -117,10 +117,10 @@ export async function parseData(
                 if (file) {
                     const response = await client.upload({ files: [file] });
                     const filepath = response.data.succMap[filename];
-                    const style = "needs_background" in metadata
+                    const style = metadata?.needs_background
                         ? createIAL({
                             style: createStyle({
-                                background: metadata.needs_background === "light"
+                                background: metadata!.needs_background === "light"
                                     ? "white"
                                     : "black"
                             })

@@ -88,15 +88,20 @@
                     }
             }
         })();
+
         if (pathname) {
             const response = await plugin.jupyterFetch(pathname, {
                 method: "GET",
             });
             const blob = await response.blob();
-            const objectURL = URL.createObjectURL(blob);
 
-            kernelName2objectURL.set(spec.name, objectURL);
-            return objectURL;
+            if (kernelName2objectURL.has(spec.name)) {
+                return kernelName2objectURL.get(spec.name)!;
+            } else {
+                const objectURL = URL.createObjectURL(blob);
+                kernelName2objectURL.set(spec.name, objectURL);
+                return objectURL;
+            }
         } else {
             return defaultIcon;
         }

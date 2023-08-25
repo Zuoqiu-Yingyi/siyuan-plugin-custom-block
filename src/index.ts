@@ -366,6 +366,9 @@ export default class TemplatePlugin extends siyuan.Plugin {
         if (context) {
             const submenu: siyuan.IMenuItemOption[] = [];
             if (context.isDocumentBlock) {
+                /* 会话管理 */
+                
+                /* *.ipynb 文件导入 */
                 submenu.push({
                     icon: "iconUpload",
                     label: this.i18n.menu.import.label,
@@ -435,7 +438,6 @@ export default class TemplatePlugin extends siyuan.Plugin {
                         },
                     ]
                 })
-                submenu.push();
             }
 
             detail.menu.addItem({
