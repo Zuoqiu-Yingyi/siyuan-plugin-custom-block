@@ -96,14 +96,36 @@
     "settings": {
         "sessionSettings": {
             "connect": {
-                "title": "连接会话",
-                "description": "新建一个会话或连接一个当前活跃的会话，并将文档与该会话关联",
+                "title": "会话选择",
+                "description": "新建一个会话或选择一个当前活跃的会话",
                 "options": {
                     "new": {
                         "text": "新建会话"
                     }
                 }
-            }
+            },
+            "name": {
+                "title": "会话名称",
+                "description": "自定义会话名称"
+            },
+            "path": {
+                "title": "会话路径",
+                "description": "文件在 Jupyter 工作空间中的路径，对应的目录也是内核运行时的工作目录"
+            },
+            "type": {
+                "title": "会话类型",
+                "description": "<code class='fn__code'>console</code>: Jupyter 控制台，交互式运行环境<br/><code class='fn__code'>notebook</code>: Jupyter 笔记本，<code class='fn__code'>*.ipynb</code> 文件"
+            },
+            "confirm": {
+                "new": "新建",
+                "connect": "连接",
+                "update": "更新"
+            },
+            "kernel": {
+                "title": "内核选择",
+                "description": "选择会话所使用的内核<br/>格式: <code class='fn__code'>[语言名称] 内核名称: 内核描述</code>"
+            },
+            "title": "会话设置"
         },
         "generalSettings": {
             "reset": {

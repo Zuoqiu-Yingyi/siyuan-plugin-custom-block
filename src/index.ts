@@ -57,6 +57,8 @@ import { fn__code } from "@workspace/utils/siyuan/text/span";
 import { mergeIgnoreArray } from "@workspace/utils/misc/merge";
 import { WorkerBridgeMaster } from "@workspace/utils/worker/bridge/master";
 import { sleep } from "@workspace/utils/misc/sleep";
+import { Counter } from "@workspace/utils/misc/iterator";
+import uuid from "@workspace/utils/misc/uuid";
 
 import CONSTANTS from "./constants";
 import { DEFAULT_SETTINGS } from "./jupyter/settings";
@@ -74,10 +76,11 @@ import type {
     IClickEditorTitleIconEvent,
 } from "@workspace/types/siyuan/events";
 import type {
-    IHandlers,
     THandlersWrapper,
 } from "@workspace/utils/worker/bridge";
 import type { WorkerHandlers } from "./workers/jupyter";
+import SessionManager from "./components/SessionManager.svelte";
+import type { ComponentEvents } from "svelte";
 
 declare var globalThis: ISiyuanGlobal;
 export type PluginHandlers = THandlersWrapper<TemplatePlugin["handlers"]>;
@@ -112,6 +115,9 @@ export default class TemplatePlugin extends siyuan.Plugin {
     public readonly kernelName2objectURL = new Map<string, string>(); // 内核名称 -> object URL
     public readonly kernelName2language = new Map<string, string>(); // 内核名称 -> 内核语言名称
     public readonly kernelName2displayName = new Map<string, string>(); // 内核名称 -> 内核显示名称
+    public readonly counter = Counter();
+    public readonly username = `siyuan-${siyuan.getBackend()}-${siyuan.getFrontend()}`; // 用户名
+    public readonly clientId = globalThis.Lute.NewNodeID(); // 客户端 ID
 
     constructor(options: any) {
         super(options);
@@ -322,6 +328,23 @@ export default class TemplatePlugin extends siyuan.Plugin {
         return this.config?.jupyter.server.settings.baseUrl || DEFAULT_SETTINGS.baseUrl;
     }
 
+    /**
+     * 判断一个会话 id 是否为运行的会话
+     * @param id 会话 id
+     * @returns 是否存在
+     */
+    public isSessionRunning(id: string): boolean {
+        return !!this.sessions.find(s => s.id === id);
+    }
+
+    /**
+     * 判断一个会话 id 是否为连接的会话
+     * @param id 会话 id
+     * @returns 是否存在
+     */
+    public isSessionConnected(id: string): boolean {
+        return !!Array.from(this.doc2session.values()).find(s => s.id === id);
+    }
 
     /* 更新 worker 配置 */
     public async updateWorkerConfig(): Promise<void> {
@@ -380,30 +403,38 @@ export default class TemplatePlugin extends siyuan.Plugin {
     /**
      * 将文档块 IAL 转换为会话属性
      * @param ial 块属性
-     * @param unknonw 是否使用未知值 (使用后将不会检查属性是否存在)
+     * @param init 若块属性为空, 是否对其进行初始化
      */
     public ial2session(
         ial: Record<string, string>,
-        unknown: string = "",
-    ): Session.IModel | null {
-        const id = ial[CONSTANTS.attrs.session.id] ?? unknown;
-        const name = ial[CONSTANTS.attrs.session.name] ?? unknown;
-        const path = ial[CONSTANTS.attrs.session.path] ?? unknown;
-        const type = ial[CONSTANTS.attrs.session.type] ?? unknown;
-        const kernel = this.ial2kernel(ial, unknown);
+        init: boolean = false,
+    ): Session.IModel {
+        const count = this.counter.next().value;
+        const id = ial[CONSTANTS.attrs.session.id]
+            ?? init
+            ? uuid.v4()
+            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+        const name = ial[CONSTANTS.attrs.session.name]
+            ?? init
+            ? `siyuan-console-${count}`
+            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+        const path = ial[CONSTANTS.attrs.session.path]
+            ?? init
+            ? `siyuan-console-${count}-${globalThis.Lute.NewNodeID()}`
+            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+        const type = ial[CONSTANTS.attrs.session.type]
+            ?? init
+            ? "console"
+            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+        const kernel = this.ial2kernel(ial, init);
 
-        if (id && type && name && path) {
-            return {
-                id,
-                type,
-                name,
-                path,
-                kernel,
-            };
-        }
-        else {
-            return null;
-        }
+        return {
+            id,
+            type,
+            name,
+            path,
+            kernel,
+        };
     }
 
     /* 将内核属性转换为文档块 IAL */
@@ -419,24 +450,25 @@ export default class TemplatePlugin extends siyuan.Plugin {
     /**
      * 将文档块 IAL 转换为内核属性
      * @param ial 块属性
-     * @param unknonw 是否使用未知值 (使用后将不会检查属性是否存在)
+     * @param init 若为空是否使用默认值
      */
     public ial2kernel(
         ial: Record<string, string>,
-        unknown: string = "",
+        init: boolean = false,
     ): Kernel.IModel | null {
-        const id = ial[CONSTANTS.attrs.kernel.id] ?? unknown;
-        const name = ial[CONSTANTS.attrs.kernel.name] ?? unknown;
+        const id = ial[CONSTANTS.attrs.kernel.id]
+            ?? init
+            ? uuid.v4()
+            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+        const name = ial[CONSTANTS.attrs.kernel.name]
+            ?? init
+            ? this.kernelspecs.default
+            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
 
-        if (id && name) {
-            return {
-                id,
-                name,
-            };
-        }
-        else {
-            return null;
-        }
+        return {
+            id,
+            name,
+        };
     }
 
     /* 块菜单菜单弹出事件监听器 */
@@ -450,7 +482,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
             if (context.isDocumentBlock) {
                 const session = this.doc2session.get(context.id);
                 const ial = context.data.ial;
-                const session_ial = this.ial2session(ial, CONSTANTS.JUPYTER_UNKNOWN_VALUE)!;
+                const session_ial = this.ial2session(ial, false);
                 const kernel_name = session?.kernel?.name
                     ?? session_ial.kernel!.name;
                 const kernel_language = this.kernelName2language.get(kernel_name)
@@ -497,7 +529,28 @@ export default class TemplatePlugin extends siyuan.Plugin {
                             icon: "iconSettings",
                             label: this.i18n.menu.session.submenu.settings.label,
                             click: () => {
-                                // TODO: 打开会话设置对话框
+                                const dialog = new siyuan.Dialog({
+                                    title: `Jupyter ${this.i18n.settings.sessionSettings.title} <code class="fn__code">${this.name}</code>`,
+                                    content: `<div id="${this.SETTINGS_DIALOG_ID}" class="fn__flex-column" />`,
+                                    width: FLAG_MOBILE ? "92vw" : "720px",
+                                });
+                                const target = dialog.element.querySelector(`#${this.SETTINGS_DIALOG_ID}`);
+                                if (target) {
+                                    const manager = new SessionManager({
+                                        target,
+                                        props: {
+                                            docID: context.id,
+                                            docIAL: context.data.ial,
+                                            plugin: this,
+                                        },
+                                    });
+                                    manager.$on("cancel", (e: ComponentEvents<SessionManager>["cancel"]) => {
+                                        dialog.destroy();
+                                    });
+                                    manager.$on("confirm", (e: ComponentEvents<SessionManager>["confirm"]) => {
+                                        dialog.destroy();
+                                    });
+                                }
                             },
                         },
                         { // 关闭会话
