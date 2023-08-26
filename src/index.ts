@@ -103,9 +103,15 @@ export default class TemplatePlugin extends siyuan.Plugin {
         model?: siyuan.IModel,
         component?: InstanceType<typeof JupyterDock>,
     }; // Jupyter 管理面板
-    protected readonly doc2session = new Map<string, Session.IModel>(); // 文档 ID 到会话的映射
 
+    public readonly doc2session = new Map<string, Session.IModel>(); // 文档 ID 到会话的映射
     public readonly handlers; // 插件暴露给 worker 的方法
+    public readonly kernelspecs: KernelSpec.ISpecModels = { default: "", kernelspecs: {} };
+    public readonly kernels: Kernel.IModel[] = [];
+    public readonly sessions: Session.IModel[] = [];
+    public readonly kernelName2objectURL = new Map<string, string>(); // 内核名称 -> object URL
+    public readonly kernelName2language = new Map<string, string>(); // 内核名称 -> 内核语言名称
+    public readonly kernelName2displayName = new Map<string, string>(); // 内核名称 -> 内核显示名称
 
     constructor(options: any) {
         super(options);
@@ -358,6 +364,81 @@ export default class TemplatePlugin extends siyuan.Plugin {
         );
     }
 
+    /* 将会话属性转换为文档块 IAL */
+    public session2ial(session: Session.IModel): Record<string, string> {
+        return {
+            [CONSTANTS.attrs.session.id]: session.id,
+            [CONSTANTS.attrs.session.name]: session.name,
+            [CONSTANTS.attrs.session.path]: session.path,
+            [CONSTANTS.attrs.session.type]: session.type,
+            ...(session.kernel
+                ? this.kernel2ial(session.kernel)
+                : {}
+            ),
+        };
+    }
+    /**
+     * 将文档块 IAL 转换为会话属性
+     * @param ial 块属性
+     * @param unknonw 是否使用未知值 (使用后将不会检查属性是否存在)
+     */
+    public ial2session(
+        ial: Record<string, string>,
+        unknown: string = "",
+    ): Session.IModel | null {
+        const id = ial[CONSTANTS.attrs.session.id] ?? unknown;
+        const name = ial[CONSTANTS.attrs.session.name] ?? unknown;
+        const path = ial[CONSTANTS.attrs.session.path] ?? unknown;
+        const type = ial[CONSTANTS.attrs.session.type] ?? unknown;
+        const kernel = this.ial2kernel(ial, unknown);
+
+        if (id && type && name && path) {
+            return {
+                id,
+                type,
+                name,
+                path,
+                kernel,
+            };
+        }
+        else {
+            return null;
+        }
+    }
+
+    /* 将内核属性转换为文档块 IAL */
+    public kernel2ial(kernel: Kernel.IModel): Record<string, string | void> {
+        const kernelspec = this.kernelspecs.kernelspecs[kernel.name];
+        return {
+            [CONSTANTS.attrs.kernel.id]: kernel.id,
+            [CONSTANTS.attrs.kernel.name]: kernel.name,
+            [CONSTANTS.attrs.kernel.language]: kernelspec?.language ?? undefined,
+            [CONSTANTS.attrs.kernel.display_name]: kernelspec?.display_name ?? undefined,
+        };
+    }
+    /**
+     * 将文档块 IAL 转换为内核属性
+     * @param ial 块属性
+     * @param unknonw 是否使用未知值 (使用后将不会检查属性是否存在)
+     */
+    public ial2kernel(
+        ial: Record<string, string>,
+        unknown: string = "",
+    ): Kernel.IModel | null {
+        const id = ial[CONSTANTS.attrs.kernel.id] ?? unknown;
+        const name = ial[CONSTANTS.attrs.kernel.name] ?? unknown;
+
+        if (id && name) {
+            return {
+                id,
+                name,
+            };
+        }
+        else {
+            return null;
+        }
+    }
+
     /* 块菜单菜单弹出事件监听器 */
     protected readonly blockMenuEventListener = (e: IClickBlockIconEvent | IClickEditorTitleIconEvent) => {
         // this.logger.debug(e);
@@ -368,6 +449,16 @@ export default class TemplatePlugin extends siyuan.Plugin {
             const submenu: siyuan.IMenuItemOption[] = [];
             if (context.isDocumentBlock) {
                 const session = this.doc2session.get(context.id);
+                const ial = context.data.ial;
+                const session_ial = this.ial2session(ial, CONSTANTS.JUPYTER_UNKNOWN_VALUE)!;
+                const kernel_name = session?.kernel?.name
+                    ?? session_ial.kernel!.name;
+                const kernel_language = this.kernelName2language.get(kernel_name)
+                    ?? ial[CONSTANTS.attrs.kernel.language]
+                    ?? CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+                const kernel_display_name = this.kernelName2displayName.get(kernel_name)
+                    ?? ial[CONSTANTS.attrs.kernel.display_name]
+                    ?? CONSTANTS.JUPYTER_UNKNOWN_VALUE;
 
                 /* 运行 */
                 submenu.push({
@@ -422,6 +513,19 @@ export default class TemplatePlugin extends siyuan.Plugin {
                                 }
                             },
                         },
+                        {
+                            type: "separator",
+                        },
+                        {
+                            type: "readonly",
+                            iconHTML: "",
+                            label: this.i18n.menu.session.submenu.info.label
+                                .replaceAll("${1}", fn__code(session?.id ?? session_ial.id))
+                                .replaceAll("${2}", fn__code(session?.name ?? session_ial.name))
+                                .replaceAll("${3}", fn__code(session?.path ?? session_ial.path))
+                                .replaceAll("${4}", fn__code(session?.type ?? session_ial.type)),
+                            disabled: !session,
+                        },
                     ],
                 });
 
@@ -472,6 +576,19 @@ export default class TemplatePlugin extends siyuan.Plugin {
                                     // TODO: 关闭内核
                                 }
                             },
+                        },
+                        {
+                            type: "separator",
+                        },
+                        {
+                            type: "readonly",
+                            iconHTML: "",
+                            label: this.i18n.menu.kernel.submenu.info.label
+                                .replaceAll("${1}", fn__code(session?.kernel?.id ?? session_ial.kernel!.id))
+                                .replaceAll("${2}", fn__code(kernel_name))
+                                .replaceAll("${3}", fn__code(kernel_language))
+                                .replaceAll("${4}", fn__code(kernel_display_name)),
+                            disabled: !session?.kernel,
                         },
                     ],
                 });
@@ -559,9 +676,62 @@ export default class TemplatePlugin extends siyuan.Plugin {
         }
     };
 
+    /**
+     * 加载内核图标
+     * @param spec 内核清单
+     * @param defaultIcon 默认图标
+     * @returns 内核图标引用 ID
+     */
+    async loadKernelSpecIcon(
+        spec: KernelSpec.ISpecModel,
+        defaultIcon: string = "#icon-jupyter-client-kernelspec",
+    ): Promise<string> {
+        const pathname = (() => {
+            switch (true) {
+                case "logo-svg" in spec.resources:
+                    return spec.resources["logo-svg"];
+                case "logo-32x32" in spec.resources:
+                    return spec.resources["logo-32x32"];
+                case "logo-64x64" in spec.resources:
+                    return spec.resources["logo-64x64"];
+                default:
+                    if (Object.keys(spec.resources).length > 0) {
+                        return Object.values(spec.resources)[0];
+                    } else {
+                        return "";
+                    }
+            }
+        })();
+
+        if (pathname) {
+            const response = await this.jupyterFetch(pathname, {
+                method: "GET",
+            });
+            const blob = await response.blob();
+
+            if (this.kernelName2objectURL.has(spec.name)) {
+                return this.kernelName2objectURL.get(spec.name)!;
+            } else {
+                const objectURL = URL.createObjectURL(blob);
+                this.kernelName2objectURL.set(spec.name, objectURL);
+                return objectURL;
+            }
+        } else {
+            return defaultIcon;
+        }
+    }
+
     /* 内核清单更改 */
     public readonly updateKernelSpecs = (kernelspecs: KernelSpec.ISpecModels) => {
         // this.logger.debug(kernelspecs);
+
+        Object.assign(this.kernelspecs, kernelspecs);
+        for (const [name, spec] of Object.entries(kernelspecs.kernelspecs)) {
+            if (spec) {
+                this.kernelName2language.set(name, spec.language);
+                this.kernelName2displayName.set(name, spec.display_name);
+            }
+        }
         this.jupyterDock.component?.$set({
             kernelspecs,
         });
@@ -570,6 +740,9 @@ export default class TemplatePlugin extends siyuan.Plugin {
     /* 活动的内核列表更改 */
     public readonly updateKernels = (kernels: Kernel.IModel[]) => {
         // this.logger.debug(kernels);
+
+        this.kernels.length = 0;
+        this.kernels.push(...kernels);
         this.jupyterDock.component?.$set({
             kernels,
         });
@@ -578,6 +751,9 @@ export default class TemplatePlugin extends siyuan.Plugin {
     /* 活动的会话列表更改 */
     public readonly updateSessions = (sessions: Session.IModel[]) => {
         // this.logger.debug(sessions);
+
+        this.sessions.length = 0;
+        this.sessions.push(...sessions);
         this.jupyterDock.component?.$set({
             sessions,
         });

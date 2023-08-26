@@ -66,47 +66,6 @@
 
     const DATETIME_FORMAT = "YYYY-MM-DD hh:mm:ss"; // 日期时间格式
 
-    /* 内核名称 -> object URL */
-    const kernelName2objectURL = new Map<string, string>();
-    const kernelName2language = new Map<string, string>();
-
-    /* 加载内核图标 */
-    async function loadKernelSpecIcon(spec: KernelSpec.ISpecModel, defaultIcon: string = KERNELSPECS_ICON): Promise<string> {
-        const pathname = (() => {
-            switch (true) {
-                case "logo-svg" in spec.resources:
-                    return spec.resources["logo-svg"];
-                case "logo-32x32" in spec.resources:
-                    return spec.resources["logo-32x32"];
-                case "logo-64x64" in spec.resources:
-                    return spec.resources["logo-64x64"];
-                default:
-                    if (Object.keys(spec.resources).length > 0) {
-                        return Object.values(spec.resources)[0];
-                    } else {
-                        return "";
-                    }
-            }
-        })();
-
-        if (pathname) {
-            const response = await plugin.jupyterFetch(pathname, {
-                method: "GET",
-            });
-            const blob = await response.blob();
-
-            if (kernelName2objectURL.has(spec.name)) {
-                return kernelName2objectURL.get(spec.name)!;
-            } else {
-                const objectURL = URL.createObjectURL(blob);
-                kernelName2objectURL.set(spec.name, objectURL);
-                return objectURL;
-            }
-        } else {
-            return defaultIcon;
-        }
-    }
-
     /* 将 jupyter 资源转换为节点 */
     async function resources2node(
         kernelspecs: KernelSpec.ISpecModels, //
@@ -125,9 +84,9 @@
                 path: spec_path,
                 directory: RESOURCES_DIRECTORY,
                 folded: false,
-                icon: kernelName2objectURL.has(spec.name) //
-                    ? kernelName2objectURL.get(spec.name) //
-                    : await loadKernelSpecIcon(spec),
+                icon: plugin.kernelName2objectURL.has(spec.name) //
+                    ? plugin.kernelName2objectURL.get(spec.name) //
+                    : await plugin.loadKernelSpecIcon(spec),
                 iconAriaLabel: spec.language,
                 text: spec.name,
                 textAriaLabel: spec.display_name,
@@ -196,7 +155,6 @@
             })();
             spec_node.count = spec_node.children.length;
 
-            kernelName2language.set(spec.name, spec.language);
             spec_nodes.push(spec_node);
         }
         return spec_nodes;
@@ -219,15 +177,14 @@
             };
 
             /* 设置图标 */
-            const icon = kernelName2objectURL.get(name);
+            const icon = plugin.kernelName2objectURL.get(name);
             if (icon) {
                 node.icon = icon;
             } else {
-                node.icon = await loadKernelSpecIcon(spec);
+                node.icon = await plugin.loadKernelSpecIcon(spec);
             }
 
             node.iconAriaLabel = spec.language;
-            kernelName2language.set(name, spec.language);
 
             nodes.push(node);
         }
@@ -249,8 +206,8 @@
                 iconAriaLabel: kernel.execution_state,
                 text: kernel.name,
                 textAriaLabel: `${datetime.format(DATETIME_FORMAT)}<br/>${datetime.fromNow()}`,
-                symlinkIcon: kernelName2objectURL.get(kernel.name) ?? KERNELS_ICON,
-                symlinkAriaLabel: kernelName2language.get(kernel.name),
+                symlinkIcon: plugin.kernelName2objectURL.get(kernel.name) ?? KERNELS_ICON,
+                symlinkAriaLabel: plugin.kernelName2language.get(kernel.name),
                 symlink: true,
                 count: kernel.connections,
                 title: kernel.id,
@@ -274,8 +231,8 @@
                 text: session.name,
                 textAriaLabel: `${session.kernel?.name}<br/>${session.path}`,
                 symlink: true,
-                symlinkIcon: kernelName2objectURL.get(session.kernel?.name ?? "") ?? SESSIONS_ICON,
-                symlinkAriaLabel: kernelName2language.get(session.kernel?.name ?? ""),
+                symlinkIcon: plugin.kernelName2objectURL.get(session.kernel?.name ?? "") ?? SESSIONS_ICON,
+                symlinkAriaLabel: plugin.kernelName2language.get(session.kernel?.name ?? ""),
                 count: session.kernel?.connections,
                 countAriaLabel: session.kernel?.execution_state,
                 title: session.id,
@@ -398,7 +355,7 @@
 
     /* 回收资源 */
     onDestroy(() => {
-        for (const objectURL of kernelName2objectURL.values()) {
+        for (const objectURL of plugin.kernelName2objectURL.values()) {
             URL.revokeObjectURL(objectURL);
         }
     });

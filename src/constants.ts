@@ -17,6 +17,7 @@
 export default {
     JUPYTER_WORKER_FILE_NAME: "jupyter", // web worker 文件名称
     JUPYTER_WORKER_BROADCAST_CHANNEL_NAME: "jupyter-worker", // web worker 任务广播通道名称
+    JUPYTER_UNKNOWN_VALUE: "unknown", // 未知值
     attrs: { // 块属性
         kernel: {
             id: "custom-jupyter-kernel-id", // 内核 ID
@@ -26,6 +27,7 @@ export default {
         },
         session: {
             id: "custom-jupyter-session-id", // 会话 ID
+            type: "custom-jupyter-session-type", // 会话类型
             name: "custom-jupyter-session-name", // 会话名称
             path: "custom-jupyter-session-path", // 会话路径
         },

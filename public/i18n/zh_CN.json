@@ -49,6 +49,9 @@
         "kernel": {
             "label": "内核",
             "submenu": {
+                "info": {
+                    "label": "内核&emsp;ID: ${1}<br/>内核名称: ${2}<br/>内核语言: ${3}<br/>内核备注: ${4}"
+                },
                 "reconnect": {
                     "label": "重新连接"
                 },
@@ -66,6 +69,9 @@
         "session": {
             "label": "会话",
             "submenu": {
+                "info": {
+                    "label": "会话&emsp;ID: ${1}<br/>会话名称: ${2}<br/>会话路径: ${3}<br/>会话类型: ${4}"
+                },
                 "settings": {
                     "label": "会话设置"
                 },
@@ -88,6 +94,17 @@
         }
     },
     "settings": {
+        "sessionSettings": {
+            "connect": {
+                "title": "连接会话",
+                "description": "新建一个会话或连接一个当前活跃的会话，并将文档与该会话关联",
+                "options": {
+                    "new": {
+                        "text": "新建会话"
+                    }
+                }
+            }
+        },
         "generalSettings": {
             "reset": {
                 "description": "重置所有设置选项为默认选项（重置后将刷新页面）",

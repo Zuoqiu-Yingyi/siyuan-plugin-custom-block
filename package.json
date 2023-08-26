@@ -21,7 +21,7 @@
         "svelte-check": "^2.10.3",
         "svelte-preprocess-less": "^0.4.0",
         "tslib": "^2.6.2",
-        "typescript": "^5.1.6",
+        "typescript": "^5.2.2",
         "vite": "^4.4.9"
     },
     "dependencies": {

@@ -31,12 +31,11 @@
     import type Plugin from "@/index";
 
     import type { IConfig } from "@/types/config";
-    import type { I18N } from "@/utils/i18n";
 
     export let config: IConfig; // 传入的配置项
     export let plugin: InstanceType<typeof Plugin>; // 插件实例
 
-    const i18n = plugin.i18n as unknown as I18N;
+    const i18n = plugin.i18n;
 
     $: placeholder_wsUrl = getWsUrl(config.jupyter.server.settings.baseUrl);
 
