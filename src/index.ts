@@ -245,12 +245,17 @@ export default class TemplatePlugin extends siyuan.Plugin {
         this.eventBus.off("click-editortitleicon", this.blockMenuEventListener);
         this.eventBus.off("click-blockicon", this.blockMenuEventListener);
 
-        this.bridge
-            ?.call<WorkerHandlers["unload"]>("unload")
-            .then(() => {
-                this.bridge?.terminate();
-                this.worker?.terminate();
-            });
+        if (this.worker) {
+            this.bridge
+                ?.call<WorkerHandlers["unload"]>("unload")
+                .then(() => {
+                    this.bridge?.terminate();
+                    this.worker?.terminate();
+                });
+        }
+        else {
+            this.bridge?.terminate();
+        }
     }
 
     openSetting(): void {
@@ -403,17 +408,21 @@ export default class TemplatePlugin extends siyuan.Plugin {
         );
     }
 
-    /* 将会话属性转换为文档块 IAL */
-    public session2ial(session: Session.IModel): Record<string, string> {
+    /**
+     * 将会话属性转换为文档块 IAL
+     * @param session 会话属性
+     * @param remove 是否移除空属性
+     */
+    public session2ial(
+        session: Session.IModel,
+        remove: boolean = false,
+    ): Record<string, string | null> {
         return {
             [CONSTANTS.attrs.session.id]: session.id,
             [CONSTANTS.attrs.session.name]: session.name,
             [CONSTANTS.attrs.session.path]: session.path,
             [CONSTANTS.attrs.session.type]: session.type,
-            ...(session.kernel
-                ? this.kernel2ial(session.kernel)
-                : {}
-            ),
+            ...this.kernel2ial(session.kernel, remove),
         };
     }
     /**
@@ -457,14 +466,37 @@ export default class TemplatePlugin extends siyuan.Plugin {
         };
     }
 
-    /* 将内核属性转换为文档块 IAL */
-    public kernel2ial(kernel: Kernel.IModel): Record<string, string | void> {
-        const kernelspec = this.kernelspecs.kernelspecs[kernel.name];
+    /**
+     * 将内核属性转换为文档块 IAL
+     * @param session 内核属性
+     * @param remove 是否移除空属性
+     */
+    public kernel2ial(
+        kernel: Kernel.IModel | null,
+        remove: boolean = false,
+    ): Record<string, string | null | undefined> {
+        const kernelspec = (kernel && this.kernelspecs.kernelspecs[kernel.name]) || undefined;
         return {
-            [CONSTANTS.attrs.kernel.id]: kernel.id,
-            [CONSTANTS.attrs.kernel.name]: kernel.name,
-            [CONSTANTS.attrs.kernel.language]: kernelspec?.language ?? undefined,
-            [CONSTANTS.attrs.kernel.display_name]: kernelspec?.display_name ?? undefined,
+            [CONSTANTS.attrs.kernel.id]: kernel?.id
+                ?? (remove
+                    ? null
+                    : undefined
+                ),
+            [CONSTANTS.attrs.kernel.name]: kernel?.name
+                ?? (remove
+                    ? null
+                    : undefined
+                ),
+            [CONSTANTS.attrs.kernel.language]: kernelspec?.language
+                ?? (remove
+                    ? null
+                    : undefined
+                ),
+            [CONSTANTS.attrs.kernel.display_name]: kernelspec?.display_name
+                ?? (remove
+                    ? null
+                    : undefined
+                ),
         };
     }
     /**
