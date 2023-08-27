@@ -635,9 +635,12 @@ export default class TemplatePlugin extends siyuan.Plugin {
                             icon: "iconRefresh",
                             label: this.i18n.menu.kernel.submenu.reconnect.label,
                             disabled: !session?.kernel,
-                            click: () => {
+                            click: async () => {
                                 if (session?.kernel) {
-                                    // TODO: 重新连接
+                                    await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.reconnect"]>(
+                                        "jupyter.session.kernel.connection.reconnect", //
+                                        session.id, //
+                                    );
                                 }
                             },
                         },
@@ -645,9 +648,12 @@ export default class TemplatePlugin extends siyuan.Plugin {
                             icon: "iconPause",
                             label: this.i18n.menu.kernel.submenu.interrupt.label,
                             disabled: !session?.kernel,
-                            click: () => {
+                            click: async () => {
                                 if (session?.kernel) {
-                                    // TODO: 中断内核
+                                    await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.interrupt"]>(
+                                        "jupyter.session.kernel.connection.interrupt", //
+                                        session.id, //
+                                    );
                                 }
                             },
                         },
@@ -655,9 +661,12 @@ export default class TemplatePlugin extends siyuan.Plugin {
                             icon: "iconRefresh",
                             label: this.i18n.menu.kernel.submenu.restart.label,
                             disabled: !session?.kernel,
-                            click: () => {
+                            click: async () => {
                                 if (session?.kernel) {
-                                    // TODO: 重启内核
+                                    await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.restart"]>(
+                                        "jupyter.session.kernel.connection.restart", //
+                                        session.id, //
+                                    );
                                 }
                             },
                         },
@@ -665,9 +674,12 @@ export default class TemplatePlugin extends siyuan.Plugin {
                             icon: "iconClose",
                             label: this.i18n.menu.kernel.submenu.shutdown.label,
                             disabled: !session?.kernel,
-                            click: () => {
+                            click: async () => {
                                 if (session?.kernel) {
-                                    // TODO: 关闭内核
+                                    await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.shutdown"]>(
+                                        "jupyter.session.kernel.connection.shutdown", //
+                                        session.id, //
+                                    );
                                 }
                             },
                         },

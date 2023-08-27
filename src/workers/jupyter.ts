@@ -50,7 +50,6 @@ const client = new Client(
     },
     "fetch",
 );
-const id_2_kernel_connection = new Map<string, Kernel.IKernelConnection>(); // 内核 ID -> 内核连接
 const id_2_session_connection = new Map<string, Session.ISessionConnection>(); // 会话 ID -> 会话连接
 var jupyter: InstanceType<typeof Jupyter> | undefined;
 
@@ -224,9 +223,6 @@ const handlers = {
             const connection = await jupyter?.sessions.startNew(...args);
             if (connection) {
                 id_2_session_connection.set(connection.id, connection);
-                if (connection.kernel) {
-                    id_2_kernel_connection.set(connection.kernel.id, connection.kernel);
-                }
                 // TODO: 绑定监听器
                 return connection.model;
             }
@@ -238,9 +234,6 @@ const handlers = {
             const connection = await jupyter?.sessions.connectTo(...args);
             if (connection) {
                 id_2_session_connection.set(connection.id, connection);
-                if (connection.kernel) {
-                    id_2_kernel_connection.set(connection.kernel.id, connection.kernel);
-                }
                 // TODO: 绑定监听器
                 return connection.model;
             }
@@ -301,13 +294,55 @@ const handlers = {
         ): Promise<Session.IModel | undefined> {
             const connection = id_2_session_connection.get(id);
             if (connection) {
-                const kernel_id_old = connection.kernel?.id;
                 const connection_kernel = await connection.changeKernel(kernel);
-
-                if (kernel_id_old) id_2_kernel_connection.delete(kernel_id_old);
-                if (connection_kernel) { // 更改成功
-                    id_2_kernel_connection.set(connection_kernel.id, connection_kernel);
-                }
+            }
+            return connection?.model;
+        },
+    },
+    "jupyter.session.kernel.connection.reconnect": { // 重建与内核的连接
+        this: self,
+        async func(
+            id: string, // 会话 ID
+        ): Promise<Session.IModel | undefined> {
+            const connection = id_2_session_connection.get(id);
+            if (connection) {
+                await connection.kernel?.reconnect();
+            }
+            return connection?.model;
+        },
+    },
+    "jupyter.session.kernel.connection.interrupt": { // 中止内核运行
+        this: self,
+        async func(
+            id: string, // 会话 ID
+        ): Promise<Session.IModel | undefined> {
+            const connection = id_2_session_connection.get(id);
+            if (connection) {
+                await connection.kernel?.interrupt();
+            }
+            return connection?.model;
+        },
+    },
+    "jupyter.session.kernel.connection.restart": { // 重启内核
+        this: self,
+        async func(
+            id: string, // 会话 ID
+        ): Promise<Session.IModel | undefined> {
+            const connection = id_2_session_connection.get(id);
+            if (connection) {
+                await connection.kernel?.restart();
+            }
+            return connection?.model;
+        },
+    },
+    "jupyter.session.kernel.connection.shutdown": { // 关闭内核
+        this: self,
+        async func(
+            id: string, // 会话 ID
+        ): Promise<Session.IModel | undefined> {
+            const connection = id_2_session_connection.get(id);
+            if (connection) {
+                await connection.kernel?.shutdown();
             }
             return connection?.model;
         },
