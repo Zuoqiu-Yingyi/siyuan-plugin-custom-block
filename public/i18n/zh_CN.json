@@ -128,7 +128,7 @@
             },
             "kernel": {
                 "title": "内核选择",
-                "description": "选择会话所使用的内核，可以使用无内核、新内核或正在运行的内核<br/><code class='fn__code'>禁用内核</code>：不使用内核<br/><code class='fn__code'>启用内核 [语言名称] 内核名称: 内核描述</code>：创建一个新内核<br/><code class='fn__code'>使用内核 [语言名称] 内核名称: 会话名称</code>：使用其他会话的内核",
+                "description": "选择会话所使用的内核，可以使用无内核、新内核或正在运行的内核<br/><code class='fn__code'>⏹ 禁用内核</code>：不使用内核<br/><code class='fn__code'>▶ 启动内核 [语言名称] 内核名称: 内核描述</code>：创建一个新内核<br/><code class='fn__code'>♻ 复用内核 [语言名称] 内核名称: 会话名称</code>：使用其他会话的内核",
                 "options": {
                     "no": {
                         "text": "禁用内核"
@@ -136,8 +136,8 @@
                     "new": {
                         "text": "启动内核"
                     },
-                    "run": {
-                        "text": "使用内核"
+                    "use": {
+                        "text": "复用内核"
                     }
                 }
             },

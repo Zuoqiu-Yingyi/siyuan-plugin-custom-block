@@ -178,15 +178,15 @@ const handlers = {
         this: self,
         func: updateConfig,
     },
-    "jupyter.refresh": {
+    "jupyter.refresh": { // 刷新资源
         get this() { return jupyter },
         get func() { return jupyter?.refresh ?? _undefined<Jupyter["refresh"]> },
     },
-    "jupyter.kernelspecs.refreshSpecs": {
+    "jupyter.kernelspecs.refreshSpecs": { // 刷新内核清单
         get this() { return jupyter?.kernelspecs },
         get func() { return jupyter?.kernelspecs.refreshSpecs ?? _undefined<Jupyter["kernelspecs"]["refreshSpecs"]> },
     },
-    "jupyter.kernels.running": {
+    "jupyter.kernels.running": { // 获取正在运行的内核
         this: self,
         func(): Kernel.IModel[] {
             return jupyter?.kernels.running
@@ -194,19 +194,19 @@ const handlers = {
                 : [];
         },
     },
-    "jupyter.kernels.refreshRunning": {
+    "jupyter.kernels.refreshRunning": { // 刷新正在运行的内核
         get this() { return jupyter?.kernels },
         get func() { return jupyter?.kernels.refreshRunning ?? _undefined<Jupyter["kernels"]["refreshRunning"]> },
     },
-    "jupyter.kernels.shutdown": {
+    "jupyter.kernels.shutdown": { // 关闭指定内核
         get this() { return jupyter?.kernels },
         get func() { return jupyter?.kernels.shutdown ?? _undefined<Jupyter["kernels"]["shutdown"]> },
     },
-    "jupyter.kernels.shutdownAll": {
+    "jupyter.kernels.shutdownAll": { // 关闭所有内核
         get this() { return jupyter?.kernels },
         get func() { return jupyter?.kernels.shutdownAll ?? _undefined<Jupyter["kernels"]["shutdownAll"]> },
     },
-    "jupyter.sessions.running": {
+    "jupyter.sessions.running": { // 获取正在运行的会话
         this: self,
         func(): Session.IModel[] {
             return jupyter?.sessions.running
@@ -214,11 +214,11 @@ const handlers = {
                 : [];
         },
     },
-    "jupyter.sessions.refreshRunning": {
+    "jupyter.sessions.refreshRunning": { // 刷新正在运行的会话
         get this() { return jupyter?.sessions },
         get func() { return jupyter?.sessions.refreshRunning ?? _undefined<Jupyter["sessions"]["refreshRunning"]> },
     },
-    "jupyter.sessions.startNew": {
+    "jupyter.sessions.startNew": { // 创建新会话并连接
         this: self,
         async func(...args: Parameters<Jupyter["sessions"]["startNew"]>): Promise<Session.IModel | undefined> {
             const connection = await jupyter?.sessions.startNew(...args);
@@ -232,7 +232,7 @@ const handlers = {
             }
         },
     },
-    "jupyter.sessions.connectTo": {
+    "jupyter.sessions.connectTo": { // 连接到正在运行的会话
         this: self,
         async func(...args: Parameters<Jupyter["sessions"]["connectTo"]>): Promise<Session.IModel | undefined> {
             const connection = await jupyter?.sessions.connectTo(...args);
@@ -246,13 +246,71 @@ const handlers = {
             }
         },
     },
-    "jupyter.sessions.shutdown": {
+    "jupyter.sessions.shutdown": { // 关闭指定会话
         get this() { return jupyter?.sessions },
         get func() { return jupyter?.sessions.shutdown ?? _undefined<Jupyter["sessions"]["shutdown"]> },
     },
-    "jupyter.sessions.shutdownAll": {
+    "jupyter.sessions.shutdownAll": { // 关闭所有会话
         get this() { return jupyter?.sessions },
         get func() { return jupyter?.sessions.shutdownAll ?? _undefined<Jupyter["sessions"]["shutdownAll"]> },
+    },
+    "jupyter.session.connection.setName": { // 设置会话名称
+        this: self,
+        async func(
+            id: string, // 会话 ID
+            name: string, // 会话新名称
+        ): Promise<Session.IModel | undefined> {
+            const connection = id_2_session_connection.get(id);
+            if (connection) {
+                await connection.setName(name);
+            }
+            return connection?.model;
+        },
+    },
+    "jupyter.session.connection.setPath": { // 设置会话路径
+        this: self,
+        async func(
+            id: string, // 会话 ID
+            path: string, // 会话新路径
+        ): Promise<Session.IModel | undefined> {
+            const connection = id_2_session_connection.get(id);
+            if (connection) {
+                await connection.setPath(path);
+            }
+            return connection?.model;
+        },
+    },
+    "jupyter.session.connection.setType": { // 设置会话类型
+        this: self,
+        async func(
+            id: string, // 会话 ID
+            type: string, // 会话新类型
+        ): Promise<Session.IModel | undefined> {
+            const connection = id_2_session_connection.get(id);
+            if (connection) {
+                await connection.setType(type);
+            }
+            return connection?.model;
+        },
+    },
+    "jupyter.session.connection.changeKernel": { // 更改会话内核
+        this: self,
+        async func(
+            id: string, // 会话 ID
+            kernel: { id: string } | { name: string } | {}, // 会话内核 ID/名称
+        ): Promise<Session.IModel | undefined> {
+            const connection = id_2_session_connection.get(id);
+            if (connection) {
+                const kernel_id_old = connection.kernel?.id;
+                const connection_kernel = await connection.changeKernel(kernel);
+
+                if (kernel_id_old) id_2_kernel_connection.delete(kernel_id_old);
+                if (connection_kernel) { // 更改成功
+                    id_2_kernel_connection.set(connection_kernel.id, connection_kernel);
+                }
+            }
+            return connection?.model;
+        },
     },
     importIpynb: {
         this: self,

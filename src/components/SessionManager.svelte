@@ -97,7 +97,7 @@
     /* 禁用内核 */
     kernel_options.push({
         key: "",
-        text: i18n.settings.sessionSettings.kernel.options.no.text,
+        text: `⏹ ${i18n.settings.sessionSettings.kernel.options.no.text}`,
     });
     /* 启动内核 */
     kernel_options.push(
@@ -105,7 +105,7 @@
             .filter(k => k !== undefined)
             .map(k => ({
                 key: k!.name,
-                text: `${i18n.settings.sessionSettings.kernel.options.new.text} [${k!.language}] ${k!.name}: ${k!.display_name}`,
+                text: `▶ ${i18n.settings.sessionSettings.kernel.options.new.text} [${k!.language}] ${k!.name}: ${k!.display_name}`,
             })),
     );
     /* 使用内核 */
@@ -116,7 +116,7 @@
                 const spec = plugin.kernelspecs.kernelspecs[s.kernel!.name];
                 return {
                     key: s.kernel!.id,
-                    text: `${i18n.settings.sessionSettings.kernel.options.run.text} [${spec?.language}] ${spec?.name}: ${s.name}`,
+                    text: `♻ ${i18n.settings.sessionSettings.kernel.options.use.text} [${spec?.language}] ${spec?.name}: ${s.name}`,
                 };
             }),
     );
@@ -133,87 +133,104 @@
     /* 点击确认按钮 */
     async function onConfirm(e: ComponentEvents<Dialog>["confirm"]) {
         try {
+            var session_model: Session.IModel | undefined;
             if (flag_session_new) {
-                // 创建会话并连接
-                const session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.startNew"]>(
-                    "jupyter.sessions.startNew",
-                    {
-                        name: session.name,
-                        type: session.type,
-                        path: session.path,
-                        kernel: {
-                            name: session.kernel?.name,
+                if (session.kernel) {
+                    // 创建会话并连接
+                    session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.startNew"]>(
+                        "jupyter.sessions.startNew",
+                        {
+                            name: session.name,
+                            type: session.type,
+                            path: session.path,
+                            kernel: {
+                                name: session.kernel.name,
+                            },
                         },
-                    },
-                    {
-                        username: plugin.username,
-                        clientId: plugin.clientId,
-                    },
-                );
-                if (session_model) {
-                    // 会话创建并连接成功
-                    session = session_model;
-                    plugin.relateDoc2Session(docID, session_model);
-                } else {
-                    // 客户端未初始化
-                    plugin.siyuan.showMessage(i18n.messages.uninitialized.text, undefined, "error");
-                    return;
+                        {
+                            username: plugin.username,
+                            clientId: plugin.clientId,
+                        },
+                    );
                 }
             } else if (!flag_session_connected) {
-                // 连接已有会话
-                const session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.connectTo"]>("jupyter.sessions.connectTo", {
-                    model: session,
-                    username: plugin.username,
-                    clientId: plugin.clientId,
-                });
-                if (session_model) {
-                    // 会话创建并连接成功
-                    session = session_model;
-                    plugin.relateDoc2Session(docID, session_model);
-                } else {
-                    // 客户端未初始化
-                    plugin.siyuan.showMessage(i18n.messages.uninitialized.text, undefined, "error");
-                    return;
+                if (session.kernel) {
+                    // 连接已有会话
+                    session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.connectTo"]>("jupyter.sessions.connectTo", {
+                        model: session,
+                        username: plugin.username,
+                        clientId: plugin.clientId,
+                    });
                 }
             } else {
                 // 更新发生更改的会话信息
                 const session_old = plugin.doc2session.get(docID);
                 if (session_old) {
                     if (session.name !== session_old.name) {
-                        // TODO: 更新会话名称
+                        // 更新会话名称
+                        session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.session.connection.setName"]>(
+                            "jupyter.session.connection.setName", //
+                            session.id, //
+                            session.name, //
+                        );
                     }
                     if (session.path !== session_old.path) {
-                        // TODO: 更新会话路径
+                        // 更新会话路径
+                        session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.session.connection.setPath"]>(
+                            "jupyter.session.connection.setPath", //
+                            session.id, //
+                            session.path, //
+                        );
                     }
                     if (session.type !== session_old.type) {
-                        // TODO: 更新会话类型
+                        // 更新会话类型
+                        session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.session.connection.setType"]>(
+                            "jupyter.session.connection.setType", //
+                            session.id, //
+                            session.type, //
+                        );
                     }
-                    if (session.kernel && session_old.kernel) {
-                        if (session.kernel.id !== session_old.kernel.id) {
-                            // TODO: 更换内核为其他会话的内核
-                        } else if (session.kernel.name !== session_old.kernel.name) {
-                            // TODO: 更换内核为新内核
+                    if (session.kernel) {
+                        if (!session_old.kernel || session.kernel.name !== session_old.kernel.name) {
+                            // 更换内核为新内核
+                            session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.session.connection.changeKernel"]>(
+                                "jupyter.session.connection.changeKernel", //
+                                session.id, //
+                                { name: session.kernel.name }, //
+                            );
+                        } else if (!session_old.kernel || session.kernel.id !== session_old.kernel.id) {
+                            // 更换内核为其他会话的内核
+                            session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.session.connection.changeKernel"]>(
+                                "jupyter.session.connection.changeKernel", //
+                                session.id, //
+                                { id: session.kernel.id }, //
+                            );
                         }
                     } else {
-                        if (session.kernel) {
-                            if (plugin.kernels.some(k => k.id === session.kernel!.id)) {
-                                // TODO: 更换内核为其他会话的内核
-                            } else {
-                                // TODO: 更换内核为新内核
-                            }
-                        } else if (session_old.kernel) {
-                            // TODO: 禁用内核
-                        }
+                        // 禁用内核
+                        session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.session.connection.changeKernel"]>(
+                            "jupyter.session.connection.changeKernel", //
+                            session.id, //
+                            {}, //
+                        );
                     }
                 }
             }
 
-            // TODO: 获取并更新会话信息
+            if (session_model) {
+                // 会话创建并连接成功
+                session = session_model;
+                plugin.relateDoc2Session(docID, session_model);
+            } else {
+                // 客户端未初始化
+                plugin.siyuan.showMessage(i18n.messages.uninitialized.text, undefined, "error");
+                return;
+            }
 
             // 写入文档块属性
             await plugin.client.setBlockAttrs({
                 id: docID,
-                attrs: plugin.session2ial(session),
+                attrs: plugin.session2ial(session, true),
             });
         } catch (error) {
             // 会话创建/连接失败
@@ -288,8 +305,6 @@
                     session.name = name;
                     if (flag_session_new) {
                         session_new.name = name;
-                    } else if (flag_session_connected) {
-                        // TODO: 重命名会话
                     }
                 }}
             />
@@ -384,20 +399,23 @@
                     } else if (plugin.kernels.some(k => k.id === key)) {
                         // 使用内核
                         if (session.kernel) {
-                            session.kernel.name = key;
+                            session.kernel.id = key;
                         }
                         if (flag_session_new) {
                             if (session_new.kernel) {
-                                session_new.kernel.name = key;
+                                session_new.kernel.id = key;
                             }
                         }
                     } else {
-                        // 新建内核
+                        // 新建内核, 为了避免 key 与已有内核重复, 重新生成内核 id
+                        const kernel_id_new = uuid.v4();
                         if (session.kernel) {
+                            session.kernel.id = kernel_id_new;
                             session.kernel.name = key;
                         }
                         if (flag_session_new) {
                             if (session_new.kernel) {
+                                session_new.kernel.id = kernel_id_new;
                                 session_new.kernel.name = key;
                             }
                         }

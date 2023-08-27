@@ -358,6 +358,18 @@ export default class TemplatePlugin extends siyuan.Plugin {
      * @param session 会话 model
      */
     public relateDoc2Session(docID: string, session: Session.IModel): void {
+        /* 移除原关联 */
+        const session_old = this.doc2session.get(docID);
+        if (session_old) {
+            const doc_set = this.session2docs.get(session_old.id);
+            if (doc_set) {
+                doc_set.delete(docID);
+                if (doc_set.size === 0) {
+                    this.session2docs.delete(session_old.id);
+                }
+            }
+        }
+
         /* 更新 文档 ID -> 会话 Model */
         this.doc2session.set(docID, session);
 
@@ -546,31 +558,6 @@ export default class TemplatePlugin extends siyuan.Plugin {
                     ?? ial[CONSTANTS.attrs.kernel.display_name]
                     ?? CONSTANTS.JUPYTER_UNKNOWN_VALUE;
 
-                /* 运行 */
-                submenu.push({
-                    icon: "iconPlay",
-                    label: this.i18n.menu.run.label,
-                    submenu: [
-                        { // 运行所有单元格
-                            icon: "iconPlay",
-                            label: this.i18n.menu.run.submenu.all.label,
-                            disabled: !session?.kernel,
-                            click: () => {
-                                // TODO: 运行所有单元格
-                            },
-                        },
-                        { // 重启内核并运行所有单元格
-                            icon: "iconRefresh",
-                            label: this.i18n.menu.run.submenu.restart.label,
-                            accelerator: this.i18n.menu.run.submenu.restart.accelerator,
-                            disabled: !session?.kernel,
-                            click: () => {
-                                // TODO: 重启内核并运行所有单元格
-                            },
-                        },
-                    ],
-                });
-
                 /* 会话管理 */
                 submenu.push({
                     icon: "icon-jupyter-client-session",
@@ -696,6 +683,33 @@ export default class TemplatePlugin extends siyuan.Plugin {
                                 .replaceAll("${3}", fn__code(kernel_language))
                                 .replaceAll("${4}", fn__code(kernel_display_name)),
                             disabled: !session?.kernel,
+                        },
+                    ],
+                });
+
+                submenu.push({ type: "separator" });
+
+                /* 运行 */
+                submenu.push({
+                    icon: "iconPlay",
+                    label: this.i18n.menu.run.label,
+                    submenu: [
+                        { // 运行所有单元格
+                            icon: "iconPlay",
+                            label: this.i18n.menu.run.submenu.all.label,
+                            disabled: !session?.kernel,
+                            click: () => {
+                                // TODO: 运行所有单元格
+                            },
+                        },
+                        { // 重启内核并运行所有单元格
+                            icon: "iconRefresh",
+                            label: this.i18n.menu.run.submenu.restart.label,
+                            accelerator: this.i18n.menu.run.submenu.restart.accelerator,
+                            disabled: !session?.kernel,
+                            click: () => {
+                                // TODO: 重启内核并运行所有单元格
+                            },
                         },
                     ],
                 });
