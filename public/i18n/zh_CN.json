@@ -1,5 +1,10 @@
 {
     "displayName": "Jupyter 客户端",
+    "messages": {
+        "uninitialized": {
+            "text": "Jupyter 客户端未初始化"
+        }
+    },
     "dock": {
         "kernels": {
             "text": "运行的内核"
@@ -114,7 +119,7 @@
             },
             "type": {
                 "title": "会话类型",
-                "description": "<code class='fn__code'>console</code>: Jupyter 控制台，交互式运行环境<br/><code class='fn__code'>notebook</code>: Jupyter 笔记本，<code class='fn__code'>*.ipynb</code> 文件"
+                "description": "<code class='fn__code'>console</code>：Jupyter 控制台，交互式运行环境<br/><code class='fn__code'>notebook</code>：Jupyter 笔记本，<code class='fn__code'>*.ipynb</code> 文件"
             },
             "confirm": {
                 "new": "新建",
@@ -123,7 +128,18 @@
             },
             "kernel": {
                 "title": "内核选择",
-                "description": "选择会话所使用的内核<br/>格式: <code class='fn__code'>[语言名称] 内核名称: 内核描述</code>"
+                "description": "选择会话所使用的内核，可以使用无内核、新内核或正在运行的内核<br/><code class='fn__code'>禁用内核</code>：不使用内核<br/><code class='fn__code'>启用内核 [语言名称] 内核名称: 内核描述</code>：创建一个新内核<br/><code class='fn__code'>使用内核 [语言名称] 内核名称: 会话名称</code>：使用其他会话的内核",
+                "options": {
+                    "no": {
+                        "text": "禁用内核"
+                    },
+                    "new": {
+                        "text": "启动内核"
+                    },
+                    "run": {
+                        "text": "使用内核"
+                    }
+                }
             },
             "title": "会话设置"
         },

@@ -50,8 +50,8 @@ const client = new Client(
     },
     "fetch",
 );
-const id_2_kernel_connection = new Map<string, Kernel.IKernelConnection>();
-const id_2_session_connection = new Map<string, Session.ISessionConnection>();
+const id_2_kernel_connection = new Map<string, Kernel.IKernelConnection>(); // 内核 ID -> 内核连接
+const id_2_session_connection = new Map<string, Session.ISessionConnection>(); // 会话 ID -> 会话连接
 var jupyter: InstanceType<typeof Jupyter> | undefined;
 
 /* 👇由插件调用👇 */
@@ -217,6 +217,34 @@ const handlers = {
     "jupyter.sessions.refreshRunning": {
         get this() { return jupyter?.sessions },
         get func() { return jupyter?.sessions.refreshRunning ?? _undefined<Jupyter["sessions"]["refreshRunning"]> },
+    },
+    "jupyter.sessions.startNew": {
+        this: self,
+        async func(...args: Parameters<Jupyter["sessions"]["startNew"]>): Promise<Session.IModel | undefined> {
+            const connection = await jupyter?.sessions.startNew(...args);
+            if (connection) {
+                id_2_session_connection.set(connection.id, connection);
+                if (connection.kernel) {
+                    id_2_kernel_connection.set(connection.kernel.id, connection.kernel);
+                }
+                // TODO: 绑定监听器
+                return connection.model;
+            }
+        },
+    },
+    "jupyter.sessions.connectTo": {
+        this: self,
+        async func(...args: Parameters<Jupyter["sessions"]["connectTo"]>): Promise<Session.IModel | undefined> {
+            const connection = await jupyter?.sessions.connectTo(...args);
+            if (connection) {
+                id_2_session_connection.set(connection.id, connection);
+                if (connection.kernel) {
+                    id_2_kernel_connection.set(connection.kernel.id, connection.kernel);
+                }
+                // TODO: 绑定监听器
+                return connection.model;
+            }
+        },
     },
     "jupyter.sessions.shutdown": {
         get this() { return jupyter?.sessions },

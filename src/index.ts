@@ -45,6 +45,7 @@ import {
 import Item from "@workspace/components/siyuan/menu/Item.svelte"
 import Settings from "./components/Settings.svelte";
 import JupyterDock from "./components/JupyterDock.svelte";
+import SessionManager from "./components/SessionManager.svelte";
 
 import {
     FLAG_MOBILE,
@@ -79,7 +80,6 @@ import type {
     THandlersWrapper,
 } from "@workspace/utils/worker/bridge";
 import type { WorkerHandlers } from "./workers/jupyter";
-import SessionManager from "./components/SessionManager.svelte";
 import type { ComponentEvents } from "svelte";
 
 declare var globalThis: ISiyuanGlobal;
@@ -103,11 +103,12 @@ export default class TemplatePlugin extends siyuan.Plugin {
     protected jupyterDock!: {
         // editor: InstanceType<typeof Editor>,
         dock: ReturnType<siyuan.Plugin["addDock"]>,
-        model?: siyuan.IModel,
+        model?: siyuan.IDockModel,
         component?: InstanceType<typeof JupyterDock>,
     }; // Jupyter 管理面板
 
     public readonly doc2session = new Map<string, Session.IModel>(); // 文档 ID 到会话的映射
+    public readonly session2docs = new Map<string, Set<string>>(); // 会话 ID 到文档 ID 集合的映射
     public readonly handlers; // 插件暴露给 worker 的方法
     public readonly kernelspecs: KernelSpec.ISpecModels = { default: "", kernelspecs: {} };
     public readonly kernels: Kernel.IModel[] = [];
@@ -334,7 +335,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
      * @returns 是否存在
      */
     public isSessionRunning(id: string): boolean {
-        return !!this.sessions.find(s => s.id === id);
+        return this.sessions.some(s => s.id === id);
     }
 
     /**
@@ -343,7 +344,22 @@ export default class TemplatePlugin extends siyuan.Plugin {
      * @returns 是否存在
      */
     public isSessionConnected(id: string): boolean {
-        return !!Array.from(this.doc2session.values()).find(s => s.id === id);
+        return this.session2docs.has(id);
+    }
+
+    /**
+     * 关联一个文档 ID 与 一个会话 model
+     * @param docID 文档 ID
+     * @param session 会话 model
+     */
+    public relateDoc2Session(docID: string, session: Session.IModel): void {
+        /* 更新 文档 ID -> 会话 Model */
+        this.doc2session.set(docID, session);
+
+        /* 更新 会话 ID -> 文档 ID 集合 */
+        const doc_set = this.session2docs.get(session.id) ?? new Set<string>();
+        doc_set.add(docID);
+        this.session2docs.set(session.id, doc_set);
     }
 
     /* 更新 worker 配置 */
@@ -411,21 +427,25 @@ export default class TemplatePlugin extends siyuan.Plugin {
     ): Session.IModel {
         const count = this.counter.next().value;
         const id = ial[CONSTANTS.attrs.session.id]
-            ?? init
-            ? uuid.v4()
-            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+            ?? (init
+                ? uuid.v4()
+                : CONSTANTS.JUPYTER_UNKNOWN_VALUE
+            );
         const name = ial[CONSTANTS.attrs.session.name]
-            ?? init
-            ? `siyuan-console-${count}`
-            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+            ?? (init
+                ? `siyuan-console-${count}`
+                : CONSTANTS.JUPYTER_UNKNOWN_VALUE
+            );
         const path = ial[CONSTANTS.attrs.session.path]
-            ?? init
-            ? `siyuan-console-${count}-${globalThis.Lute.NewNodeID()}`
-            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+            ?? (init
+                ? `siyuan-console-${count}-${globalThis.Lute.NewNodeID()}`
+                : CONSTANTS.JUPYTER_UNKNOWN_VALUE
+            );
         const type = ial[CONSTANTS.attrs.session.type]
-            ?? init
-            ? "console"
-            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+            ?? (init
+                ? "console"
+                : CONSTANTS.JUPYTER_UNKNOWN_VALUE
+            );
         const kernel = this.ial2kernel(ial, init);
 
         return {
@@ -457,13 +477,15 @@ export default class TemplatePlugin extends siyuan.Plugin {
         init: boolean = false,
     ): Kernel.IModel | null {
         const id = ial[CONSTANTS.attrs.kernel.id]
-            ?? init
-            ? uuid.v4()
-            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+            ?? (init
+                ? uuid.v4()
+                : CONSTANTS.JUPYTER_UNKNOWN_VALUE
+            );
         const name = ial[CONSTANTS.attrs.kernel.name]
-            ?? init
-            ? this.kernelspecs.default
-            : CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+            ?? (init
+                ? this.kernelspecs.default
+                : CONSTANTS.JUPYTER_UNKNOWN_VALUE
+            );
 
         return {
             id,
@@ -670,7 +692,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
                                     },
                                 });
 
-                                item.$on("selected", async e => {
+                                item.$on("selected", async (e: ComponentEvents<Item>["selected"]) => {
                                     // this.plugin.logger.debug(e);
                                     const files = e.detail.files;
                                     const file = files.item(0);
@@ -804,6 +826,18 @@ export default class TemplatePlugin extends siyuan.Plugin {
     /* 活动的会话列表更改 */
     public readonly updateSessions = (sessions: Session.IModel[]) => {
         // this.logger.debug(sessions);
+
+        const session_id_set = new Set(sessions.map(s => s.id));
+        for (const session_id of this.session2docs.keys()) {
+            if (!session_id_set.has(session_id)) {
+                /* 删除已被关闭的会话 */
+                const doc_set = this.session2docs.get(session_id);
+                if (doc_set) {
+                    doc_set.forEach(id => this.doc2session.delete(id)); // 删除 doc ID -> session model
+                }
+                this.session2docs.delete(session_id); // 删除 session ID -> doc ID set
+            }
+        }
 
         this.sessions.length = 0;
         this.sessions.push(...sessions);
