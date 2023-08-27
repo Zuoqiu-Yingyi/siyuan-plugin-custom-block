@@ -108,6 +108,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
     }; // Jupyter 管理面板
 
     public readonly doc2session = new Map<string, Session.IModel>(); // 文档 ID 到会话的映射
+    public readonly doc2info = new Map<string, types.kernel.api.block.getDocInfo.IData>(); // 文档 ID 到文档信息的映射
     public readonly session2docs = new Map<string, Set<string>>(); // 会话 ID 到文档 ID 集合的映射
     public readonly handlers; // 插件暴露给 worker 的方法
     public readonly kernelspecs: KernelSpec.ISpecModels = { default: "", kernelspecs: {} };
@@ -537,6 +538,365 @@ export default class TemplatePlugin extends siyuan.Plugin {
         };
     }
 
+    /**
+     * 构造 jupyter 文档菜单
+     * @param id 文档块 ID
+     * @param ial 文档块 IAL
+     * @returns 菜单项列表
+     */
+    public buildJupyterDocumentMenuItems(
+        id: string,
+        ial: Record<string, string>,
+    ): siyuan.IMenuItemOption[] {
+        const submenu: siyuan.IMenuItemOption[] = [];
+
+        const session = this.doc2session.get(id);
+        const session_ial = this.ial2session(ial, false);
+        const kernel_name = session?.kernel?.name
+            ?? session_ial.kernel!.name;
+        const kernel_language = this.kernelName2language.get(kernel_name)
+            ?? ial[CONSTANTS.attrs.kernel.language]
+            ?? CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+        const kernel_display_name = this.kernelName2displayName.get(kernel_name)
+            ?? ial[CONSTANTS.attrs.kernel.display_name]
+            ?? CONSTANTS.JUPYTER_UNKNOWN_VALUE;
+
+        /* 会话管理 */
+        submenu.push({
+            icon: "icon-jupyter-client-session",
+            label: this.i18n.menu.session.label,
+            accelerator: session // 当前连接的会话名称
+                ? fn__code(session.name)
+                : undefined,
+            submenu: [
+                { // 会话设置
+                    icon: "iconSettings",
+                    label: this.i18n.menu.session.submenu.settings.label,
+                    click: () => {
+                        const dialog = new siyuan.Dialog({
+                            title: `Jupyter ${this.i18n.settings.sessionSettings.title} <code class="fn__code">${this.name}</code>`,
+                            content: `<div id="${this.SETTINGS_DIALOG_ID}" class="fn__flex-column" />`,
+                            width: FLAG_MOBILE ? "92vw" : "720px",
+                        });
+                        const target = dialog.element.querySelector(`#${this.SETTINGS_DIALOG_ID}`);
+                        if (target) {
+                            const manager = new SessionManager({
+                                target,
+                                props: {
+                                    docID: id,
+                                    docIAL: ial,
+                                    plugin: this,
+                                },
+                            });
+                            manager.$on("cancel", (e: ComponentEvents<SessionManager>["cancel"]) => {
+                                dialog.destroy();
+                            });
+                            manager.$on("confirm", (e: ComponentEvents<SessionManager>["confirm"]) => {
+                                dialog.destroy();
+                            });
+                        }
+                    },
+                },
+                { // 关闭会话
+                    icon: "iconRefresh",
+                    label: this.i18n.menu.session.submenu.shutdown.label,
+                    disabled: !session,
+                    click: () => {
+                        if (session) {
+                            this.bridge?.call<WorkerHandlers["jupyter.sessions.shutdown"]>(
+                                "jupyter.sessions.shutdown",
+                                session.id,
+                            )
+                        }
+                    },
+                },
+                {
+                    type: "separator",
+                },
+                {
+                    type: "readonly",
+                    iconHTML: "",
+                    label: this.i18n.menu.session.submenu.info.label
+                        .replaceAll("${1}", fn__code(session?.id ?? session_ial.id))
+                        .replaceAll("${2}", fn__code(session?.name ?? session_ial.name))
+                        .replaceAll("${3}", fn__code(session?.path ?? session_ial.path))
+                        .replaceAll("${4}", fn__code(session?.type ?? session_ial.type)),
+                    disabled: !session,
+                },
+            ],
+        });
+
+        /* 内核管理 */
+        submenu.push({
+            icon: "icon-jupyter-client-kernel",
+            label: this.i18n.menu.kernel.label,
+            accelerator: session?.kernel // 当前连接的内核名称
+                ? fn__code(session.kernel.name)
+                : undefined,
+            submenu: [
+                { // 重新连接
+                    icon: "iconRefresh",
+                    label: this.i18n.menu.kernel.submenu.reconnect.label,
+                    disabled: !session?.kernel,
+                    click: async () => {
+                        if (session?.kernel) {
+                            await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.reconnect"]>(
+                                "jupyter.session.kernel.connection.reconnect", //
+                                session.id, //
+                            );
+                        }
+                    },
+                },
+                { // 中断内核
+                    icon: "iconPause",
+                    label: this.i18n.menu.kernel.submenu.interrupt.label,
+                    disabled: !session?.kernel,
+                    click: async () => {
+                        if (session?.kernel) {
+                            await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.interrupt"]>(
+                                "jupyter.session.kernel.connection.interrupt", //
+                                session.id, //
+                            );
+                        }
+                    },
+                },
+                { // 重启内核
+                    icon: "iconRefresh",
+                    label: this.i18n.menu.kernel.submenu.restart.label,
+                    disabled: !session?.kernel,
+                    click: async () => {
+                        if (session?.kernel) {
+                            await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.restart"]>(
+                                "jupyter.session.kernel.connection.restart", //
+                                session.id, //
+                            );
+                        }
+                    },
+                },
+                { // 关闭内核
+                    icon: "iconClose",
+                    label: this.i18n.menu.kernel.submenu.shutdown.label,
+                    disabled: !session?.kernel,
+                    click: async () => {
+                        if (session?.kernel) {
+                            await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.shutdown"]>(
+                                "jupyter.session.kernel.connection.shutdown", //
+                                session.id, //
+                            );
+                        }
+                    },
+                },
+                {
+                    type: "separator",
+                },
+                {
+                    type: "readonly",
+                    iconHTML: "",
+                    label: this.i18n.menu.kernel.submenu.info.label
+                        .replaceAll("${1}", fn__code(session?.kernel?.id ?? session_ial.kernel!.id))
+                        .replaceAll("${2}", fn__code(kernel_name))
+                        .replaceAll("${3}", fn__code(kernel_language))
+                        .replaceAll("${4}", fn__code(kernel_display_name)),
+                    disabled: !session?.kernel,
+                },
+            ],
+        });
+
+        submenu.push({ type: "separator" });
+
+        /* 运行 */
+        submenu.push({
+            icon: "iconPlay",
+            label: this.i18n.menu.run.label,
+            submenu: [
+                { // 运行所有单元格
+                    icon: "iconPlay",
+                    label: this.i18n.menu.run.submenu.all.label,
+                    disabled: !session?.kernel,
+                    click: () => {
+                        // TODO: 运行所有单元格
+                    },
+                },
+                { // 重启内核并运行所有单元格
+                    icon: "iconRefresh",
+                    label: this.i18n.menu.run.submenu.restart.label,
+                    accelerator: this.i18n.menu.run.submenu.restart.accelerator,
+                    disabled: !session?.kernel,
+                    click: () => {
+                        // TODO: 重启内核并运行所有单元格
+                    },
+                },
+            ],
+        });
+
+        submenu.push({ type: "separator" });
+
+        /* *.ipynb 文件导入 */
+        submenu.push({
+            icon: "iconUpload",
+            label: this.i18n.menu.import.label,
+            accelerator: fn__code(this.i18n.menu.import.accelerator),
+            submenu: [
+                { // 覆写
+                    element: globalThis.document.createElement("div"), // 避免生成其他内容
+                    bind: element => {
+                        /* 挂载一个 svelte 菜单项组件 */
+                        const item = new Item({
+                            target: element,
+                            props: {
+                                file: true,
+                                icon: "#iconEdit",
+                                label: this.i18n.menu.import.submenu.override.label,
+                                accept: ".ipynb",
+                                multiple: false,
+                                webkitdirectory: false,
+                            },
+                        });
+
+                        item.$on("selected", async (e: ComponentEvents<Item>["selected"]) => {
+                            // this.plugin.logger.debug(e);
+                            const files = e.detail.files;
+                            const file = files.item(0);
+                            if (file) {
+                                await this.bridge?.call<WorkerHandlers["importIpynb"]>(
+                                    "importIpynb",
+                                    id,
+                                    file,
+                                    "override",
+                                );
+                            }
+                        });
+                    },
+                },
+                { // 追加
+                    element: globalThis.document.createElement("div"), // 避免生成其他内容
+                    bind: element => {
+                        /* 挂载一个 svelte 菜单项组件 */
+                        const item = new Item({
+                            target: element,
+                            props: {
+                                file: true,
+                                icon: "#iconAfter",
+                                label: this.i18n.menu.import.submenu.append.label,
+                                accept: ".ipynb",
+                                multiple: false,
+                                webkitdirectory: false,
+                            },
+                        });
+
+                        item.$on("selected", async e => {
+                            // this.plugin.logger.debug(e);
+                            const files = e.detail.files;
+                            const file = files.item(0);
+                            if (file) {
+                                await this.bridge?.call<WorkerHandlers["importIpynb"]>(
+                                    "importIpynb",
+                                    id,
+                                    file,
+                                    "append",
+                                );
+                            }
+                        });
+                    },
+                },
+            ],
+        });
+
+        return submenu;
+    }
+
+    /**
+     * 构造文档打开菜单
+     * @param id 文档块 ID
+     * @returns 菜单项列表
+     */
+    public buildOpenDocumentMenuItems(
+        id: string,
+    ): siyuan.IMenuItemOption[] {
+        const submenu: siyuan.IMenuItemOption[] = [];
+
+        /* 在新页签中打开 */
+        submenu.push({
+            icon: "iconAdd",
+            label: this.i18n.menu.openTab.label,
+            click: () => {
+                siyuan.openTab({
+                    app: this.app,
+                    doc: {
+                        id,
+                        action: [
+                            "cb-get-focus", // 光标定位到块
+                            "cb-get-hl", // 高亮块
+                        ],
+                    },
+                    keepCursor: false, // 焦点不跳转到新 tab
+                    removeCurrentTab: false, // 不移除原页签
+                });
+            },
+        });
+        /* 在后台页签中打开 */
+        submenu.push({
+            icon: "iconMin",
+            label: this.i18n.menu.openTabBackground.label,
+            click: () => {
+                siyuan.openTab({
+                    app: this.app,
+                    doc: {
+                        id,
+                        action: [
+                            "cb-get-focus", // 光标定位到块
+                            "cb-get-hl", // 高亮块
+                        ],
+                    },
+                    keepCursor: true, // 焦点不跳转到新 tab
+                    removeCurrentTab: false, // 不移除原页签
+                });
+            },
+        });
+        /* 在页签右侧打开 */
+        submenu.push({
+            icon: "iconLayoutRight",
+            label: this.i18n.menu.openTabRight.label,
+            click: () => {
+                siyuan.openTab({
+                    app: this.app,
+                    doc: {
+                        id,
+                        action: [
+                            "cb-get-focus", // 光标定位到块
+                            "cb-get-hl", // 高亮块
+                        ],
+                    },
+                    position: "right",
+                    keepCursor: false, // 焦点不跳转到新 tab
+                    removeCurrentTab: false, // 不移除原页签
+                });
+            },
+        });
+        /* 在页签下侧打开 */
+        submenu.push({
+            icon: "iconLayoutBottom",
+            label: this.i18n.menu.openTabBottom.label,
+            click: () => {
+                siyuan.openTab({
+                    app: this.app,
+                    doc: {
+                        id,
+                        action: [
+                            "cb-get-focus", // 光标定位到块
+                            "cb-get-hl", // 高亮块
+                        ],
+                    },
+                    position: "bottom",
+                    keepCursor: false, // 焦点不跳转到新 tab
+                    removeCurrentTab: false, // 不移除原页签
+                });
+            },
+        });
+
+        return submenu;
+    }
+
     /* 块菜单菜单弹出事件监听器 */
     protected readonly blockMenuEventListener = (e: IClickBlockIconEvent | IClickEditorTitleIconEvent) => {
         // this.logger.debug(e);
@@ -546,258 +906,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
         if (context) {
             const submenu: siyuan.IMenuItemOption[] = [];
             if (context.isDocumentBlock) {
-                const session = this.doc2session.get(context.id);
-                const ial = context.data.ial;
-                const session_ial = this.ial2session(ial, false);
-                const kernel_name = session?.kernel?.name
-                    ?? session_ial.kernel!.name;
-                const kernel_language = this.kernelName2language.get(kernel_name)
-                    ?? ial[CONSTANTS.attrs.kernel.language]
-                    ?? CONSTANTS.JUPYTER_UNKNOWN_VALUE;
-                const kernel_display_name = this.kernelName2displayName.get(kernel_name)
-                    ?? ial[CONSTANTS.attrs.kernel.display_name]
-                    ?? CONSTANTS.JUPYTER_UNKNOWN_VALUE;
-
-                /* 会话管理 */
-                submenu.push({
-                    icon: "icon-jupyter-client-session",
-                    label: this.i18n.menu.session.label,
-                    accelerator: session // 当前连接的会话名称
-                        ? fn__code(session.name)
-                        : undefined,
-                    submenu: [
-                        { // 会话设置
-                            icon: "iconSettings",
-                            label: this.i18n.menu.session.submenu.settings.label,
-                            click: () => {
-                                const dialog = new siyuan.Dialog({
-                                    title: `Jupyter ${this.i18n.settings.sessionSettings.title} <code class="fn__code">${this.name}</code>`,
-                                    content: `<div id="${this.SETTINGS_DIALOG_ID}" class="fn__flex-column" />`,
-                                    width: FLAG_MOBILE ? "92vw" : "720px",
-                                });
-                                const target = dialog.element.querySelector(`#${this.SETTINGS_DIALOG_ID}`);
-                                if (target) {
-                                    const manager = new SessionManager({
-                                        target,
-                                        props: {
-                                            docID: context.id,
-                                            docIAL: context.data.ial,
-                                            plugin: this,
-                                        },
-                                    });
-                                    manager.$on("cancel", (e: ComponentEvents<SessionManager>["cancel"]) => {
-                                        dialog.destroy();
-                                    });
-                                    manager.$on("confirm", (e: ComponentEvents<SessionManager>["confirm"]) => {
-                                        dialog.destroy();
-                                    });
-                                }
-                            },
-                        },
-                        { // 关闭会话
-                            icon: "iconRefresh",
-                            label: this.i18n.menu.session.submenu.shutdown.label,
-                            disabled: !session,
-                            click: () => {
-                                if (session) {
-                                    this.bridge?.call<WorkerHandlers["jupyter.sessions.shutdown"]>(
-                                        "jupyter.sessions.shutdown",
-                                        session.id,
-                                    )
-                                }
-                            },
-                        },
-                        {
-                            type: "separator",
-                        },
-                        {
-                            type: "readonly",
-                            iconHTML: "",
-                            label: this.i18n.menu.session.submenu.info.label
-                                .replaceAll("${1}", fn__code(session?.id ?? session_ial.id))
-                                .replaceAll("${2}", fn__code(session?.name ?? session_ial.name))
-                                .replaceAll("${3}", fn__code(session?.path ?? session_ial.path))
-                                .replaceAll("${4}", fn__code(session?.type ?? session_ial.type)),
-                            disabled: !session,
-                        },
-                    ],
-                });
-
-                /* 内核管理 */
-                submenu.push({
-                    icon: "icon-jupyter-client-kernel",
-                    label: this.i18n.menu.kernel.label,
-                    accelerator: session?.kernel // 当前连接的内核名称
-                        ? fn__code(session.kernel.name)
-                        : undefined,
-                    submenu: [
-                        { // 重新连接
-                            icon: "iconRefresh",
-                            label: this.i18n.menu.kernel.submenu.reconnect.label,
-                            disabled: !session?.kernel,
-                            click: async () => {
-                                if (session?.kernel) {
-                                    await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.reconnect"]>(
-                                        "jupyter.session.kernel.connection.reconnect", //
-                                        session.id, //
-                                    );
-                                }
-                            },
-                        },
-                        { // 中断内核
-                            icon: "iconPause",
-                            label: this.i18n.menu.kernel.submenu.interrupt.label,
-                            disabled: !session?.kernel,
-                            click: async () => {
-                                if (session?.kernel) {
-                                    await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.interrupt"]>(
-                                        "jupyter.session.kernel.connection.interrupt", //
-                                        session.id, //
-                                    );
-                                }
-                            },
-                        },
-                        { // 重启内核
-                            icon: "iconRefresh",
-                            label: this.i18n.menu.kernel.submenu.restart.label,
-                            disabled: !session?.kernel,
-                            click: async () => {
-                                if (session?.kernel) {
-                                    await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.restart"]>(
-                                        "jupyter.session.kernel.connection.restart", //
-                                        session.id, //
-                                    );
-                                }
-                            },
-                        },
-                        { // 关闭内核
-                            icon: "iconClose",
-                            label: this.i18n.menu.kernel.submenu.shutdown.label,
-                            disabled: !session?.kernel,
-                            click: async () => {
-                                if (session?.kernel) {
-                                    await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.shutdown"]>(
-                                        "jupyter.session.kernel.connection.shutdown", //
-                                        session.id, //
-                                    );
-                                }
-                            },
-                        },
-                        {
-                            type: "separator",
-                        },
-                        {
-                            type: "readonly",
-                            iconHTML: "",
-                            label: this.i18n.menu.kernel.submenu.info.label
-                                .replaceAll("${1}", fn__code(session?.kernel?.id ?? session_ial.kernel!.id))
-                                .replaceAll("${2}", fn__code(kernel_name))
-                                .replaceAll("${3}", fn__code(kernel_language))
-                                .replaceAll("${4}", fn__code(kernel_display_name)),
-                            disabled: !session?.kernel,
-                        },
-                    ],
-                });
-
-                submenu.push({ type: "separator" });
-
-                /* 运行 */
-                submenu.push({
-                    icon: "iconPlay",
-                    label: this.i18n.menu.run.label,
-                    submenu: [
-                        { // 运行所有单元格
-                            icon: "iconPlay",
-                            label: this.i18n.menu.run.submenu.all.label,
-                            disabled: !session?.kernel,
-                            click: () => {
-                                // TODO: 运行所有单元格
-                            },
-                        },
-                        { // 重启内核并运行所有单元格
-                            icon: "iconRefresh",
-                            label: this.i18n.menu.run.submenu.restart.label,
-                            accelerator: this.i18n.menu.run.submenu.restart.accelerator,
-                            disabled: !session?.kernel,
-                            click: () => {
-                                // TODO: 重启内核并运行所有单元格
-                            },
-                        },
-                    ],
-                });
-
-                submenu.push({ type: "separator" });
-
-                /* *.ipynb 文件导入 */
-                submenu.push({
-                    icon: "iconUpload",
-                    label: this.i18n.menu.import.label,
-                    accelerator: fn__code(this.i18n.menu.import.accelerator),
-                    submenu: [
-                        { // 覆写
-                            element: globalThis.document.createElement("div"), // 避免生成其他内容
-                            bind: element => {
-                                /* 挂载一个 svelte 菜单项组件 */
-                                const item = new Item({
-                                    target: element,
-                                    props: {
-                                        file: true,
-                                        icon: "#iconEdit",
-                                        label: this.i18n.menu.import.submenu.override.label,
-                                        accept: ".ipynb",
-                                        multiple: false,
-                                        webkitdirectory: false,
-                                    },
-                                });
-
-                                item.$on("selected", async (e: ComponentEvents<Item>["selected"]) => {
-                                    // this.plugin.logger.debug(e);
-                                    const files = e.detail.files;
-                                    const file = files.item(0);
-                                    if (file) {
-                                        await this.bridge?.call<WorkerHandlers["importIpynb"]>(
-                                            "importIpynb",
-                                            context.id,
-                                            file,
-                                            "override",
-                                        );
-                                    }
-                                });
-                            },
-                        },
-                        { // 追加
-                            element: globalThis.document.createElement("div"), // 避免生成其他内容
-                            bind: element => {
-                                /* 挂载一个 svelte 菜单项组件 */
-                                const item = new Item({
-                                    target: element,
-                                    props: {
-                                        file: true,
-                                        icon: "#iconAfter",
-                                        label: this.i18n.menu.import.submenu.append.label,
-                                        accept: ".ipynb",
-                                        multiple: false,
-                                        webkitdirectory: false,
-                                    },
-                                });
-
-                                item.$on("selected", async e => {
-                                    // this.plugin.logger.debug(e);
-                                    const files = e.detail.files;
-                                    const file = files.item(0);
-                                    if (file) {
-                                        await this.bridge?.call<WorkerHandlers["importIpynb"]>(
-                                            "importIpynb",
-                                            context.id,
-                                            file,
-                                            "append",
-                                        );
-                                    }
-                                });
-                            },
-                        },
-                    ],
-                });
+                submenu.push(...this.buildJupyterDocumentMenuItems(context.id, context.data.ial));
             }
 
             detail.menu.addItem({

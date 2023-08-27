@@ -33,6 +33,7 @@
 
     import { TooltipsDirection } from "@workspace/components/siyuan/misc/tooltips";
     import { washMenuItems } from "@workspace/utils/siyuan/menu/wash";
+    import { utf32Decode } from "@workspace/utils/misc/string";
     import moment from "@workspace/utils/date/moment";
 
     import type { IBar } from "@workspace/components/siyuan/dock/index";
@@ -120,7 +121,7 @@
 
                     /* 会话列表 */
                     kernel_node.children = await (async () => {
-                        const session_nodes: IFileTreeFileNode[] = [];
+                        const session_nodes: IFileTreeFolderNode[] = [];
                         const sessions = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.running"]>(
                             "jupyter.sessions.running", //
                         );
@@ -130,11 +131,12 @@
                             }
 
                             const session_path = `${kernel_path}/${session.id}`;
-                            const session_node: IFileTreeFileNode = {
-                                type: FileTreeNodeType.File,
+                            const session_node: IFileTreeFolderNode = {
+                                type: FileTreeNodeType.Folder,
                                 name: session.id,
                                 path: session_path,
                                 directory: kernel_path,
+                                folded: false,
 
                                 icon: `#icon-jupyter-client-session-${session.type}`,
                                 iconAriaLabel: session.type,
@@ -142,6 +144,43 @@
                                 textAriaLabel: session.path,
                                 title: session.id,
                             };
+
+                            /* 文档列表 */
+                            session_node.children = await (async () => {
+                                const document_nodes: IFileTreeFileNode[] = [];
+                                const docs = plugin.session2docs.get(session.id);
+                                if (docs && docs.size > 0) {
+                                    for (const doc_id of docs.values()) {
+                                        if (!plugin.doc2info.has(doc_id)) {
+                                            const response = await plugin.client.getDocInfo({ id: doc_id });
+                                            plugin.doc2info.set(doc_id, response.data);
+                                        }
+
+                                        const document = plugin.doc2info.get(doc_id)!;
+                                        const document_path = `${session_path}/${document.id}`;
+                                        const datatime = moment(document.ial.updated, "YYYYMMDDhhmmss");
+                                        const document_node: IFileTreeFileNode = {
+                                            type: FileTreeNodeType.File,
+                                            name: document.id,
+                                            path: document_path,
+                                            directory: session_path,
+
+                                            icon: /^[1-9a-f]+$/.test(document.icon) //
+                                                ? utf32Decode(document.icon) // 32 位 unicode 编码的 emoji
+                                                : document.icon //
+                                                ? `/emojis/${document.icon}` // 引用的图片
+                                                : "📄", // 未设置图标
+                                            text: document.name,
+                                            textAriaLabel: `${datatime.format(DATETIME_FORMAT)}<br/>${datetime.fromNow()}`,
+                                            title: document.name,
+                                        };
+
+                                        document_nodes.push(document_node);
+                                    }
+                                }
+                                return document_nodes;
+                            })();
+                            session_node.count = session_node.children.length;
 
                             session_nodes.push(session_node);
                         }
@@ -233,7 +272,7 @@
                 symlink: true,
                 symlinkIcon: plugin.kernelName2objectURL.get(session.kernel?.name ?? "") ?? SESSIONS_ICON,
                 symlinkAriaLabel: plugin.kernelName2language.get(session.kernel?.name ?? ""),
-                count: session.kernel?.connections,
+                count: plugin.session2docs.get(session.id)?.size ?? 0,
                 countAriaLabel: session.kernel?.execution_state,
                 title: session.id,
             });
@@ -374,18 +413,48 @@
         node.folded.set(false);
     }
 
-    /* 菜单 */
-    function menu(e: ComponentEvents<Node>["menu"]) {
+    /* 打开 */
+    function open(e: ComponentEvents<Node>["open"]) {
         // plugin.logger.debug(e);
         const node = e.detail.props;
-        const name = get(node.name)!;
-        const path = get(node.path)!;
-        const directory = get(node.directory);
+        const name = get<string>(node.name)!;
+        const path = get<string>(node.path)!;
+        const depth = get<number>(node.depth)!;
+
+        if (
+            path.startsWith(RESOURCES_DIRECTORY) &&
+            depth === 4 // /资源目录/内核清单/内核/会话/文档
+        ) {
+            plugin.siyuan.openTab({
+                app: plugin.app,
+                doc: {
+                    id: name,
+                    action: [
+                        "cb-get-focus", // 光标定位到块
+                        "cb-get-hl", // 高亮块
+                    ],
+                },
+                keepCursor: false, // 焦点不跳转到新 tab
+                removeCurrentTab: false, // 不移除原页签
+            });
+        }
+    }
+
+    /* 菜单 */
+    async function menu(e: ComponentEvents<Node>["menu"]) {
+        // plugin.logger.debug(e);
+        const node = e.detail.props;
+        const name = get<string>(node.name)!;
+        const path = get<string>(node.path)!;
+        const depth = get<number>(node.depth)!;
+        const directory = get<string>(node.directory)!;
 
         const items: import("siyuan").IMenuItemOption[] = [];
 
-        if (path === KERNELSPECS_DIRECTORY) {
-            // 可用内核目录
+        if (
+            path === KERNELSPECS_DIRECTORY || // 可用内核目录
+            (path.startsWith(RESOURCES_DIRECTORY) && depth === 0) // 资源目录
+        ) {
             items.push({
                 icon: "iconRefresh",
                 label: plugin.i18n.dock.refresh.label,
@@ -397,8 +466,9 @@
             });
         }
 
-        if (path === KERNELS_DIRECTORY) {
-            // 内核目录
+        if (
+            path === KERNELS_DIRECTORY // 内核目录
+        ) {
             items.push({
                 icon: "iconRefresh",
                 label: plugin.i18n.dock.refresh.label,
@@ -425,8 +495,11 @@
             });
         }
 
-        if (directory === KERNELS_DIRECTORY) {
-            // 内核
+        if (
+            directory === KERNELS_DIRECTORY || // /内核目录/内核
+            (path.startsWith(RESOURCES_DIRECTORY) && depth === 2) // 资源目录/内核目录/内核
+        ) {
+            //
             items.push({
                 icon: "iconClose",
                 label: plugin.i18n.dock.menu.shutdownKernel.label,
@@ -444,7 +517,9 @@
             });
         }
 
-        if (path === SESSIONS_DIRECTORY) {
+        if (
+            path === SESSIONS_DIRECTORY // 会话目录
+        ) {
             // 会话目录
             items.push({
                 icon: "iconRefresh",
@@ -472,8 +547,10 @@
             });
         }
 
-        if (directory === SESSIONS_DIRECTORY) {
-            // 会话
+        if (
+            directory === SESSIONS_DIRECTORY || // /会话目录/会话
+            (path.startsWith(RESOURCES_DIRECTORY) && depth === 3) // /资源目录/内核清单/内核/会话
+        ) {
             items.push({
                 icon: "iconClose",
                 label: plugin.i18n.dock.menu.shutdownSession.label,
@@ -489,6 +566,26 @@
                     );
                 },
             });
+        }
+
+        if (
+            path.startsWith(RESOURCES_DIRECTORY) &&
+            depth === 4 // /资源目录/内核清单/内核/会话/文档
+        ) {
+            const response = await plugin.client.getBlockAttrs({ id: name });
+            const ial = response.data;
+
+            /* 打开 */
+            items.push({
+                icon: "iconOpenWindow",
+                label: plugin.i18n.menu.open.label,
+                submenu: plugin.buildOpenDocumentMenuItems(name),
+            });
+
+            items.push({ type: "separator" });
+
+            /* 管理 */
+            items.push(...plugin.buildJupyterDocumentMenuItems(name, ial));
         }
 
         washMenuItems(items);
@@ -508,6 +605,7 @@
 
 <Bar {...bar} />
 <FileTree
+    on:open={open}
     on:menu={menu}
     on:fold={fold}
     on:unfold={unfold}
