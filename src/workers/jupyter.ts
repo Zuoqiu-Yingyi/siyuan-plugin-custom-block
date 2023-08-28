@@ -22,6 +22,7 @@ import {
 import { Logger } from "@workspace/utils/logger";
 import { trimSuffix } from "@workspace/utils/misc/string";
 import { WorkerBridgeSlave } from "@workspace/utils/worker/bridge/slave";
+import { AsyncLockQueue } from "@workspace/utils/structure/async-lock-queue";
 
 import CONSTANTS from "@/constants";
 import { DEFAULT_CONFIG } from "@/configs/default";
@@ -31,13 +32,13 @@ import { Jupyter } from "@/jupyter";
 import type { IConfig } from "@/types/config";
 import type {
     IFunction,
-    IHandlers,
     THandlersWrapper,
 } from "@workspace/utils/worker/bridge";
 import type {
     KernelSpec,
     Kernel,
     Session,
+    KernelMessage,
 } from "@jupyterlab/services";
 import type { BlockID } from "@workspace/types/siyuan";
 import type { PluginHandlers } from "..";
@@ -52,6 +53,142 @@ const client = new Client(
 );
 const id_2_session_connection = new Map<string, Session.ISessionConnection>(); // 会话 ID -> 会话连接
 var jupyter: InstanceType<typeof Jupyter> | undefined;
+
+const kernel_status_queue = new AsyncLockQueue<{ docID: string, status: string }>(
+    async item => client.setBlockAttrs({
+        id: item.docID,
+        attrs: {
+            [CONSTANTS.attrs.kernel.status]: item.status,
+        },
+    }),
+    (...args) => logger.warns(...args),
+);
+
+/**
+ * 内核状态更改信号监听器
+ * {@linkcode Session.ISessionConnection.statusChanged}
+ * {@linkcode Kernel.IKernelConnection.statusChanged}
+ * @param docID 文档块 ID
+ * @param connection 会话/内核连接
+ * @param status 内核状态
+ */
+async function kernelStatusChanged(
+    docID: string,
+    connection: Session.ISessionConnection | Kernel.IKernelConnection,
+    status: KernelMessage.Status,
+): Promise<void> {
+    // logger.debugs(["statusChanged", status], [docID, connection.name, connection.id]);
+    kernel_status_queue.enqueue({
+        docID,
+        status,
+    });
+}
+
+/**
+ * 内核连接状态更改信号监听器
+ * {@linkcode Session.ISessionConnection.connectionStatusChanged}
+ * {@linkcode Kernel.IKernelConnection.connectionStatusChanged}
+ * @param docID 文档块 ID
+ * @param connection 会话/内核连接
+ * @param status 内核连接状态
+*/
+async function kernelConnectionStatusChanged(
+    docID: string,
+    connection: Session.ISessionConnection | Kernel.IKernelConnection,
+    status: Kernel.ConnectionStatus,
+): Promise<void> {
+    // logger.debugs(["connectionStatusChanged", status], [docID, connection.name, connection.id]);
+
+    await client.setBlockAttrs({
+        id: docID,
+        attrs: {
+            [CONSTANTS.attrs.kernel.connection_status]: status,
+        },
+    });
+}
+
+/**
+ * 等待输入信号监听器
+ * {@linkcode Session.ISessionConnection.pendingInput}
+ * {@linkcode Kernel.IKernelConnection.pendingInput}
+ * @param docID 文档块 ID
+ * @param connection 会话/内核连接
+ * @param pending 是否正等待输入
+ */
+async function kernelPendingInput(
+    docID: string,
+    connection: Session.ISessionConnection | Kernel.IKernelConnection,
+    pending: boolean,
+): Promise<void> {
+    logger.debugs(["pendingInput", pending], [docID, connection.name, connection.id]);
+    // TODO: 输入信号处理
+}
+
+/**
+ * 输入输出消息信号监听器
+ * {@linkcode Session.ISessionConnection.iopubMessage}
+ * {@linkcode Kernel.IKernelConnection.iopubMessage}
+ * @param docID 文档块 ID
+ * @param connection 会话/内核连接
+ * @param message 输入输出消息
+ */
+async function kernelIopubMessage(
+    docID: string,
+    connection: Session.ISessionConnection | Kernel.IKernelConnection,
+    message: KernelMessage.IIOPubMessage,
+): Promise<void> {
+    logger.debugs(["iopubMessage", message], [docID, connection.name, connection.id]);
+    // TODO:输出输入消息处理
+}
+
+/**
+ * 所有消息监听器
+ * {@linkcode Session.ISessionConnection.anyMessage}
+ * {@linkcode Kernel.IKernelConnection.anyMessage}
+ * @param docID 文档块 ID
+ * @param connection 会话/内核连接
+ * @param message 内核消息
+ */
+async function kernelAnyMessage(
+    docID: string,
+    connection: Session.ISessionConnection | Kernel.IKernelConnection,
+    message: Kernel.IAnyMessageArgs,
+): Promise<void> {
+    // logger.debugs(["anyMessage", message], [docID, connection.name, connection.id]);
+}
+
+/**
+ * 未处理消息监听器
+ * {@linkcode Session.ISessionConnection.unhandledMessage}
+ * {@linkcode Kernel.IKernelConnection.unhandledMessage}
+ * @param docID 文档块 ID
+ * @param connection 会话/内核连接
+ * @param message 未处理的内核消息
+ */
+async function kernelUnhandledMessage(
+    docID: string,
+    connection: Session.ISessionConnection | Kernel.IKernelConnection,
+    message: KernelMessage.IMessage,
+): Promise<void> {
+    // logger.debugs(["unhandledMessage", message], [docID, connection.name, connection.id]);
+}
+
+/**
+ * 绑定会话连接信号监听器
+ * @param docID 文档块 ID
+ * @param connection 会话连接
+ */
+function bindSessionConnectionSignalListener(
+    docID: string,
+    connection: Session.ISessionConnection,
+): void {
+    connection.statusChanged.connect((...args) => kernelStatusChanged(docID, ...args));
+    connection.connectionStatusChanged.connect((...args) => kernelConnectionStatusChanged(docID, ...args));
+    connection.pendingInput.connect((...args) => kernelPendingInput(docID, ...args));
+    connection.iopubMessage.connect((...args) => kernelIopubMessage(docID, ...args));
+    connection.anyMessage.connect((...args) => kernelAnyMessage(docID, ...args));
+    connection.unhandledMessage.connect((...args) => kernelUnhandledMessage(docID, ...args));
+}
 
 /* 👇由插件调用👇 */
 
@@ -219,22 +356,28 @@ const handlers = {
     },
     "jupyter.sessions.startNew": { // 创建新会话并连接
         this: self,
-        async func(...args: Parameters<Jupyter["sessions"]["startNew"]>): Promise<Session.IModel | undefined> {
+        async func(
+            docID: string,
+            ...args: Parameters<Jupyter["sessions"]["startNew"]>
+        ): Promise<Session.IModel | undefined> {
             const connection = await jupyter?.sessions.startNew(...args);
             if (connection) {
                 id_2_session_connection.set(connection.id, connection);
-                // TODO: 绑定监听器
+                bindSessionConnectionSignalListener(docID, connection);
                 return connection.model;
             }
         },
     },
     "jupyter.sessions.connectTo": { // 连接到正在运行的会话
         this: self,
-        async func(...args: Parameters<Jupyter["sessions"]["connectTo"]>): Promise<Session.IModel | undefined> {
+        async func(
+            docID: string,
+            ...args: Parameters<Jupyter["sessions"]["connectTo"]>
+        ): Promise<Session.IModel | undefined> {
             const connection = await jupyter?.sessions.connectTo(...args);
             if (connection) {
                 id_2_session_connection.set(connection.id, connection);
-                // TODO: 绑定监听器
+                bindSessionConnectionSignalListener(docID, connection);
                 return connection.model;
             }
         },

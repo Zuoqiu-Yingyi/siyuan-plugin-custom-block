@@ -26,14 +26,29 @@
 .protyle-wysiwyg {
 
     // 文档提示
-    &[custom-prompt]::after {
-        content: "\00A0" attr(custom-prompt)"\00A0";
-        font-size: 0.75em;
-        border: 1px solid var(--jupyter-client-jupyter-theme-color);
-        position: absolute;
-        top: var(--jupyter-client-breadcrumb-height);
-        right: 1em;
-        z-index: 1;
+    // &[custom-prompt],
+    &[custom-jupyter-kernel-language],
+    &[custom-jupyter-kernel-name],
+    &[custom-jupyter-kernel-display-name],
+    &[custom-jupyter-kernel-connection-status],
+    &[custom-jupyter-kernel-status] {
+
+        &::after {
+            content: "["
+                attr(custom-jupyter-kernel-language) "] "
+                attr(custom-jupyter-kernel-name) " | "
+                attr(custom-jupyter-kernel-display-name) " ["
+                attr(custom-jupyter-kernel-connection-status) "] ["
+                attr(custom-jupyter-kernel-status) "]";
+            position: absolute;
+            top: calc(var(--jupyter-client-breadcrumb-height) + 2.5em);
+            right: 1em;
+            z-index: 1;
+
+            font-size: 0.75em;
+            padding: 2px;
+            outline: 1px solid var(--jupyter-client-jupyter-theme-color);
+        }
     }
 
     [data-node-id][custom-jupyter-index] {

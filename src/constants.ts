@@ -24,6 +24,8 @@ export default {
             name: "custom-jupyter-kernel-name", // 内核名称
             language: "custom-jupyter-kernel-language", // 内核语言
             display_name: 'custom-jupyter-kernel-display-name', // 内核友好名称
+            status: 'custom-jupyter-kernel-status', // 内核状态
+            connection_status: 'custom-jupyter-kernel-connection-status', // 内核连接
         },
         session: {
             id: "custom-jupyter-session-id", // 会话 ID

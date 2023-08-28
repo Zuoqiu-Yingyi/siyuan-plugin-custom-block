@@ -139,6 +139,7 @@
                     // 创建会话并连接
                     session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.startNew"]>(
                         "jupyter.sessions.startNew",
+                        docID,
                         {
                             name: session.name,
                             type: session.type,
@@ -156,11 +157,15 @@
             } else if (!flag_session_connected) {
                 if (session.kernel) {
                     // 连接已有会话
-                    session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.connectTo"]>("jupyter.sessions.connectTo", {
-                        model: session,
-                        username: plugin.username,
-                        clientId: plugin.clientId,
-                    });
+                    session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.connectTo"]>(
+                        "jupyter.sessions.connectTo", //
+                        docID,
+                        {
+                            model: session,
+                            username: plugin.username,
+                            clientId: plugin.clientId,
+                        },
+                    );
                 }
             } else {
                 // 更新发生更改的会话信息
