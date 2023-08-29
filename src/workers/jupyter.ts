@@ -66,8 +66,8 @@ const kernel_status_queue = new AsyncLockQueue<{ docID: string, status: string }
 
 /**
  * 内核状态更改信号监听器
- * {@linkcode Session.ISessionConnection.statusChanged}
- * {@linkcode Kernel.IKernelConnection.statusChanged}
+ * @see {@link Session.ISessionConnection.statusChanged}
+ * @see {@link Kernel.IKernelConnection.statusChanged}
  * @param docID 文档块 ID
  * @param connection 会话/内核连接
  * @param status 内核状态
@@ -86,8 +86,8 @@ async function kernelStatusChanged(
 
 /**
  * 内核连接状态更改信号监听器
- * {@linkcode Session.ISessionConnection.connectionStatusChanged}
- * {@linkcode Kernel.IKernelConnection.connectionStatusChanged}
+ * @see {@link Session.ISessionConnection.connectionStatusChanged}
+ * @see {@link Kernel.IKernelConnection.connectionStatusChanged}
  * @param docID 文档块 ID
  * @param connection 会话/内核连接
  * @param status 内核连接状态
@@ -109,8 +109,8 @@ async function kernelConnectionStatusChanged(
 
 /**
  * 等待输入信号监听器
- * {@linkcode Session.ISessionConnection.pendingInput}
- * {@linkcode Kernel.IKernelConnection.pendingInput}
+ * @see {@link Session.ISessionConnection.pendingInput}
+ * @see {@link Kernel.IKernelConnection.pendingInput}
  * @param docID 文档块 ID
  * @param connection 会话/内核连接
  * @param pending 是否正等待输入
@@ -126,8 +126,8 @@ async function kernelPendingInput(
 
 /**
  * 输入输出消息信号监听器
- * {@linkcode Session.ISessionConnection.iopubMessage}
- * {@linkcode Kernel.IKernelConnection.iopubMessage}
+ * @see {@link Session.ISessionConnection.iopubMessage}
+ * @see {@link Kernel.IKernelConnection.iopubMessage}
  * @param docID 文档块 ID
  * @param connection 会话/内核连接
  * @param message 输入输出消息
@@ -143,8 +143,8 @@ async function kernelIopubMessage(
 
 /**
  * 所有消息监听器
- * {@linkcode Session.ISessionConnection.anyMessage}
- * {@linkcode Kernel.IKernelConnection.anyMessage}
+ * @see {@link Session.ISessionConnection.anyMessage}
+ * @see {@link Kernel.IKernelConnection.anyMessage}
  * @param docID 文档块 ID
  * @param connection 会话/内核连接
  * @param message 内核消息
@@ -159,8 +159,8 @@ async function kernelAnyMessage(
 
 /**
  * 未处理消息监听器
- * {@linkcode Session.ISessionConnection.unhandledMessage}
- * {@linkcode Kernel.IKernelConnection.unhandledMessage}
+ * @see {@link Session.ISessionConnection.unhandledMessage}
+ * @see {@link Kernel.IKernelConnection.unhandledMessage}
  * @param docID 文档块 ID
  * @param connection 会话/内核连接
  * @param message 未处理的内核消息
