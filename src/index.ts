@@ -83,6 +83,11 @@ import type { ComponentEvents } from "svelte";
 
 declare var globalThis: ISiyuanGlobal;
 export type PluginHandlers = THandlersWrapper<TemplatePlugin["handlers"]>;
+export type TMenuContext = IBlockMenuContext | {
+    isDocumentBlock: true,
+    isMultiBlock: false,
+    id: BlockID,
+};
 export interface ICodeCell {
     id: BlockID;
     code: string;
@@ -570,11 +575,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
         id: string,
         ial: Record<string, string>,
         session: Session.IModel | undefined,
-        context: IBlockMenuContext | {
-            isDocumentBlock: true,
-            isMultiBlock: false,
-            id: BlockID,
-        },
+        context: TMenuContext,
     ): siyuan.IMenuItemOption[] {
         const submenu: siyuan.IMenuItemOption[] = [];
 
@@ -846,7 +847,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
     public buildExecuteMenuItems(
         restart: boolean,
         session: Session.IModel | undefined,
-        context: IBlockMenuContext,
+        context: TMenuContext,
     ): siyuan.IMenuItemOption[] {
         const disabled = !session?.kernel;
         const jupyter = context.isDocumentBlock || context.isMultiBlock;
@@ -1064,7 +1065,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
      * @returns 块 DOM 字符串
      */
     protected async getBlockDOM(
-        context: IBlockMenuContext,
+        context: TMenuContext,
     ): Promise<string> {
         var html: string;
         if (context.isDocumentBlock) { // 文档块
@@ -1123,13 +1124,16 @@ export default class TemplatePlugin extends siyuan.Plugin {
                 ));
             }
             else { // 其他块菜单
-                if (context.type === sdk.siyuan.NodeType.NodeCodeBlock) {
-                    submenu.push(...this.buildExecuteMenuItems(
-                        false,
-                        session,
-                        context,
-                    ));
-                }
+                submenu.push(...this.buildExecuteMenuItems(
+                    false,
+                    session,
+                    context,
+                ));
+                // if (
+                //     context.isMultiBlock
+                //     || context.type === sdk.siyuan.NodeType.NodeCodeBlock
+                // ) {
+                // }
             }
 
             detail.menu.addItem({

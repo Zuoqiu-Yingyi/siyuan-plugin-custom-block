@@ -53,6 +53,7 @@ export interface IExecuteContext {
             stream: IExecuteHorizontalRule; // 流输出
             display_data: IExecuteHorizontalRule; // 数据显示
             execute_result: IExecuteHorizontalRule; // 运行结果
+            execute_reply: IExecuteHorizontalRule; // 运行回复
             tail: Readonly<IExecuteHorizontalRule>; // 块尾
         };
     };

@@ -107,10 +107,14 @@ export class Output {
                     }; // 标志
 
                     // REF: https://zhuanlan.zhihu.com/p/184924477
-                    let custom = {
-                        ground: null, // color 前景颜色, background-color: 背景颜色
-                        mode: null, // 第二个参数的模式
-                        color: null, // 颜色
+                    const custom: {
+                        ground: null | "color" | "background-color", // color 前景颜色, background-color: 背景颜色
+                        mode: number | null, // 第二个参数的模式
+                        color: string | null, // 颜色
+                    } = {
+                        ground: null,
+                        mode: null,
+                        color: null,
                     }; // 使用 ANSI 转义序列自定义颜色
 
                     let style: Record<string, string> = {}; // ial 样式列表
@@ -121,7 +125,7 @@ export class Output {
                         .split(";"); // 根据分号分割所有参数
                     for (const param of params) {
                         const num = parseInt(param) || 0; // 若参数无效则清除样式
-                        if (custom.mode) { // 自定义颜色
+                        if (custom.mode) { // 已自定义颜色
                             /* 颜色值必须是有效的 */
                             if (num >= 0 && num <= 255) {
                                 switch (custom.mode) {
@@ -134,21 +138,21 @@ export class Output {
                                                 continue;
                                             case 5:
                                                 custom.color += num.toString(16).toUpperCase().padStart(2, "0");
-                                                style[custom.ground] = custom.color;
+                                                if (custom.ground) style[custom.ground] = custom.color;
                                             default:
                                                 break;
                                         }
                                         break;
                                     case 5: // 8 位色
                                         custom.color = `var(--custom-jupyter-256-color-${num.toString().padStart(3, "0")})`;
-                                        style[custom.ground] = custom.color;
+                                        if (custom.ground) style[custom.ground] = custom.color;
                                         break;
                                     default:
                                         break;
                                 }
                             }
                         }
-                        else {
+                        else { // 暂未自定义颜色
                             switch (num) {
                                 case 0: // 清除样式
                                     mark = {
@@ -165,7 +169,7 @@ export class Output {
                                 case 2: // 字体变暗
                                     /* ANSI 转义序列自定义颜色: 8 位色 */
                                     if (custom.ground) {
-                                        custom.mode = num;
+                                        custom.mode = 2;
                                         continue;
                                     }
                                     style.opacity = "0.75";
@@ -179,7 +183,7 @@ export class Output {
                                 case 5: // 呼吸闪烁
                                     /* ANSI 转义序列自定义颜色 24 位色 */
                                     if (custom.ground) {
-                                        custom.mode = num;
+                                        custom.mode = 5;
                                         continue;
                                     }
                                     style.animation = "breath 4s ease-in-out infinite";
@@ -196,155 +200,172 @@ export class Output {
                                 case 9: // 删除线
                                     mark.s = true
                                     break;
-                                default:
-                                    {
-                                        let k;
+                                default: { // num >= 10
+                                    let k: "color" | "background-color";
 
-                                        /* 前景/背景 */
-                                        const pre = parseInt(param.substring(0, param.length - 1));
-                                        const suf = parseInt(param.substring(param.length - 1));
-                                        switch (pre) {
-                                            case 3:
-                                            case 9:
-                                                /* 前景 */
-                                                k = "color";
-                                                break;
-                                            case 4:
-                                            case 10:
-                                                /* 背景 */
-                                                k = "background-color";
-                                                break;
-                                            default:
-                                                break;
-                                        }
+                                    /* 前景/背景 */
+                                    const pre = (num / 10) | 0; // 前几位数
+                                    const suf = num % 10; // 最后一位数
 
-                                        /* 颜色 */
-                                        /**
-                                         * windows:
-                                         * cmd: `color /?`
-                                         * 0 = 黑色       8 = 灰色
-                                         * 1 = 蓝色       9 = 淡蓝色
-                                         * 2 = 绿色       A = 淡绿色
-                                         * 3 = 浅绿色     B = 淡浅绿色
-                                         * 4 = 红色       C = 淡红色
-                                         * 5 = 紫色       D = 淡紫色
-                                         * 6 = 黄色       E = 淡黄色
-                                         * 7 = 白色       F = 亮白色
-                                         */
-                                        switch (pre) {
-                                            case 3:
-                                            case 4:
-                                                /* 正常颜色 */
-                                                switch (suf) {
-                                                    case 0: // 黑色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-black)";
-                                                        break;
-                                                    case 1: // 红色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-red)";
-                                                        break;
-                                                    case 2: // 绿色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-green)";
-                                                        break;
-                                                    case 3: // 黄色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-yellow)";
-                                                        break;
-                                                    case 4: // 蓝色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-blue)";
-                                                        break;
-                                                    case 5: // 紫色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-magenta)";
-                                                        break;
-                                                    case 6: // 青色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-cyan)";
-                                                        break;
-                                                    case 7: // 白色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-white)";
-                                                        break;
-                                                    case 8: // 自定义颜色
-                                                        custom.ground = k;
-                                                        continue;
-                                                    case 9: // 默认
-                                                    // REF [node.js - What is this \u001b[9... syntax of choosing what color text appears on console, and how can I add more colors? - Stack Overflow](https://stackoverflow.com/questions/23975735/what-is-this-u001b9-syntax-of-choosing-what-color-text-appears-on-console)
-                                                    default:
-                                                        delete style[k];
-                                                        break;
-                                                } // switch (suf)
-                                                break;
-                                            case 9:
-                                            case 10:
-                                                /* 亮色颜色 */
-                                                switch (suf) {
-                                                    case 0: // 黑色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-black-intense)";
-                                                        break;
-                                                    case 1: // 红色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-red-intense)";
-                                                        break;
-                                                    case 2: // 绿色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-green-intense)";
-                                                        break;
-                                                    case 3: // 黄色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-yellow-intense)";
-                                                        break;
-                                                    case 4: // 蓝色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-blue-intense)";
-                                                        break;
-                                                    case 5: // 紫色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-magenta-intense)";
-                                                        break;
-                                                    case 6: // 青色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-cyan-intense)";
-                                                        break;
-                                                    case 7: // 白色
-                                                        style[k] = "var(--custom-jupyter-ansi-color-white-intense)";
-                                                        break;
-                                                    case 8: // 自定义颜色
-                                                        custom.ground = k;
-                                                        continue;
-                                                    case 9: // 默认
-                                                    // REF [node.js - What is this \u001b[9... syntax of choosing what color text appears on console, and how can I add more colors? - Stack Overflow](https://stackoverflow.com/questions/23975735/what-is-this-u001b9-syntax-of-choosing-what-color-text-appears-on-console)
-                                                    default:
-                                                        delete style[k];
-                                                        break;
-                                                } // switch (suf)
-                                                break;
-                                            default:
-                                                break;
-                                        } // switch (pre)
-                                    } // default
+                                    switch (pre) {
+                                        default:
+                                        case 3:
+                                        case 9:
+                                            /* 设置前景色 */
+                                            k = "color";
+                                            break;
+                                        case 4:
+                                        case 10:
+                                            /* 设置背景色 */
+                                            k = "background-color";
+                                            break;
+                                    }
+
+                                    /* 颜色 */
+                                    /**
+                                     * windows:
+                                     * cmd: `color /?`
+                                     * 0 = 黑色       8 = 灰色
+                                     * 1 = 蓝色       9 = 淡蓝色
+                                     * 2 = 绿色       A = 淡绿色
+                                     * 3 = 浅绿色     B = 淡浅绿色
+                                     * 4 = 红色       C = 淡红色
+                                     * 5 = 紫色       D = 淡紫色
+                                     * 6 = 黄色       E = 淡黄色
+                                     * 7 = 白色       F = 亮白色
+                                     */
+                                    switch (pre) {
+                                        case 3:
+                                        case 4:
+                                            /* 正常颜色 */
+                                            switch (suf) {
+                                                case 0: // 黑色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-black)";
+                                                    break;
+                                                case 1: // 红色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-red)";
+                                                    break;
+                                                case 2: // 绿色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-green)";
+                                                    break;
+                                                case 3: // 黄色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-yellow)";
+                                                    break;
+                                                case 4: // 蓝色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-blue)";
+                                                    break;
+                                                case 5: // 紫色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-magenta)";
+                                                    break;
+                                                case 6: // 青色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-cyan)";
+                                                    break;
+                                                case 7: // 白色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-white)";
+                                                    break;
+                                                case 8: // 自定义颜色
+                                                    custom.ground = k;
+                                                    continue;
+                                                case 9: // 默认
+                                                // REF [node.js - What is this \u001b[9... syntax of choosing what color text appears on console, and how can I add more colors? - Stack Overflow](https://stackoverflow.com/questions/23975735/what-is-this-u001b9-syntax-of-choosing-what-color-text-appears-on-console)
+                                                default:
+                                                    delete style[k];
+                                                    break;
+                                            } // switch (suf)
+                                            break;
+                                        case 9:
+                                        case 10:
+                                            /* 亮色颜色 */
+                                            switch (suf) {
+                                                case 0: // 黑色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-black-intense)";
+                                                    break;
+                                                case 1: // 红色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-red-intense)";
+                                                    break;
+                                                case 2: // 绿色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-green-intense)";
+                                                    break;
+                                                case 3: // 黄色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-yellow-intense)";
+                                                    break;
+                                                case 4: // 蓝色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-blue-intense)";
+                                                    break;
+                                                case 5: // 紫色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-magenta-intense)";
+                                                    break;
+                                                case 6: // 青色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-cyan-intense)";
+                                                    break;
+                                                case 7: // 白色
+                                                    style[k] = "var(--custom-jupyter-ansi-color-white-intense)";
+                                                    break;
+                                                case 8: // 自定义颜色
+                                                    custom.ground = k;
+                                                    continue;
+                                                case 9: // 默认
+                                                // REF [node.js - What is this \u001b[9... syntax of choosing what color text appears on console, and how can I add more colors? - Stack Overflow](https://stackoverflow.com/questions/23975735/what-is-this-u001b9-syntax-of-choosing-what-color-text-appears-on-console)
+                                                default:
+                                                    delete style[k];
+                                                    break;
+                                            } // switch (suf)
+                                            break;
+                                        default:
+                                            break;
+                                    } // switch (pre)
                                     break;
+                                } // default
                             } // switch (param)
                         }
                         custom.ground = null;
                         custom.mode = null;
                         custom.color = null;
                     }
-                    /* 添加行级 IAL */
+
+                    /* 生成前缀/后缀 */
+                    const types: string[] = [];
+                    if (mark.strong) types.push("strong");
+                    if (mark.em) types.push("em");
+                    if (mark.s) types.push("s");
+                    if (mark.u) types.push("u");
+                    if (!isEmptyObject(style)) types.push("text");
+                    const pre_mark = types.length > 0
+                        ? `<span data-type="${types.join(" ")}">`
+                        : ""; // 前缀标志
+                    const suf_mark = types.length > 0
+                        ? `</span>`
+                        : ""; // 后缀标志
+
+                    // const pre_mark =
+                    //     `${mark.strong || !isEmptyObject(style) ? "**" : ""
+                    //     }${mark.em ? "*" : ""
+                    //     }${mark.s ? "~~" : ""
+                    //     }${mark.u ? "<u>" : ""
+                    //     }`; // 前缀标志
+                    // const suf_mark =
+                    //     `${mark.u ? "</u>" : ""
+                    //     }${mark.s ? "~~" : ""
+                    //     }${mark.em ? "*" : ""
+                    //     }${mark.strong || !isEmptyObject(style) ? "**" : ""
+                    //     }`; // 后缀标志
+
+                    /* 生成行级 IAL */
                     if (!isEmptyObject(style)) {
                         ial = createIAL({ style: createStyle(style) });
                     }
-                    const pre_mark =
-                        `${mark.strong || !isEmptyObject(style) ? "**" : ""
-                        }${mark.em ? "*" : ""
-                        }${mark.s ? "~~" : ""
-                        }${mark.u ? "<u>" : ""
-                        }`; // 前缀标志
-                    const suf_mark =
-                        `${mark.u ? "</u>" : ""
-                        }${mark.s ? "~~" : ""
-                        }${mark.em ? "*" : ""
-                        }${mark.strong || !isEmptyObject(style) ? "**" : ""
-                        }`; // 后缀标志
+
                     return p2
                         .replaceAll("\r\n", "\n") // 替换换行符
                         .replaceAll("\n{2,}", "\n\n") // 替换多余的换行符
                         .split("\n\n") // 按块分割
-                        .map(block => Output.ZWS + block // 段首添加零宽空格
+                        .map((block: string) => Output.ZWS + block // 段首添加零宽空格
                             .split("\n") // 按照换行分隔
                             .map(line => {
                                 if (line.length > 0) {
                                     /* markdown 标志内测不能存在空白字符 */
-                                    if (mark.u && escaped) // 移除 <u></u> 标签内的转义符号
+                                    // if (mark.u && escaped) // 移除 <u></u> 标签内的转义符号
+                                    if (escaped) // 移除 <span></span> 标签内的转义符号
                                         line = line.replaceAll(Output.REGEXP.escaped.mark, "\$1");
                                     /* 标志内测添加零宽空格 */
                                     return `${pre_mark}${Output.ZWS}${line}${Output.ZWS}${suf_mark}${ial}`;

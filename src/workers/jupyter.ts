@@ -32,7 +32,7 @@ import { DEFAULT_CONFIG } from "@/configs/default";
 import { IpynbImport } from "@/jupyter/import";
 import { Jupyter } from "@/jupyter";
 import { Output } from "@/jupyter/output";
-import { parseText } from "@/jupyter/parse";
+import { parseData, parseText, type IData } from "@/jupyter/parse";
 
 import type { IConfig, IJupyterParserOptions } from "@/types/config";
 import type {
@@ -63,8 +63,15 @@ const id_2_session_connection = new Map<string, Session.ISessionConnection>(); /
 var jupyter: InstanceType<typeof Jupyter> | undefined;
 var i18n: I18N;
 
-const attrs_update_queue = new AsyncLockQueue<{ id: string, attrs: Record<string, string | null> }>(
+/* 块属性设置队列 */
+const set_block_attrs_queue = new AsyncLockQueue<types.kernel.api.attr.setBlockAttrs.IPayload>(
     async item => client.setBlockAttrs(item),
+    (...args) => logger.warns(...args),
+);
+
+/* 块内容插入队列 */
+const insert_block_queue = new AsyncLockQueue<types.kernel.api.block.insertBlock.IPayload>(
+    async item => client.insertBlock(item),
     (...args) => logger.warns(...args),
 );
 
@@ -82,7 +89,7 @@ async function kernelStatusChanged(
     status: KernelMessage.Status,
 ): Promise<void> {
     // logger.debugs(["statusChanged", status], [docID, connection.name, connection.id]);
-    attrs_update_queue.enqueue({
+    set_block_attrs_queue.enqueue({
         id: docID,
         attrs: {
             [CONSTANTS.attrs.kernel.status]: status,
@@ -238,6 +245,8 @@ function initContext(context: IExecuteContext): void {
         "---",
         createIAL({ id: context.output.hrs.execute_result.id }),
         "---",
+        createIAL({ id: context.output.hrs.execute_reply.id }),
+        "---",
         createIAL({ id: context.output.hrs.tail.id }),
         "}}}",
         createIAL(context.output.attrs),
@@ -271,11 +280,11 @@ async function initOutputBlock(context: IExecuteContext): Promise<void> {
  * @param context 执行上下文
  */
 async function updateBlockAttrs(context: IExecuteContext): Promise<void> {
-    attrs_update_queue.enqueue({
+    set_block_attrs_queue.enqueue({
         id: context.code.id,
         attrs: context.code.attrs,
     });
-    attrs_update_queue.enqueue({
+    set_block_attrs_queue.enqueue({
         id: context.output.id,
         attrs: context.output.attrs,
     });
@@ -321,6 +330,7 @@ async function executeCode(
                 id: id(),
                 attrs: {},
                 options,
+                display: new Map(),
                 kramdown: "",
                 hrs: {
                     head: {
@@ -336,6 +346,10 @@ async function executeCode(
                         used: false,
                     },
                     execute_result: {
+                        id: id(),
+                        used: false,
+                    },
+                    execute_reply: {
                         id: id(),
                         used: false,
                     },
@@ -404,15 +418,24 @@ async function executeCode(
                     break;
                 }
                 case "display_data": {
-                    // TODO: 更新输出块
+                    await handleDisplayDataMessage(
+                        msg as KernelMessage.IDisplayDataMsg,
+                        context,
+                    );
                     break;
                 }
                 case "update_display_data": {
-                    // TODO: 更新输出块
+                    await handleUpdateDisplayDataMessage(
+                        msg as KernelMessage.IUpdateDisplayDataMsg,
+                        context,
+                    );
                     break;
                 }
                 case "execute_result": {
-                    // TODO: 更新输出块
+                    await handleExecuteResultMessage(
+                        msg as KernelMessage.IExecuteResultMsg,
+                        context,
+                    );
                     break;
                 }
                 case "clear_output": {
@@ -536,6 +559,103 @@ async function handleExecuteInputMessage(
 }
 
 /**
+ * 处理 `display_data` 消息
+ * @param message `display_data` 消息
+ * @param context 执行上下文
+ */
+async function handleDisplayDataMessage(
+    message: KernelMessage.IDisplayDataMsg | KernelMessage.IUpdateDisplayDataMsg,
+    context: IExecuteContext,
+): Promise<void> {
+    const block_id = id();
+    const kramdown = [
+        "{{{row",
+        await parseData(
+            client,
+            context.output.options,
+            message.content.data as IData,
+            message.content.metadata as Record<string, string>,
+        ),
+        "}}}",
+        createIAL({ id: block_id }),
+    ].join("\n");
+
+    /* 添加 display -> blick */
+    if (message.content.transient?.display_id) {
+        const set = context.output.display.get(message.content.transient.display_id) ?? new Set<string>();
+        set.add(block_id);
+        context.output.display.set(message.content.transient.display_id, set);
+    }
+
+    context.output.hrs.display_data.used = true;
+    await client.insertBlock({
+        nextID: context.output.hrs.display_data.id,
+        data: kramdown,
+        dataType: "markdown",
+    });
+}
+
+/**
+ * 处理 `update_display_data` 消息
+ * @param message `update_display_data` 消息
+ * @param context 执行上下文
+ */
+async function handleUpdateDisplayDataMessage(
+    message: KernelMessage.IUpdateDisplayDataMsg,
+    context: IExecuteContext,
+): Promise<void> {
+    const set = context.output.display.get(message.content.transient.display_id);
+    if (set && set.size > 0) { // 存在待更新的块
+        const kramdown = [
+            "{{{row",
+            await parseData(
+                client,
+                context.output.options,
+                message.content.data as IData,
+                message.content.metadata as Record<string, string>,
+            ),
+            "}}}",
+        ].join("\n");
+
+        context.output.hrs.display_data.used = true;
+        for (const id of set.values()) {
+            await client.updateBlock({
+                id,
+                data: kramdown,
+                dataType: "markdown",
+            });
+        }
+    }
+    else { // 作为新块插入
+        await handleDisplayDataMessage(message, context);
+    }
+}
+
+/**
+ * 处理 `execute_result` 消息
+ * @param message `execute_result` 消息
+ * @param context 执行上下文
+ */
+async function handleExecuteResultMessage(
+    message: KernelMessage.IExecuteResultMsg,
+    context: IExecuteContext,
+): Promise<void> {
+    const kramdown = await parseData(
+        client,
+        context.output.options,
+        message.content.data as IData,
+        message.content.metadata as Record<string, string>,
+    );
+
+    context.output.hrs.execute_result.used = true;
+    await client.insertBlock({
+        nextID: context.output.hrs.execute_result.id,
+        data: kramdown,
+        dataType: "markdown",
+    });
+}
+
+/**
  * 处理 `execute_reply` 消息
  * @param message `execute_reply` 消息
  * @param context 执行上下文
@@ -560,8 +680,16 @@ async function handleExecuteReplyMessage(
     const execution_count = message.content.execution_count
         ? message.content.execution_count.toString()
         : null;
-    context.code.attrs[CONSTANTS.attrs.code.index] = execution_count;
+
     switch (message.content.status) {
+        /* 正常运行 */
+        case "ok": {
+            context.code.attrs[CONSTANTS.attrs.code.index] = execution_count;
+            context.output.attrs[CONSTANTS.attrs.output.index] = execution_count;
+            break;
+        }
+
+        /* 出现异常 */
         case "error": {
             /* 使用代码块输出运行错误 */
             const kramdown = [
@@ -573,17 +701,24 @@ async function handleExecuteReplyMessage(
                 createIAL({ style: CONSTANTS.styles.error }),
             ].join("\n");
 
+            context.output.hrs.execute_reply.used = true;
             await client.insertBlock({
-                nextID: context.output.hrs.tail.id,
+                nextID: context.output.hrs.execute_reply.id,
                 data: kramdown,
                 dataType: "markdown",
             });
 
+            context.code.attrs[CONSTANTS.attrs.code.index] = execution_count;
             context.output.attrs[CONSTANTS.attrs.output.index] = "E";
             break;
         }
-        case "ok": {
-            context.output.attrs[CONSTANTS.attrs.output.index] = execution_count;
+
+        /* 发生中断 */
+        case "abort":
+        // @ts-ignore
+        case "aborted": {
+            context.code.attrs[CONSTANTS.attrs.code.index] = " ";
+            context.output.attrs[CONSTANTS.attrs.output.index] = " ";
             break;
         }
         default:
@@ -594,12 +729,14 @@ async function handleExecuteReplyMessage(
     await updateBlockAttrs(context);
 
     /* 移除未使用的分割线 */
-    for (const hr of Object.values(context.output.hrs)) {
-        if (!hr.used) {
-            await client.deleteBlock({
-                id: hr.id,
-            });
-        }
+    const hrs = context.output.hrs;
+    const ids: string[] = [];
+    if (!(hrs.stream.used && (hrs.display_data.used || hrs.execute_result.used || hrs.execute_reply.used))) ids.push(hrs.stream.id);
+    if (!(hrs.display_data.used && (hrs.execute_result.used || hrs.execute_reply.used))) ids.push(hrs.display_data.id);
+    if (!(hrs.execute_result.used && hrs.execute_reply.used)) ids.push(hrs.execute_result.id);
+    ids.push(hrs.execute_reply.id);
+    for (const id of ids) {
+        await client.deleteBlock({ id });
     }
 }
 

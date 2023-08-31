@@ -23,7 +23,6 @@ import { createIAL, createStyle } from "@workspace/utils/siyuan/ial";
 
 import { Output } from "./output";
 import type { IJupyterParserOptions as IJupyterParserOptions } from "@/types/config";
-import type Plugin from "@/index";
 import type { Client } from "@siyuan-community/siyuan-sdk";
 
 export interface IData {
@@ -49,7 +48,7 @@ export function parseText(
 
 /**
  * 解析数据
- * @param plugin 插件对象
+ * @param client 思源 API 客户端
  * @param data 数据
  * @param metadata 元数据
  * @param options 解析选项

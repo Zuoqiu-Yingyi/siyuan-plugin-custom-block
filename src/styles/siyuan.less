@@ -68,7 +68,7 @@
 
             &::before {
                 /* 运行完成 */
-                color: var(--b3-card-success-color);
+                // color: var(--b3-card-success-color);
             }
 
             &::after {
@@ -108,9 +108,13 @@
             }
         }
 
-        &[custom-jupyter-index="*"]::before {
-            /* 正在运行 */
-            color: var(--b3-card-warning-color);
+        // 发生中断
+        &[custom-jupyter-index=" "],
+        // 正在运行
+        &[custom-jupyter-index="*"] {
+            &::before {
+                color: var(--b3-card-warning-color);
+            }
         }
     }
 }
