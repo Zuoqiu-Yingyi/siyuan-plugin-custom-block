@@ -46,13 +46,14 @@ export interface IExecuteContext {
         id: string; // 输出块 ID
         new: boolean; // 是否为新的输出块
         attrs: Record<string, string | null>; // 输出块 IAL
+        options: IJupyterParserOptions; // 解析选项
         kramdown: string; // 初始化的 Markdown 代码
         hrs: { // 分割线
-            head: IExecuteHorizontalRule; // 块首
+            head: Readonly<IExecuteHorizontalRule>; // 块首
             stream: IExecuteHorizontalRule; // 流输出
             display_data: IExecuteHorizontalRule; // 数据显示
             execute_result: IExecuteHorizontalRule; // 运行结果
-            tail: IExecuteHorizontalRule; // 块尾
+            tail: Readonly<IExecuteHorizontalRule>; // 块尾
         };
     };
 }

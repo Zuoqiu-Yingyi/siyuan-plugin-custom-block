@@ -585,7 +585,13 @@
             items.push({ type: "separator" });
 
             /* 管理 */
-            items.push(...plugin.buildJupyterDocumentMenuItems(name, ial));
+            items.push(
+                ...plugin.buildJupyterDocumentMenuItems(name, ial, plugin.doc2session.get(name), {
+                    isDocumentBlock: true,
+                    isMultiBlock: false,
+                    id: name,
+                }),
+            );
         }
 
         washMenuItems(items);

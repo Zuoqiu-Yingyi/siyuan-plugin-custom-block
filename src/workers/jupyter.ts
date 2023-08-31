@@ -24,11 +24,15 @@ import { trimSuffix } from "@workspace/utils/misc/string";
 import { moment } from "@workspace/utils/date/moment";
 import { WorkerBridgeSlave } from "@workspace/utils/worker/bridge/slave";
 import { AsyncLockQueue } from "@workspace/utils/structure/async-lock-queue";
+import { id } from "@workspace/utils/siyuan/id";
+import { createIAL } from "@workspace/utils/siyuan/ial";
 
 import CONSTANTS from "@/constants";
 import { DEFAULT_CONFIG } from "@/configs/default";
 import { IpynbImport } from "@/jupyter/import";
 import { Jupyter } from "@/jupyter";
+import { Output } from "@/jupyter/output";
+import { parseText } from "@/jupyter/parse";
 
 import type { IConfig, IJupyterParserOptions } from "@/types/config";
 import type {
@@ -45,8 +49,6 @@ import type { BlockID } from "@workspace/types/siyuan";
 import type { PluginHandlers } from "@/index";
 import type { IHeader } from "@jupyterlab/services/lib/kernel/messages";
 import type { IExecuteContext } from "@/types/jupyter";
-import { id } from "@workspace/utils/siyuan/id";
-import { createIAL } from "@workspace/utils/siyuan/ial";
 import type { I18N } from "@/utils/i18n";
 
 const config: IConfig = DEFAULT_CONFIG;
@@ -61,13 +63,8 @@ const id_2_session_connection = new Map<string, Session.ISessionConnection>(); /
 var jupyter: InstanceType<typeof Jupyter> | undefined;
 var i18n: I18N;
 
-const kernel_status_queue = new AsyncLockQueue<{ docID: string, status: string }>(
-    async item => client.setBlockAttrs({
-        id: item.docID,
-        attrs: {
-            [CONSTANTS.attrs.kernel.status]: item.status,
-        },
-    }),
+const attrs_update_queue = new AsyncLockQueue<{ id: string, attrs: Record<string, string | null> }>(
+    async item => client.setBlockAttrs(item),
     (...args) => logger.warns(...args),
 );
 
@@ -85,9 +82,11 @@ async function kernelStatusChanged(
     status: KernelMessage.Status,
 ): Promise<void> {
     // logger.debugs(["statusChanged", status], [docID, connection.name, connection.id]);
-    kernel_status_queue.enqueue({
-        docID,
-        status,
+    attrs_update_queue.enqueue({
+        id: docID,
+        attrs: {
+            [CONSTANTS.attrs.kernel.status]: status,
+        },
     });
 }
 
@@ -272,16 +271,14 @@ async function initOutputBlock(context: IExecuteContext): Promise<void> {
  * @param context 执行上下文
  */
 async function updateBlockAttrs(context: IExecuteContext): Promise<void> {
-    await Promise.all([
-        client.setBlockAttrs({
-            id: context.code.id,
-            attrs: context.code.attrs,
-        }),
-        client.setBlockAttrs({
-            id: context.output.id,
-            attrs: context.output.attrs,
-        }),
-    ]);
+    attrs_update_queue.enqueue({
+        id: context.code.id,
+        attrs: context.code.attrs,
+    });
+    attrs_update_queue.enqueue({
+        id: context.output.id,
+        attrs: context.output.attrs,
+    });
 }
 
 export type TExtendedParams = [
@@ -323,6 +320,7 @@ async function executeCode(
                 new: true,
                 id: id(),
                 attrs: {},
+                options,
                 kramdown: "",
                 hrs: {
                     head: {
@@ -392,7 +390,10 @@ async function executeCode(
                     break;
                 }
                 case "error": {
-                    // TODO: 更新输出块
+                    await handleErrorMessage(
+                        msg as KernelMessage.IErrorMsg,
+                        context,
+                    );
                     break;
                 }
                 case "execute_input": {
@@ -485,6 +486,31 @@ async function handleStatusMessage(
 }
 
 /**
+ * 处理 `error` 消息
+ * @param message `error` 消息
+ * @param context 执行上下文
+ */
+async function handleErrorMessage(
+    message: KernelMessage.IErrorMsg,
+    context: IExecuteContext,
+): Promise<void> {
+    /* 使用代码块输出运行错误 */
+    const kramdown = [
+        "{{{row",
+        parseText(message.content.traceback.join('\n'), context.output.options),
+        "}}}",
+        createIAL({ style: CONSTANTS.styles.error }),
+    ].join("\n");
+
+    context.output.hrs.stream.used = true;
+    await client.insertBlock({
+        nextID: context.output.hrs.stream.id,
+        data: kramdown,
+        dataType: "markdown",
+    });
+}
+
+/**
  * 处理 `execute_input` 消息
  * @param message `execute_input` 消息
  * @param context 执行上下文
@@ -499,7 +525,7 @@ async function handleExecuteInputMessage(
     context.code.attrs[CONSTANTS.attrs.code.time] = `${i18n.messages.lastRunTime.text
         }: ${start.format(CONSTANTS.JUPYTER_LAST_RUN_TIME_FORMAT)
         }`;
-    
+
     /* 打开并定位到块 */
     bridge.call<PluginHandlers["openBlock"]>(
         "openBlock",
@@ -537,7 +563,21 @@ async function handleExecuteReplyMessage(
     context.code.attrs[CONSTANTS.attrs.code.index] = execution_count;
     switch (message.content.status) {
         case "error": {
-            // TODO: 使用代码块输出运行错误
+            /* 使用代码块输出运行错误 */
+            const kramdown = [
+                "```plaintext",
+                new Output(message.content.traceback.join('\n'))
+                    .removeCmdControlChars()
+                    .toString(),
+                "```",
+                createIAL({ style: CONSTANTS.styles.error }),
+            ].join("\n");
+
+            await client.insertBlock({
+                nextID: context.output.hrs.tail.id,
+                data: kramdown,
+                dataType: "markdown",
+            });
 
             context.output.attrs[CONSTANTS.attrs.output.index] = "E";
             break;

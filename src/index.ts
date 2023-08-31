@@ -570,7 +570,11 @@ export default class TemplatePlugin extends siyuan.Plugin {
         id: string,
         ial: Record<string, string>,
         session: Session.IModel | undefined,
-        context: IBlockMenuContext,
+        context: IBlockMenuContext | {
+            isDocumentBlock: true,
+            isMultiBlock: false,
+            id: BlockID,
+        },
     ): siyuan.IMenuItemOption[] {
         const submenu: siyuan.IMenuItemOption[] = [];
 
@@ -1103,7 +1107,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
 
     /* 块菜单菜单弹出事件监听器 */
     protected readonly blockMenuEventListener = (e: IClickBlockIconEvent | IClickEditorTitleIconEvent) => {
-        this.logger.debug(e);
+        // this.logger.debug(e);
 
         const detail = e.detail;
         const context = getBlockMenuContext(detail); // 获取块菜单上下文
