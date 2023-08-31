@@ -51,7 +51,7 @@
         }
     }
 
-    [data-node-id][custom-jupyter-type] {
+    [data-node-id][custom-jupyter-block-type] {
         &::before {
             /* 运行序号 */
             content: "[" attr(custom-jupyter-index)"]:";
@@ -64,7 +64,7 @@
         }
 
         // 代码块
-        &[custom-jupyter-type=code] {
+        &[custom-jupyter-block-type=code] {
 
             &::before {
                 /* 运行完成 */
@@ -94,7 +94,7 @@
         }
 
         // 输出块
-        &[custom-jupyter-type=output] {
+        &[custom-jupyter-block-type=output] {
             font-family: var(--b3-font-family-code); // 输出内容使用等宽字体
 
             &::before {

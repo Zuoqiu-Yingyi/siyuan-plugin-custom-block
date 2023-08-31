@@ -18,6 +18,8 @@ export default {
     JUPYTER_WORKER_FILE_NAME: "jupyter", // web worker 文件名称
     JUPYTER_WORKER_BROADCAST_CHANNEL_NAME: "jupyter-worker", // web worker 任务广播通道名称
     JUPYTER_UNKNOWN_VALUE: "unknown", // 未知值
+    JUPYTER_LAST_RUN_TIME_FORMAT: "YYYY-MM-DD HH:mm:ss.SSS", // 上次运行时间格式
+    JUPYTER_RUNTIME_FORMAT: "HH:mm:ss.SSS", // 运行用时格式
     attrs: { // 块属性
         kernel: {
             id: "custom-jupyter-kernel-id", // 内核 ID
@@ -41,6 +43,11 @@ export default {
             time: "custom-jupyter-time", // 上次运行时间+运行时长
             output: "custom-jupyter-output-block-id", // 对应的输出块 ID
             index: "custom-jupyter-index", // 块运行序号
+
+            execute_input: "custom-jupyter-time-execute-input", // 内核广播 execute_input 消息时间
+            execute_reply: "custom-jupyter-time-execute-reply", // 内核广播 execute_reply 消息时间
+            busy: "custom-jupyter-time-busy", // 内核状态切换为忙碌的时间
+            idle: "custom-jupyter-time-idle", // 内核状态切换为空闲的时间
         },
         output: {
             type: {

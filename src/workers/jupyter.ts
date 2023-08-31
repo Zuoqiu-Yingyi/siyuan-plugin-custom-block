@@ -21,6 +21,7 @@ import {
 } from "@siyuan-community/siyuan-sdk";
 import { Logger } from "@workspace/utils/logger";
 import { trimSuffix } from "@workspace/utils/misc/string";
+import { moment } from "@workspace/utils/date/moment";
 import { WorkerBridgeSlave } from "@workspace/utils/worker/bridge/slave";
 import { AsyncLockQueue } from "@workspace/utils/structure/async-lock-queue";
 
@@ -29,7 +30,7 @@ import { DEFAULT_CONFIG } from "@/configs/default";
 import { IpynbImport } from "@/jupyter/import";
 import { Jupyter } from "@/jupyter";
 
-import type { IConfig } from "@/types/config";
+import type { IConfig, IJupyterParserOptions } from "@/types/config";
 import type {
     IFunction,
     THandlersWrapper,
@@ -41,7 +42,12 @@ import type {
     KernelMessage,
 } from "@jupyterlab/services";
 import type { BlockID } from "@workspace/types/siyuan";
-import type { PluginHandlers } from "..";
+import type { PluginHandlers } from "@/index";
+import type { IHeader } from "@jupyterlab/services/lib/kernel/messages";
+import type { IExecuteContext } from "@/types/jupyter";
+import { id } from "@workspace/utils/siyuan/id";
+import { createIAL } from "@workspace/utils/siyuan/ial";
+import type { I18N } from "@/utils/i18n";
 
 const config: IConfig = DEFAULT_CONFIG;
 const logger = new Logger(`${self.name}-worker:${CONSTANTS.JUPYTER_WORKER_FILE_NAME}`);
@@ -53,6 +59,7 @@ const client = new Client(
 );
 const id_2_session_connection = new Map<string, Session.ISessionConnection>(); // 会话 ID -> 会话连接
 var jupyter: InstanceType<typeof Jupyter> | undefined;
+var i18n: I18N;
 
 const kernel_status_queue = new AsyncLockQueue<{ docID: string, status: string }>(
     async item => client.setBlockAttrs({
@@ -121,7 +128,6 @@ async function kernelPendingInput(
     pending: boolean,
 ): Promise<void> {
     logger.debugs(["pendingInput", pending], [docID, connection.name, connection.id]);
-    // TODO: 输入信号处理
 }
 
 /**
@@ -138,7 +144,6 @@ async function kernelIopubMessage(
     message: KernelMessage.IIOPubMessage,
 ): Promise<void> {
     logger.debugs(["iopubMessage", message], [docID, connection.name, connection.id]);
-    // TODO:输出输入消息处理
 }
 
 /**
@@ -190,10 +195,379 @@ function bindSessionConnectionSignalListener(
     connection.unhandledMessage.connect((...args) => kernelUnhandledMessage(docID, ...args));
 }
 
+/**
+ * 初始化代码执行上下文
+ * @param context 执行上下文
+ */
+function initContext(context: IExecuteContext): void {
+    /* 设置块 ID */
+    context.code.attrs.id = context.code.id;
+    context.output.attrs.id = context.output.id;
+
+    /* 设置块类型 */
+    context.code.attrs[CONSTANTS.attrs.code.type.key] = CONSTANTS.attrs.code.type.value;
+    context.output.attrs[CONSTANTS.attrs.output.type.key] = CONSTANTS.attrs.output.type.value;
+
+    /* 关联代码块与输出块 */
+    context.code.attrs[CONSTANTS.attrs.code.output] = context.output.id;
+    context.output.attrs[CONSTANTS.attrs.output.code] = context.code.id;
+
+    /**
+     * 构造输出块初始 kramdown 代码
+     * ```markdown
+     * {{{row
+     * ---
+     * 流输出内容/错误输出内容
+     * ?---
+     * ?数据显示
+     * ?---
+     * ?运行结果
+     * ?---
+     * ?运行完成响应 (若有)
+     * ---
+     * }}}
+     * ```
+     */
+    context.output.kramdown = [
+        "{{{row",
+        "---",
+        createIAL({ id: context.output.hrs.head.id }),
+        "---",
+        createIAL({ id: context.output.hrs.stream.id }),
+        "---",
+        createIAL({ id: context.output.hrs.display_data.id }),
+        "---",
+        createIAL({ id: context.output.hrs.execute_result.id }),
+        "---",
+        createIAL({ id: context.output.hrs.tail.id }),
+        "}}}",
+        createIAL(context.output.attrs),
+    ].join("\n");
+}
+
+/**
+ * 初始化输出块
+ * @param context 执行上下文
+ */
+async function initOutputBlock(context: IExecuteContext): Promise<void> {
+    if (context.output.new) { // 在代码块后插入块
+        await client.insertBlock({
+            previousID: context.code.id,
+            data: context.output.kramdown,
+            dataType: "markdown",
+        });
+        context.output.new = false;
+    }
+    else { // 更新原有块
+        await client.updateBlock({
+            id: context.output.id,
+            data: context.output.kramdown,
+            dataType: "markdown",
+        });
+    }
+}
+
+/**
+ * 更新块属性
+ * @param context 执行上下文
+ */
+async function updateBlockAttrs(context: IExecuteContext): Promise<void> {
+    await Promise.all([
+        client.setBlockAttrs({
+            id: context.code.id,
+            attrs: context.code.attrs,
+        }),
+        client.setBlockAttrs({
+            id: context.output.id,
+            attrs: context.output.attrs,
+        }),
+    ]);
+}
+
+export type TExtendedParams = [
+    Omit<Parameters<Kernel.IKernelConnection["requestExecute"]>[0], "code">?,
+    Parameters<Kernel.IKernelConnection["requestExecute"]>[1]?,
+    Parameters<Kernel.IKernelConnection["requestExecute"]>[2]?,
+]
+
+/**
+ * 执行代码
+ * @param clientID 客户端 ID
+ * @param code 代码
+ * @param codeID 代码块 ID
+ * @param connection 会话连接
+ * @param options 代码块解析选项
+ * @param args {@link Kernel.IKernelConnection.requestExecute} 原始参数
+ * @see
+ * {@link https://jupyter-client.readthedocs.io/en/latest/messaging.html#execute | Execute Messaging in Jupyter}  
+ * {@link Kernel.IKernelConnection.requestExecute}  
+ */
+async function executeCode(
+    clientID: string,
+    code: string,
+    codeID: string,
+    connection: Session.ISessionConnection,
+    options: IJupyterParserOptions, // 代码块解析选项
+    ...args: TExtendedParams
+): Promise<void> {
+    if (connection.kernel) {
+        const context: IExecuteContext = {
+            client: {
+                id: clientID,
+            },
+            code: {
+                id: codeID,
+                attrs: {},
+            },
+            output: {
+                new: true,
+                id: id(),
+                attrs: {},
+                kramdown: "",
+                hrs: {
+                    head: {
+                        id: id(),
+                        used: true,
+                    },
+                    stream: {
+                        id: id(),
+                        used: false,
+                    },
+                    display_data: {
+                        id: id(),
+                        used: false,
+                    },
+                    execute_result: {
+                        id: id(),
+                        used: false,
+                    },
+                    tail: {
+                        id: id(),
+                        used: true,
+                    },
+                },
+            },
+        };
+
+        const response_getBlockAttrs_code = await client.getBlockAttrs({ id: context.code.id });
+        context.code.attrs = response_getBlockAttrs_code.data;
+        if (CONSTANTS.attrs.code.output in context.code.attrs) {
+            try {
+                const output_id = context.code.attrs[CONSTANTS.attrs.code.output]!;
+                const response_getBlockAttrs_output = await client.getBlockAttrs({ id: output_id });
+
+                context.output.id = output_id;
+                context.output.new = false;
+                context.output.attrs = response_getBlockAttrs_output.data;
+            } catch (error) {
+                /* 输出块不存在 */
+            }
+        }
+
+        /* 初始化 */
+        initContext(context);
+        await initOutputBlock(context);
+
+        const future = connection.kernel.requestExecute(
+            {
+                ...config.jupyter.execute.content,
+                ...args[0],
+                code,
+            },
+            args[1],
+            args[2],
+        );
+
+        future.onIOPub = async msg => {
+            switch (msg.header.msg_type) {
+                case "status": {
+                    await handleStatusMessage(
+                        msg as KernelMessage.IStatusMsg,
+                        context,
+                    );
+                    break;
+                }
+                case "stream": {
+                    // TODO: 更新输出块
+                    break;
+                }
+                case "error": {
+                    // TODO: 更新输出块
+                    break;
+                }
+                case "execute_input": {
+                    await handleExecuteInputMessage(
+                        msg as KernelMessage.IExecuteInputMsg,
+                        context,
+                    );
+                    break;
+                }
+                case "display_data": {
+                    // TODO: 更新输出块
+                    break;
+                }
+                case "update_display_data": {
+                    // TODO: 更新输出块
+                    break;
+                }
+                case "execute_result": {
+                    // TODO: 更新输出块
+                    break;
+                }
+                case "clear_output": {
+                    await initOutputBlock(context);
+                    break;
+                }
+                case "comm_close":
+                case "comm_msg":
+                case "comm_open":
+                case "shutdown_reply":
+                case "debug_event":
+                default:
+                    break;
+            }
+        }
+
+        /* 文本输入请求 */
+        future.onStdin = async msg => {
+            switch (msg.header.msg_type) {
+                case "input_request": {
+                    // TODO: 请求输入
+                    const value = "";
+                    future.sendInputReply(
+                        {
+                            value,
+                            status: "ok",
+                        },
+                        msg.header as IHeader<"input_request">,
+                    );
+                    break;
+                }
+                case "input_reply":
+                default:
+                    break;
+            }
+        }
+
+        /* 代码执行结束消息 */
+        future.onReply = msg => handleExecuteReplyMessage(msg, context);
+    }
+}
+
+/**
+ * 处理 `status` 消息
+ * @param message `status` 消息
+ * @param context 执行上下文
+ */
+async function handleStatusMessage(
+    message: KernelMessage.IStatusMsg,
+    context: IExecuteContext,
+): Promise<void> {
+    switch (message.content.execution_state) {
+        case "busy": {
+            /* 更改块序号标志 */
+            context.code.attrs[CONSTANTS.attrs.code.index] = "*";
+            context.output.attrs[CONSTANTS.attrs.output.index] = "*";
+
+            /* 更新内核忙碌时间 */
+            context.code.attrs[CONSTANTS.attrs.code.busy] = message.header.date;
+            break;
+        }
+        case "idle": {
+            /* 更新内核空闲时间 */
+            context.code.attrs[CONSTANTS.attrs.code.idle] = message.header.date;
+            break;
+        }
+        default:
+            break;
+    }
+    await updateBlockAttrs(context);
+}
+
+/**
+ * 处理 `execute_input` 消息
+ * @param message `execute_input` 消息
+ * @param context 执行上下文
+ */
+async function handleExecuteInputMessage(
+    message: KernelMessage.IExecuteInputMsg,
+    context: IExecuteContext,
+): Promise<void> {
+    /* 更新块开始运行时间 */
+    const start = moment(message.header.date);
+    context.code.attrs[CONSTANTS.attrs.code.execute_input] = message.header.date;
+    context.code.attrs[CONSTANTS.attrs.code.time] = `${i18n.messages.lastRunTime.text
+        }: ${start.format(CONSTANTS.JUPYTER_LAST_RUN_TIME_FORMAT)
+        }`;
+    
+    /* 打开并定位到块 */
+    bridge.call<PluginHandlers["openBlock"]>(
+        "openBlock",
+        context.code.id,
+        context.client.id,
+    );
+    await updateBlockAttrs(context);
+}
+
+/**
+ * 处理 `execute_reply` 消息
+ * @param message `execute_reply` 消息
+ * @param context 执行上下文
+ */
+async function handleExecuteReplyMessage(
+    message: KernelMessage.IExecuteReplyMsg,
+    context: IExecuteContext,
+): Promise<void> {
+    /* 块运行结束时间 */
+    context.code.attrs[CONSTANTS.attrs.code.execute_reply] = message.header.date;
+
+    /* 块运行用时 */
+    const start = moment((message.metadata.started || message.parent_header.date) as string);
+    const end = moment(message.header.date as string);
+    const duration = moment(end.diff(start));
+    context.code.attrs[CONSTANTS.attrs.code.time] = `${i18n.messages.lastRunTime.text
+        }: ${start.format(CONSTANTS.JUPYTER_LAST_RUN_TIME_FORMAT)
+        } | ${i18n.messages.runtime.text
+        }: ${duration.format(CONSTANTS.JUPYTER_RUNTIME_FORMAT)} `;
+
+    /* 块运行序号 */
+    const execution_count = message.content.execution_count
+        ? message.content.execution_count.toString()
+        : null;
+    context.code.attrs[CONSTANTS.attrs.code.index] = execution_count;
+    switch (message.content.status) {
+        case "error": {
+            // TODO: 使用代码块输出运行错误
+
+            context.output.attrs[CONSTANTS.attrs.output.index] = "E";
+            break;
+        }
+        case "ok": {
+            context.output.attrs[CONSTANTS.attrs.output.index] = execution_count;
+            break;
+        }
+        default:
+            break;
+    }
+
+    /* 更新块属性 */
+    await updateBlockAttrs(context);
+
+    /* 移除未使用的分割线 */
+    for (const hr of Object.values(context.output.hrs)) {
+        if (!hr.used) {
+            await client.deleteBlock({
+                id: hr.id,
+            });
+        }
+    }
+}
+
 /* 👇由插件调用👇 */
 
 /* 加载 */
-export async function onload(): Promise<void> {
+export async function onload(i18n_: I18N): Promise<void> {
+    i18n = i18n_;
 }
 
 /* 卸载 */
@@ -492,6 +866,30 @@ const handlers = {
             const connection = id_2_session_connection.get(id);
             if (connection) {
                 await connection.kernel?.shutdown();
+            }
+            return connection?.model;
+        },
+    },
+    "jupyter.session.kernel.connection.requestExecute": { // 运行代码
+        this: self,
+        async func(
+            clientID: string, // 客户端 ID
+            code: string, // 代码
+            codeID: string, // 代码块 ID
+            sessionID: string, // 会话 ID
+            options: IJupyterParserOptions, // 代码块解析选项
+            ...args: TExtendedParams
+        ): Promise<Session.IModel | undefined> {
+            const connection = id_2_session_connection.get(sessionID);
+            if (connection) {
+                await executeCode(
+                    clientID,
+                    code,
+                    codeID,
+                    connection,
+                    options,
+                    ...args,
+                );
             }
             return connection?.model;
         },

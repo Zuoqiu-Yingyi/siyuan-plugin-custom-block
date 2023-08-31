@@ -16,7 +16,6 @@
  */
 
 import CONSTANTS from "@/constants";
-import { moment } from "@workspace/utils/date/moment";
 import { createIAL } from "@workspace/utils/siyuan/ial";
 import { base64ToFile } from "@workspace/utils/misc/dataurl";
 import {
@@ -26,6 +25,7 @@ import {
 import type { Client } from "@siyuan-community/siyuan-sdk";
 import type { IConfig } from "@/types/config";
 import type * as Ipynb from "@/types/nbformat";
+import { id } from "@workspace/utils/siyuan/id";
 
 export interface IAttachment {
     [mime: string]: string | string[];
@@ -36,9 +36,6 @@ export interface IAttachments {
 }
 
 export class IpynbImport {
-    protected readonly timestamp = moment(new Date()).format("YYYYMMDDhhmmss"); // 用于 ID 生成的时间戳
-    protected counter = 0; // 用于 ID 生成的计数器
-
     protected ipynb!: Ipynb.Notebook; // 文件内容
     protected cells!: Ipynb.Cell[]; // 内容块
     protected language!: string; // 单元格语言
@@ -90,7 +87,7 @@ export class IpynbImport {
 
     /* 获取新的块 ID */
     public get id(): string {
-        return `${this.timestamp}-${(this.counter++).toString(36).padStart(7, '0')}`;
+        return id();
     }
 
     /* 获取转换后的 kramdown */
@@ -225,12 +222,22 @@ export class IpynbImport {
         const code_id = this.id; // 代码块 ID
         const output_id = this.id; // 输出块 ID
 
+        const execute_input = cell.metadata.execution?.["iopub.execute_input"];
+        const execute_reply = cell.metadata.execution?.["iopub.status.busy"];
+        const busy = cell.metadata.execution?.["iopub.status.idle"];
+        const idle = cell.metadata.execution?.["shell.execute_reply"];
+
         const code_attrs = {
             id: code_id,
             [CONSTANTS.attrs.code.index]: execution_count,
             [CONSTANTS.attrs.code.output]: output_id,
             [CONSTANTS.attrs.code.type.key]: CONSTANTS.attrs.code.type.value,
             fold: source_hidden ? "1" : null,
+
+            [CONSTANTS.attrs.code.execute_input]: execute_input,
+            [CONSTANTS.attrs.code.execute_reply]: execute_reply,
+            [CONSTANTS.attrs.code.busy]: busy,
+            [CONSTANTS.attrs.code.idle]: idle,
         }; // 代码块属性
         const output_attrs = {
             id: output_id,
@@ -390,7 +397,7 @@ export class IpynbImport {
                 }
                 case "error":
                     markdowns.push("{{{row");
-                    markdowns.push(parseText(output.traceback?.join("\n"), this.config.jupyter.import.params));
+                    markdowns.push(parseText(output.traceback?.join("\n"), this.config.jupyter.import.parser));
                     markdowns.push("}}}");
                     markdowns.push(createIAL({ style: CONSTANTS.styles.error }));
                     markdowns.join("\n");
@@ -400,7 +407,7 @@ export class IpynbImport {
                     if (output.data) {
                         markdowns.push(await parseData(
                             this.client,
-                            this.config.jupyter.import.params,
+                            this.config.jupyter.import.parser,
                             output.data,
                             output.metadata,
                         ));

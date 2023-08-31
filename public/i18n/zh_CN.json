@@ -3,6 +3,12 @@
     "messages": {
         "uninitialized": {
             "text": "Jupyter 客户端未初始化"
+        },
+        "lastRunTime": {
+            "text": "上次执行"
+        },
+        "runtime": {
+            "text": "用时"
         }
     },
     "dock": {
@@ -63,6 +69,29 @@
                 "restart": {
                     "label": "运行所有单元格",
                     "accelerator": "重启内核"
+                },
+                "custom": {
+                    "label": "使用自定义配置项运行"
+                },
+                "escape": {
+                    "enable": {
+                        "label": "输出转义文本",
+                        "accelerator": "转义符号"
+                    },
+                    "disable": {
+                        "label": "输出原始文本",
+                        "accelerator": "渲染符号"
+                    }
+                },
+                "cntrl": {
+                    "enable": {
+                        "label": "解析控制字符",
+                        "accelerator": "富文本"
+                    },
+                    "disable": {
+                        "label": "忽略控制字符",
+                        "accelerator": "纯文本"
+                    }
                 }
             }
         },

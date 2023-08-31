@@ -16,12 +16,13 @@
  */
 
 import siyuan from "siyuan";
-import type { ISiyuanGlobal } from "@workspace/types/siyuan";
+import type { BlockID, ISiyuanGlobal } from "@workspace/types/siyuan";
 
 import manifest from "~/public/plugin.json";
 
 import "./index.less";
 import icon_jupyter_client from "./assets/symbols/icon-jupyter-client.symbol?raw";
+import icon_jupyter_client_text from "./assets/symbols/icon-jupyter-client-text.symbol?raw";
 import icon_jupyter_client_simple from "./assets/symbols/icon-jupyter-client-simple.symbol?raw";
 import icon_jupyter_client_kernelspec from "./assets/symbols/icon-jupyter-client-kernelspec.symbol?raw";
 import icon_jupyter_client_kernel from "./assets/symbols/icon-jupyter-client-kernel.symbol?raw";
@@ -37,10 +38,7 @@ import icon_jupyter_client_session from "./assets/symbols/icon-jupyter-client-se
 import icon_jupyter_client_session_console from "./assets/symbols/icon-jupyter-client-session-console.symbol?raw";
 import icon_jupyter_client_session_notebook from "./assets/symbols/icon-jupyter-client-session-notebook.symbol?raw";
 
-import {
-    Client,
-    type types,
-} from "@siyuan-community/siyuan-sdk";
+import * as sdk from "@siyuan-community/siyuan-sdk";
 
 import Item from "@workspace/components/siyuan/menu/Item.svelte"
 import Settings from "./components/Settings.svelte";
@@ -51,7 +49,7 @@ import {
     FLAG_MOBILE,
 } from "@workspace/utils/env/front-end";
 import {
-    getBlockMenuContext,
+    getBlockMenuContext, type IBlockMenuContext,
 } from "@workspace/utils/siyuan/menu/block";
 import { Logger } from "@workspace/utils/logger";
 import { fn__code } from "@workspace/utils/siyuan/text/span";
@@ -66,7 +64,7 @@ import { DEFAULT_SETTINGS } from "./jupyter/settings";
 import { DEFAULT_CONFIG } from "./configs/default";
 
 import type { I18N } from "./utils/i18n";
-import type { IConfig } from "./types/config";
+import type { IConfig, IJupyterParserOptions } from "./types/config";
 import type {
     KernelSpec,
     Kernel,
@@ -74,6 +72,7 @@ import type {
 } from "@jupyterlab/services";
 import type {
     IClickBlockIconEvent,
+    IClickEditorContentEvent,
     IClickEditorTitleIconEvent,
 } from "@workspace/types/siyuan/events";
 import type {
@@ -84,6 +83,10 @@ import type { ComponentEvents } from "svelte";
 
 declare var globalThis: ISiyuanGlobal;
 export type PluginHandlers = THandlersWrapper<TemplatePlugin["handlers"]>;
+export interface ICodeCell {
+    id: BlockID;
+    code: string;
+}
 
 export default class TemplatePlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
@@ -92,7 +95,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
 
     public readonly siyuan = siyuan;
     public readonly logger: InstanceType<typeof Logger>;
-    public readonly client: InstanceType<typeof Client>;
+    public readonly client: InstanceType<typeof sdk.Client>;
 
     protected readonly SETTINGS_DIALOG_ID: string;
 
@@ -108,7 +111,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
     }; // Jupyter 管理面板
 
     public readonly doc2session = new Map<string, Session.IModel>(); // 文档 ID 到会话的映射
-    public readonly doc2info = new Map<string, types.kernel.api.block.getDocInfo.IData>(); // 文档 ID 到文档信息的映射
+    public readonly doc2info = new Map<string, sdk.types.kernel.api.block.getDocInfo.IData>(); // 文档 ID 到文档信息的映射
     public readonly session2docs = new Map<string, Set<string>>(); // 会话 ID 到文档 ID 集合的映射
     public readonly handlers; // 插件暴露给 worker 的方法
     public readonly kernelspecs: KernelSpec.ISpecModels = { default: "", kernelspecs: {} };
@@ -125,10 +128,14 @@ export default class TemplatePlugin extends siyuan.Plugin {
         super(options);
 
         this.logger = new Logger(this.name);
-        this.client = new Client(undefined, "fetch");
+        this.client = new sdk.Client(undefined, "fetch");
 
         this.SETTINGS_DIALOG_ID = `${this.name}-settings-dialog`;
         this.handlers = {
+            openBlock: {
+                this: this,
+                func: this.openBlock,
+            },
             updateKernelSpecs: {
                 this: this,
                 func: this.updateKernelSpecs,
@@ -150,6 +157,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
         /* 注册图标 */
         this.addIcons([
             icon_jupyter_client,
+            icon_jupyter_client_text,
             icon_jupyter_client_simple,
             icon_jupyter_client_kernelspec,
             icon_jupyter_client_kernel,
@@ -222,12 +230,16 @@ export default class TemplatePlugin extends siyuan.Plugin {
                     }
 
                     /* 初始化 worker 配置 */
-                    await this.bridge?.call<WorkerHandlers["onload"]>("onload");
-                    await this.updateWorkerConfig();
+                    await this.bridge?.call<WorkerHandlers["onload"]>(
+                        "onload",
+                        this.i18n,
+                    );
+                    await this.updateWorkerConfig(true);
                 }
 
                 this.eventBus.on("click-editortitleicon", this.blockMenuEventListener);
                 this.eventBus.on("click-blockicon", this.blockMenuEventListener);
+                this.eventBus.on("click-editorcontent", this.clickEditorContentEventListener);
             });
     }
 
@@ -280,16 +292,22 @@ export default class TemplatePlugin extends siyuan.Plugin {
     }
 
     /* 重置插件配置 */
-    public async resetConfig(): Promise<void> {
-        return this.updateConfig(mergeIgnoreArray(DEFAULT_CONFIG) as IConfig);
+    public async resetConfig(restart: boolean = true): Promise<void> {
+        return this.updateConfig(
+            mergeIgnoreArray(DEFAULT_CONFIG) as IConfig,
+            restart,
+        );
     }
 
     /* 更新插件配置 */
-    public async updateConfig(config?: IConfig): Promise<void> {
+    public async updateConfig(
+        config?: IConfig,
+        restart: boolean = false,
+    ): Promise<void> {
         if (config && config !== this.config) {
             this.config = config;
         }
-        await this.updateWorkerConfig();
+        await this.updateWorkerConfig(restart);
         await this.saveData(TemplatePlugin.GLOBAL_CONFIG_NAME, this.config);
     }
 
@@ -381,12 +399,14 @@ export default class TemplatePlugin extends siyuan.Plugin {
     }
 
     /* 更新 worker 配置 */
-    public async updateWorkerConfig(): Promise<void> {
+    public async updateWorkerConfig(restart: boolean): Promise<void> {
         await this.bridge?.call<WorkerHandlers["updateConfig"]>(
             "updateConfig",
             this.config,
         );
-        await this.bridge?.call<WorkerHandlers["restart"]>("restart");
+        if (restart) {
+            await this.bridge?.call<WorkerHandlers["restart"]>("restart");
+        }
     }
 
     /**
@@ -542,15 +562,18 @@ export default class TemplatePlugin extends siyuan.Plugin {
      * 构造 jupyter 文档菜单
      * @param id 文档块 ID
      * @param ial 文档块 IAL
+     * @param session 菜单项上下文
+     * @param context 菜单项上下文
      * @returns 菜单项列表
      */
     public buildJupyterDocumentMenuItems(
         id: string,
         ial: Record<string, string>,
+        session: Session.IModel | undefined,
+        context: IBlockMenuContext,
     ): siyuan.IMenuItemOption[] {
         const submenu: siyuan.IMenuItemOption[] = [];
 
-        const session = this.doc2session.get(id);
         const session_ial = this.ial2session(ial, false);
         const kernel_name = session?.kernel?.name
             ?? session_ial.kernel!.name;
@@ -713,18 +736,22 @@ export default class TemplatePlugin extends siyuan.Plugin {
                     icon: "iconPlay",
                     label: this.i18n.menu.run.submenu.all.label,
                     disabled: !session?.kernel,
-                    click: () => {
-                        // TODO: 运行所有单元格
-                    },
+                    submenu: this.buildExecuteMenuItems(
+                        false,
+                        session,
+                        context,
+                    ),
                 },
                 { // 重启内核并运行所有单元格
                     icon: "iconRefresh",
                     label: this.i18n.menu.run.submenu.restart.label,
                     accelerator: this.i18n.menu.run.submenu.restart.accelerator,
                     disabled: !session?.kernel,
-                    click: () => {
-                        // TODO: 重启内核并运行所有单元格
-                    },
+                    submenu: this.buildExecuteMenuItems(
+                        true,
+                        session,
+                        context,
+                    ),
                 },
             ],
         });
@@ -806,6 +833,91 @@ export default class TemplatePlugin extends siyuan.Plugin {
     }
 
     /**
+     * 构造运行菜单
+     * @param restart 是否重启内核
+     * @param session 菜单项上下文
+     * @param context 菜单项上下文
+     * @returns 菜单项列表
+     */
+    public buildExecuteMenuItems(
+        restart: boolean,
+        session: Session.IModel | undefined,
+        context: IBlockMenuContext,
+    ): siyuan.IMenuItemOption[] {
+        const disabled = !session?.kernel;
+        const jupyter = context.isDocumentBlock || context.isMultiBlock;
+        const execute = async (options: IJupyterParserOptions) => {
+            if (restart) {
+                await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.restart"]>(
+                    "jupyter.session.kernel.connection.restart",
+                    session!.id,
+                );
+            }
+
+            const html = await this.getBlockDOM(context);
+            const cells = this.blockDOM2codeCalls(html, jupyter);
+            await this.requestExecuteCells(
+                cells,
+                session!,
+                options,
+            );
+        };
+
+        const buildCntrlMenuItems = (options: IJupyterParserOptions) => {
+            const submenu: siyuan.IMenuItemOption[] = [
+                {
+                    icon: "iconTheme",
+                    label: this.i18n.menu.run.submenu.cntrl.enable.label,
+                    accelerator: this.i18n.menu.run.submenu.cntrl.enable.accelerator,
+                    disabled,
+                    click: async () => {
+                        options.cntrl = true;
+                        await execute(options);
+                    },
+                },
+                {
+                    icon: "icon-jupyter-client-text",
+                    label: this.i18n.menu.run.submenu.cntrl.disable.label,
+                    accelerator: this.i18n.menu.run.submenu.cntrl.disable.accelerator,
+                    disabled,
+                    click: async () => {
+                        options.cntrl = false;
+                        await execute(options);
+                    },
+                },
+            ];
+            return submenu;
+        };
+
+        const submenu: siyuan.IMenuItemOption[] = [
+            {
+                icon: "iconPlay",
+                label: this.i18n.menu.run.submenu.custom.label,
+                disabled,
+                click: async () => {
+                    const options = this.config.jupyter.execute.output.parser;
+                    await execute(options);
+                },
+            },
+            {
+                icon: "icon-jupyter-client-text",
+                label: this.i18n.menu.run.submenu.escape.enable.label,
+                accelerator: this.i18n.menu.run.submenu.escape.enable.accelerator,
+                disabled,
+                submenu: buildCntrlMenuItems({ escaped: true, cntrl: true }),
+            },
+            {
+                icon: "iconMarkdown",
+                label: this.i18n.menu.run.submenu.escape.disable.label,
+                accelerator: this.i18n.menu.run.submenu.escape.disable.accelerator,
+                disabled,
+                submenu: buildCntrlMenuItems({ escaped: false, cntrl: true }),
+            },
+        ];
+        return submenu;
+    }
+
+    /**
      * 构造文档打开菜单
      * @param id 文档块 ID
      * @returns 菜单项列表
@@ -829,7 +941,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
                             "cb-get-hl", // 高亮块
                         ],
                     },
-                    keepCursor: false, // 焦点不跳转到新 tab
+                    keepCursor: false, // 焦点跳转到新 tab
                     removeCurrentTab: false, // 不移除原页签
                 });
             },
@@ -868,7 +980,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
                         ],
                     },
                     position: "right",
-                    keepCursor: false, // 焦点不跳转到新 tab
+                    keepCursor: false, // 焦点跳转到新 tab
                     removeCurrentTab: false, // 不移除原页签
                 });
             },
@@ -888,7 +1000,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
                         ],
                     },
                     position: "bottom",
-                    keepCursor: false, // 焦点不跳转到新 tab
+                    keepCursor: false, // 焦点跳转到新 tab
                     removeCurrentTab: false, // 不移除原页签
                 });
             },
@@ -897,16 +1009,123 @@ export default class TemplatePlugin extends siyuan.Plugin {
         return submenu;
     }
 
+    /**
+     * 请求运行代码块
+     * @param code 代码
+     * @param codeID 代码块 ID
+     * @param sessionID 会话 ID
+     * @param options 代码块解析选项
+     */
+    protected async requestExecuteCell(
+        code: string,
+        codeID: string,
+        sessionID: string,
+        options: IJupyterParserOptions,
+    ): Promise<void> {
+        await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.requestExecute"]>(
+            "jupyter.session.kernel.connection.requestExecute",
+            this.clientId,
+            code,
+            codeID,
+            sessionID,
+            options,
+        );
+    }
+
+    /**
+     * 请求运行多个代码块
+     * @param blocks 按照执行顺序排序的多个代码块
+     * @param session 会话
+     * @param options 代码块解析选项
+     */
+    protected async requestExecuteCells(
+        cells: ICodeCell[],
+        session: Session.IModel,
+        options: IJupyterParserOptions,
+    ): Promise<void> {
+        for (const cele of cells) {
+            /* 运行该代码块 */
+            await this.requestExecuteCell(
+                cele.code,
+                cele.id,
+                session.id,
+                options,
+            );
+        }
+    }
+
+    /**
+     * 获取块 DOM
+     * @param context 菜单项上下文
+     * @returns 块 DOM 字符串
+     */
+    protected async getBlockDOM(
+        context: IBlockMenuContext,
+    ): Promise<string> {
+        var html: string;
+        if (context.isDocumentBlock) { // 文档块
+            const response = await this.client.getDoc({ id: context.id });
+            html = response.data.content;
+        }
+        else { // 非文档块
+            const htmls: string[] = [];
+            for (const block of context.blocks) {
+                htmls.push(block.element.outerHTML);
+            }
+            html = htmls.join("");
+        }
+        return html;
+    }
+
+    /**
+     * 将块 DOM 转换为代码单元
+     * @param html 块 DOM 字符串
+     * @param jupyter 是否仅提取 custom-jupyter-type="code" 的代码块
+     * @returns 代码单元列表
+     */
+    protected blockDOM2codeCalls(
+        html: string,
+        jupyter: boolean,
+    ): ICodeCell[] {
+        const element = document.createElement("div");
+        element.innerHTML = html;
+        const blocks = Array.from(element.querySelectorAll<HTMLDivElement>("div.code-block[data-node-id]"));
+        return blocks
+            .filter(block => (jupyter
+                ? block.getAttribute(CONSTANTS.attrs.code.type.key) === CONSTANTS.attrs.code.type.value
+                : true
+            ))
+            .map(block => ({
+                id: block.dataset.nodeId!,
+                code: globalThis.Lute.BlockDOM2Content(block.outerHTML),
+            }));
+    }
+
     /* 块菜单菜单弹出事件监听器 */
     protected readonly blockMenuEventListener = (e: IClickBlockIconEvent | IClickEditorTitleIconEvent) => {
-        // this.logger.debug(e);
+        this.logger.debug(e);
 
         const detail = e.detail;
         const context = getBlockMenuContext(detail); // 获取块菜单上下文
         if (context) {
+            const session = this.doc2session.get(context.protyle.block.rootID!);
             const submenu: siyuan.IMenuItemOption[] = [];
-            if (context.isDocumentBlock) {
-                submenu.push(...this.buildJupyterDocumentMenuItems(context.id, context.data.ial));
+            if (context.isDocumentBlock) { // 文档块菜单
+                submenu.push(...this.buildJupyterDocumentMenuItems(
+                    context.id,
+                    context.data.ial,
+                    session,
+                    context,
+                ));
+            }
+            else { // 其他块菜单
+                if (context.type === sdk.siyuan.NodeType.NodeCodeBlock) {
+                    submenu.push(...this.buildExecuteMenuItems(
+                        false,
+                        session,
+                        context,
+                    ));
+                }
             }
 
             detail.menu.addItem({
@@ -917,6 +1136,18 @@ export default class TemplatePlugin extends siyuan.Plugin {
             });
         }
     };
+
+    /* 编辑器点击事件监听器 */
+    protected readonly clickEditorContentEventListener = (e: IClickEditorContentEvent) => {
+        // this.logger.debug(e);
+        const protyle = e.detail.protyle;
+        if (protyle.background?.ial?.[CONSTANTS.attrs.kernel.language]) {
+            if (globalThis.siyuan?.storage) {
+                /* 设置代码块语言 */
+                globalThis.siyuan.storage["local-codelang"] = protyle.background.ial[CONSTANTS.attrs.kernel.language];
+            }
+        }
+    }
 
     /**
      * 加载内核图标
@@ -960,6 +1191,27 @@ export default class TemplatePlugin extends siyuan.Plugin {
             }
         } else {
             return defaultIcon;
+        }
+    }
+
+    /* 打开块 */
+    public readonly openBlock = async (
+        blockID: string,
+        clientID: string,
+    ) => {
+        if (clientID === this.clientId) {
+            siyuan.openTab({
+                app: this.app,
+                doc: {
+                    id: blockID,
+                    action: [
+                        "cb-get-focus", // 光标定位到块
+                        "cb-get-hl", // 高亮块
+                    ],
+                },
+                keepCursor: false, // 焦点跳转到新 tab
+                removeCurrentTab: false, // 不移除原页签
+            });
         }
     }
 

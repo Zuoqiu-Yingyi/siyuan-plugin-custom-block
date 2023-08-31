@@ -39,8 +39,8 @@
 
     $: placeholder_wsUrl = getWsUrl(config.jupyter.server.settings.baseUrl);
 
-    async function updated() {
-        await plugin.updateConfig(config);
+    async function updated(restart: boolean = false) {
+        await plugin.updateConfig(config, restart);
     }
 
     function resetOptions() {
@@ -145,7 +145,7 @@
                         settingValue={config.jupyter.server.enable}
                         on:changed={async e => {
                             config.jupyter.server.enable = e.detail.value;
-                            await updated();
+                            await updated(true);
                         }}
                     />
                 </Item>
@@ -171,7 +171,7 @@
                         block={true}
                         on:changed={async e => {
                             config.jupyter.server.settings.baseUrl = e.detail.value;
-                            await updated();
+                            await updated(true);
                         }}
                     />
                 </Item>
@@ -191,7 +191,7 @@
                         block={true}
                         on:changed={async e => {
                             config.jupyter.server.settings.appUrl = e.detail.value;
-                            await updated();
+                            await updated(true);
                         }}
                     />
                 </Item>
@@ -211,7 +211,7 @@
                         block={true}
                         on:changed={async e => {
                             config.jupyter.server.settings.wsUrl = e.detail.value;
-                            await updated();
+                            await updated(true);
                         }}
                     />
                 </Item>
@@ -230,7 +230,7 @@
                         block={true}
                         on:changed={async e => {
                             config.jupyter.server.settings.token = e.detail.value;
-                            await updated();
+                            await updated(true);
                         }}
                     />
                 </Item>

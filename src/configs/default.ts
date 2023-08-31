@@ -29,8 +29,23 @@ export const DEFAULT_CONFIG: IConfig = {
                 appendToken: false,
             },
         },
+        execute: {
+            content: {
+                silent: false,
+                store_history: true,
+                user_expressions: {},
+                allow_stdin: true,
+                stop_on_error: true,
+            },
+            output: {
+                parser: {
+                    escaped: true,
+                    cntrl: true,
+                },
+            },
+        },
         import: {
-            params: {
+            parser: {
                 escaped: true,
                 cntrl: true,
             },

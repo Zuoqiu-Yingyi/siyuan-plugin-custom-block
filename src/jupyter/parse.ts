@@ -22,7 +22,7 @@ import { isString } from "@workspace/utils/misc/object";
 import { createIAL, createStyle } from "@workspace/utils/siyuan/ial";
 
 import { Output } from "./output";
-import type { IJupyterImportParams } from "@/types/config";
+import type { IJupyterParserOptions as IJupyterParserOptions } from "@/types/config";
 import type Plugin from "@/index";
 import type { Client } from "@siyuan-community/siyuan-sdk";
 
@@ -38,7 +38,7 @@ export interface IData {
  */
 export function parseText(
     text: string = "",
-    params: IJupyterImportParams,
+    params: IJupyterParserOptions,
 ): string {
     const output = new Output(text);
     if (params.escaped) output.escapeMark();
@@ -52,12 +52,12 @@ export function parseText(
  * @param plugin 插件对象
  * @param data 数据
  * @param metadata 元数据
- * @param params 解析选项
+ * @param options 解析选项
  * @returns 解析后的文本
  */
 export async function parseData(
     client: InstanceType<typeof Client>,
-    params: IJupyterImportParams,
+    options: IJupyterParserOptions,
     data: IData,
     metadata?: Record<string, string>,
 ): Promise<string> {
@@ -84,7 +84,7 @@ export async function parseData(
                     : value;
                 switch (sub) {
                     case "plain":
-                        markdowns.enqueue(parseText(text, params), 0);
+                        markdowns.enqueue(parseText(text, options), 0);
                         break;
                     case "html":
                         markdowns.enqueue(`<div>${text}</div>`, 1);
@@ -166,12 +166,12 @@ export async function parseData(
                         markdowns.enqueue(`\`\`\`json\n${JSON.stringify(value, undefined, 4)}\n\`\`\``, 4);
                         break;
                     default:
-                        markdowns.enqueue(parseText(`[${mime}]`, params), 4);
+                        markdowns.enqueue(parseText(`[${mime}]`, options), 4);
                         break;
                 }
                 break;
             default:
-                markdowns.enqueue(parseText(`[${mime}]`, params), 4);
+                markdowns.enqueue(parseText(`[${mime}]`, options), 4);
                 break;
         }
     }
