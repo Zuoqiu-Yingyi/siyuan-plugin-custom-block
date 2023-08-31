@@ -202,6 +202,9 @@ export default class TemplatePlugin extends siyuan.Plugin {
                         props: {
                             plugin,
                             ...this.data,
+                            kernelspecs: plugin.kernelspecs,
+                            kernels: plugin.kernels,
+                            sessions: plugin.sessions,
                         },
                     });
                     plugin.jupyterDock.model = this;
@@ -1129,11 +1132,6 @@ export default class TemplatePlugin extends siyuan.Plugin {
                     session,
                     context,
                 ));
-                // if (
-                //     context.isMultiBlock
-                //     || context.type === sdk.siyuan.NodeType.NodeCodeBlock
-                // ) {
-                // }
             }
 
             detail.menu.addItem({
