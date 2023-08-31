@@ -200,6 +200,9 @@ export async function onload(): Promise<void> {
 export async function unload(): Promise<void> {
     jupyter?.dispose();
     jupyter = undefined;
+
+    // @ts-ignore
+    self.jupyter = jupyter;
 }
 
 /* 重置 (加载后与更新设置选项后) */
@@ -232,6 +235,9 @@ export function restart(): void {
             },
         )
         : undefined;
+
+    // @ts-ignore
+    self.jupyter = jupyter;
 }
 
 /* 更新设置选项 */
