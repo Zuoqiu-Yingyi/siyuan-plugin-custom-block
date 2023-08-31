@@ -47,6 +47,7 @@ export interface IExecuteContext {
         new: boolean; // 是否为新的输出块
         attrs: Record<string, string | null>; // 输出块 IAL
         options: IJupyterParserOptions; // 解析选项
+        display: Map<string, Set<string>>; // 显示的数据
         kramdown: string; // 初始化的 Markdown 代码
         hrs: { // 分割线
             head: Readonly<IExecuteHorizontalRule>; // 块首

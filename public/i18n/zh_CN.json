@@ -4,6 +4,9 @@
         "uninitialized": {
             "text": "Jupyter 客户端未初始化"
         },
+        "inputRequest": {
+            "title": "输入请求"
+        },
         "lastRunTime": {
             "text": "上次执行"
         },

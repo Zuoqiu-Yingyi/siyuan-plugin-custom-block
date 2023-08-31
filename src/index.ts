@@ -44,6 +44,7 @@ import Item from "@workspace/components/siyuan/menu/Item.svelte"
 import Settings from "./components/Settings.svelte";
 import JupyterDock from "./components/JupyterDock.svelte";
 import SessionManager from "./components/SessionManager.svelte";
+import { asyncPrompt } from "@workspace/components/siyuan/dialog/prompt";
 
 import {
     FLAG_MOBILE,
@@ -140,6 +141,10 @@ export default class TemplatePlugin extends siyuan.Plugin {
             openBlock: {
                 this: this,
                 func: this.openBlock,
+            },
+            inputRequest: {
+                this: this,
+                func: this.inputRequest,
             },
             updateKernelSpecs: {
                 this: this,
@@ -326,6 +331,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
             new BroadcastChannel(CONSTANTS.JUPYTER_WORKER_BROADCAST_CHANNEL_NAME),
             this.logger,
             this.handlers,
+            this.clientId,
         );
     }
 
@@ -1206,7 +1212,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
         clientID: string,
     ) => {
         if (clientID === this.clientId) {
-            siyuan.openTab({
+            await siyuan.openTab({
                 app: this.app,
                 doc: {
                     id: blockID,
@@ -1218,6 +1224,35 @@ export default class TemplatePlugin extends siyuan.Plugin {
                 keepCursor: false, // 焦点跳转到新 tab
                 removeCurrentTab: false, // 不移除原页签
             });
+        }
+    }
+
+    /* 请求输入 */
+    public readonly inputRequest = async (
+        blockID: string,
+        clientID: string,
+        prompt: string,
+    ) => {
+        if (clientID === this.clientId) {
+            /* 定位到请求输入块 */
+            await this.openBlock(blockID, clientID);
+
+            try {
+                /* 输入框 */
+                const value = await asyncPrompt(
+                    this.siyuan.Dialog,
+                    {
+                        title: this.i18n.messages.inputRequest.title,
+                        text: prompt
+                            ? fn__code(prompt)
+                            : undefined,
+                        cancel: () => false,
+                    },
+                );
+                return value;
+            } catch (error) {
+                return;
+            }
         }
     }
 

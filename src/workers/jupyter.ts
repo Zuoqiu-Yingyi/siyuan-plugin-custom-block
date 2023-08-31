@@ -50,6 +50,7 @@ import type { PluginHandlers } from "@/index";
 import type { IHeader } from "@jupyterlab/services/lib/kernel/messages";
 import type { IExecuteContext } from "@/types/jupyter";
 import type { I18N } from "@/utils/i18n";
+import type { IShellFuture } from "@jupyterlab/services/lib/kernel/kernel";
 
 const config: IConfig = DEFAULT_CONFIG;
 const logger = new Logger(`${self.name}-worker:${CONSTANTS.JUPYTER_WORKER_FILE_NAME}`);
@@ -453,25 +454,7 @@ async function executeCode(
         }
 
         /* 文本输入请求 */
-        future.onStdin = async msg => {
-            switch (msg.header.msg_type) {
-                case "input_request": {
-                    // TODO: 请求输入
-                    const value = "";
-                    future.sendInputReply(
-                        {
-                            value,
-                            status: "ok",
-                        },
-                        msg.header as IHeader<"input_request">,
-                    );
-                    break;
-                }
-                case "input_reply":
-                default:
-                    break;
-            }
-        }
+        future.onStdin = msg => handleStdinMessage(msg, context, future);
 
         /* 代码执行结束消息 */
         future.onReply = msg => handleExecuteReplyMessage(msg, context);
@@ -550,7 +533,7 @@ async function handleExecuteInputMessage(
         }`;
 
     /* 打开并定位到块 */
-    bridge.call<PluginHandlers["openBlock"]>(
+    await bridge.call<PluginHandlers["openBlock"]>(
         "openBlock",
         context.code.id,
         context.client.id,
@@ -656,6 +639,58 @@ async function handleExecuteResultMessage(
 }
 
 /**
+ * 处理 `input_request` 或 `input_reply` 消息
+ * @param message `input_request` 或 `input_reply` 消息
+ * @param context 执行上下文
+ * @param future 内核响应处理器
+ */
+async function handleStdinMessage(
+    message: KernelMessage.IStdinMessage,
+    context: IExecuteContext,
+    future: IShellFuture<KernelMessage.IExecuteRequestMsg, KernelMessage.IExecuteReplyMsg>,
+): Promise<void> {
+    switch (message.header.msg_type) {
+        case "input_request": {
+            const content = message.content as {
+                prompt?: string,
+                password?: boolean,
+            };
+
+            const value = await bridge.singleCall<PluginHandlers["inputRequest"]>(
+                "inputRequest", context.client.id,
+                context.code.id,
+                context.client.id,
+                content.prompt ?? "",
+            ) ?? "";
+
+            const code = `\`${content.password ? "*".repeat(value.length) : value}\``;
+            const kramdown = content.prompt
+                ? `\`${content.prompt}\`: ${code}`
+                : code;
+
+            context.output.hrs.stream.used = true;
+            await client.insertBlock({
+                nextID: context.output.hrs.stream.id,
+                data: kramdown,
+                dataType: "markdown",
+            });
+
+            future.sendInputReply(
+                {
+                    value,
+                    status: "ok",
+                },
+                message.header as IHeader<"input_request">,
+            );
+            break;
+        }
+        case "input_reply":
+        default:
+            break;
+    }
+}
+
+/**
  * 处理 `execute_reply` 消息
  * @param message `execute_reply` 消息
  * @param context 执行上下文
@@ -670,7 +705,7 @@ async function handleExecuteReplyMessage(
     /* 块运行用时 */
     const start = moment((message.metadata.started || message.parent_header.date) as string);
     const end = moment(message.header.date as string);
-    const duration = moment(end.diff(start));
+    const duration = moment.unix(end.diff(start) / 1_000);
     context.code.attrs[CONSTANTS.attrs.code.time] = `${i18n.messages.lastRunTime.text
         }: ${start.format(CONSTANTS.JUPYTER_LAST_RUN_TIME_FORMAT)
         } | ${i18n.messages.runtime.text
