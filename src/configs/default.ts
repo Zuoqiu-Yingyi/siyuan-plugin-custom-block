@@ -39,6 +39,7 @@ export const DEFAULT_CONFIG: IConfig = {
             },
             output: {
                 parser: {
+                    xterm: false,
                     escaped: true,
                     cntrl: true,
                 },
@@ -46,9 +47,20 @@ export const DEFAULT_CONFIG: IConfig = {
         },
         import: {
             parser: {
+                xterm: false,
                 escaped: true,
                 cntrl: true,
             },
+        },
+    },
+    xterm: {
+        options: {
+            allowTransparency: true,
+            disableStdin: true,
+            convertEol: true,
+            // cursorStyle: "bar",
+            // cursorWidth: 1,
+            fontFamily: "Sarasa Mono SC",
         },
     },
 };

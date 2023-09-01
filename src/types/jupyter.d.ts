@@ -21,6 +21,7 @@ import type {
     Kernel,
     Session,
 } from "@jupyterlab/services";
+import type { IJupyterParserOptions } from "@/types/config";
 
 export type TKernelModel = Modify<Kernel.IModel>;
 export type TSessionModel = Modify<Session.IModel>;
@@ -46,12 +47,21 @@ export interface IExecuteContext {
         id: string; // 输出块 ID
         new: boolean; // 是否为新的输出块
         attrs: Record<string, string | null>; // 输出块 IAL
+        stream: { // 输出流
+            attrs: { // 输出流显示块
+                id: string; // 块 ID
+                [key: string]: string | null;
+            };
+            content: string; // 之前输出流的所有内容
+            initialized: boolean; // 该块是否已经初始化
+        };
         options: IJupyterParserOptions; // 解析选项
         display: Map<string, Set<string>>; // 显示的数据
         kramdown: string; // 初始化的 Markdown 代码
         hrs: { // 分割线
             head: Readonly<IExecuteHorizontalRule>; // 块首
             stream: IExecuteHorizontalRule; // 流输出
+            error: IExecuteHorizontalRule; // 错误输出
             display_data: IExecuteHorizontalRule; // 数据显示
             execute_result: IExecuteHorizontalRule; // 运行结果
             execute_reply: IExecuteHorizontalRule; // 运行回复

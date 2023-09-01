@@ -17,12 +17,15 @@
         "@sveltejs/vite-plugin-svelte": "^2.4.5",
         "@tsconfig/svelte": "^5.0.2",
         "less": "^4.2.0",
+        "strip-ansi": "^7.1.0",
         "svelte": "^4.2.0",
         "svelte-check": "^2.10.3",
         "svelte-preprocess-less": "^0.4.0",
         "tslib": "^2.6.2",
         "typescript": "^5.2.2",
-        "vite": "^4.4.9"
+        "vite": "^4.4.9",
+        "xterm": "^5.2.1",
+        "xterm-addon-fit": "^0.7.0"
     },
     "dependencies": {
         "@workspace/components": "workspace:^",

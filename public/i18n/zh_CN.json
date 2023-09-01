@@ -76,6 +76,9 @@
                 "custom": {
                     "label": "使用自定义配置项运行"
                 },
+                "terminal": {
+                    "label": "输出内容至终端"
+                },
                 "escape": {
                     "enable": {
                         "label": "输出转义文本",

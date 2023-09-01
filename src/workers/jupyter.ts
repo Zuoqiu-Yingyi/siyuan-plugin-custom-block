@@ -166,7 +166,7 @@ async function kernelAnyMessage(
     connection: Session.ISessionConnection | Kernel.IKernelConnection,
     message: Kernel.IAnyMessageArgs,
 ): Promise<void> {
-    // logger.debugs(["anyMessage", message], [docID, connection.name, connection.id]);
+    logger.debugs(["anyMessage", message], [docID, connection.name, connection.id]);
 }
 
 /**
@@ -182,7 +182,7 @@ async function kernelUnhandledMessage(
     connection: Session.ISessionConnection | Kernel.IKernelConnection,
     message: KernelMessage.IMessage,
 ): Promise<void> {
-    // logger.debugs(["unhandledMessage", message], [docID, connection.name, connection.id]);
+    logger.debugs(["unhandledMessage", message], [docID, connection.name, connection.id]);
 }
 
 /**
@@ -196,10 +196,10 @@ function bindSessionConnectionSignalListener(
 ): void {
     connection.statusChanged.connect((...args) => kernelStatusChanged(docID, ...args));
     connection.connectionStatusChanged.connect((...args) => kernelConnectionStatusChanged(docID, ...args));
-    connection.pendingInput.connect((...args) => kernelPendingInput(docID, ...args));
-    connection.iopubMessage.connect((...args) => kernelIopubMessage(docID, ...args));
-    connection.anyMessage.connect((...args) => kernelAnyMessage(docID, ...args));
-    connection.unhandledMessage.connect((...args) => kernelUnhandledMessage(docID, ...args));
+    // connection.pendingInput.connect((...args) => kernelPendingInput(docID, ...args));
+    // connection.iopubMessage.connect((...args) => kernelIopubMessage(docID, ...args));
+    // connection.anyMessage.connect((...args) => kernelAnyMessage(docID, ...args));
+    // connection.unhandledMessage.connect((...args) => kernelUnhandledMessage(docID, ...args));
 }
 
 /**
@@ -242,6 +242,8 @@ function initContext(context: IExecuteContext): void {
         "---",
         createIAL({ id: context.output.hrs.stream.id }),
         "---",
+        createIAL({ id: context.output.hrs.error.id }),
+        "---",
         createIAL({ id: context.output.hrs.display_data.id }),
         "---",
         createIAL({ id: context.output.hrs.execute_result.id }),
@@ -259,6 +261,8 @@ function initContext(context: IExecuteContext): void {
  * @param context 执行上下文
  */
 async function initOutputBlock(context: IExecuteContext): Promise<void> {
+    // logger.debug(context);
+
     if (context.output.new) { // 在代码块后插入块
         await client.insertBlock({
             previousID: context.code.id,
@@ -330,6 +334,13 @@ async function executeCode(
                 new: true,
                 id: id(),
                 attrs: {},
+                stream: {
+                    attrs: {
+                        id: id(),
+                    },
+                    content: "",
+                    initialized: false,
+                },
                 options,
                 display: new Map(),
                 kramdown: "",
@@ -339,6 +350,10 @@ async function executeCode(
                         used: true,
                     },
                     stream: {
+                        id: id(),
+                        used: false,
+                    },
+                    error: {
                         id: id(),
                         used: false,
                     },
@@ -374,6 +389,7 @@ async function executeCode(
                 context.output.attrs = response_getBlockAttrs_output.data;
             } catch (error) {
                 /* 输出块不存在 */
+                // logger.debug(error);
             }
         }
 
@@ -401,7 +417,10 @@ async function executeCode(
                     break;
                 }
                 case "stream": {
-                    // TODO: 更新输出块
+                    await handleStreamMessage(
+                        msg as KernelMessage.IStreamMsg,
+                        context,
+                    );
                     break;
                 }
                 case "error": {
@@ -492,6 +511,70 @@ async function handleStatusMessage(
 }
 
 /**
+ * 处理 `string` 消息
+ * @param message `string` 消息
+ * @param context 执行上下文
+ */
+async function handleStreamMessage(
+    message: KernelMessage.IStreamMsg,
+    context: IExecuteContext,
+): Promise<void> {
+    switch (message.content.name) {
+        default:
+        case "stdout": {
+            break;
+        }
+        case "stderr": {
+            context.output.stream.attrs.style = CONSTANTS.styles.warning;
+            if (context.output.stream.initialized) {
+                set_block_attrs_queue.enqueue({
+                    id: context.output.stream.attrs.id,
+                    attrs: context.output.stream.attrs,
+                });
+            }
+        }
+    }
+
+    const content = new Output(message.content.text)
+        .parseControlChars(context.output.stream.content)
+        .toString();
+    context.output.stream.content = content;
+    const text = parseText(
+        context.output.stream.content,
+        context.output.options,
+        context.output.stream.attrs.id,
+    );
+    const kramdowns = context.output.options.xterm
+        ? [
+            text,
+        ]
+        : [
+            "{{{row",
+            text,
+            "}}}",
+        ];
+    if (context.output.stream.initialized) {
+        await client.updateBlock({
+            id: context.output.stream.attrs.id,
+            data: kramdowns.join("\n"),
+            dataType: "markdown",
+        });
+    }
+    else {
+        const ial = createIAL(context.output.stream.attrs);
+        kramdowns.push(ial);
+
+        context.output.stream.initialized = true;
+        context.output.hrs.stream.used = true;
+        await client.insertBlock({
+            nextID: context.output.hrs.stream.id,
+            data: kramdowns.join("\n"),
+            dataType: "markdown",
+        });
+    }
+}
+
+/**
  * 处理 `error` 消息
  * @param message `error` 消息
  * @param context 执行上下文
@@ -501,16 +584,31 @@ async function handleErrorMessage(
     context: IExecuteContext,
 ): Promise<void> {
     /* 使用代码块输出运行错误 */
-    const kramdown = [
-        "{{{row",
-        parseText(message.content.traceback.join('\n'), context.output.options),
-        "}}}",
-        createIAL({ style: CONSTANTS.styles.error }),
-    ].join("\n");
+    const block_id = id();
+    const text = parseText(
+        message.content.traceback.join('\n'),
+        context.output.options,
+        block_id,
+    );
+    const ial = createIAL({
+        id: block_id,
+        tyle: CONSTANTS.styles.error,
+    });
+    const kramdown = context.output.options.xterm
+        ? [
+            text,
+            ial,
+        ].join("\n")
+        : [
+            "{{{row",
+            text,
+            "}}}",
+            ial,
+        ].join("\n");
 
-    context.output.hrs.stream.used = true;
+    context.output.hrs.error.used = true;
     await client.insertBlock({
-        nextID: context.output.hrs.stream.id,
+        nextID: context.output.hrs.error.id,
         data: kramdown,
         dataType: "markdown",
     });
@@ -705,7 +803,7 @@ async function handleExecuteReplyMessage(
     /* 块运行用时 */
     const start = moment((message.metadata.started || message.parent_header.date) as string);
     const end = moment(message.header.date as string);
-    const duration = moment.unix(end.diff(start) / 1_000);
+    const duration = moment.unix(end.diff(start) / 1_000).utc();
     context.code.attrs[CONSTANTS.attrs.code.time] = `${i18n.messages.lastRunTime.text
         }: ${start.format(CONSTANTS.JUPYTER_LAST_RUN_TIME_FORMAT)
         } | ${i18n.messages.runtime.text
@@ -721,6 +819,34 @@ async function handleExecuteReplyMessage(
         case "ok": {
             context.code.attrs[CONSTANTS.attrs.code.index] = execution_count;
             context.output.attrs[CONSTANTS.attrs.output.index] = execution_count;
+
+            /* ?? 输出 */
+            const payload = message.content.payload
+            if (payload && Array.isArray(payload) && payload.length > 0) {
+                const kramdowns: string[] = [];
+                for (const item of payload) {
+                    if (item?.data) {
+                        const kramdown = await parseData(
+                            client,
+                            context.output.options,
+                            item.data as IData,
+                            item.metadata as Record<string, string>,
+                        );
+                        kramdowns.push(kramdown);
+                    }
+                }
+
+                context.output.hrs.execute_result.used = true;
+                await client.insertBlock({
+                    nextID: context.output.hrs.execute_result.id,
+                    data: [
+                        "{{{row",
+                        kramdowns.join("\n\n"),
+                        "}}}",
+                    ].join("\n"),
+                    dataType: "markdown",
+                });
+            }
             break;
         }
 
@@ -730,7 +856,8 @@ async function handleExecuteReplyMessage(
             const kramdown = [
                 "```plaintext",
                 new Output(message.content.traceback.join('\n'))
-                    .removeCmdControlChars()
+                    // .removeCmdControlChars()
+                    .stripAnsi()
                     .toString(),
                 "```",
                 createIAL({ style: CONSTANTS.styles.error }),
@@ -766,7 +893,8 @@ async function handleExecuteReplyMessage(
     /* 移除未使用的分割线 */
     const hrs = context.output.hrs;
     const ids: string[] = [];
-    if (!(hrs.stream.used && (hrs.display_data.used || hrs.execute_result.used || hrs.execute_reply.used))) ids.push(hrs.stream.id);
+    if (!(hrs.stream.used && (hrs.error.used || hrs.display_data.used || hrs.execute_result.used || hrs.execute_reply.used))) ids.push(hrs.stream.id);
+    if (!(hrs.error.used && (hrs.display_data.used || hrs.execute_result.used || hrs.execute_reply.used))) ids.push(hrs.error.id);
     if (!(hrs.display_data.used && (hrs.execute_result.used || hrs.execute_reply.used))) ids.push(hrs.display_data.id);
     if (!(hrs.execute_result.used && hrs.execute_reply.used)) ids.push(hrs.execute_result.id);
     ids.push(hrs.execute_reply.id);

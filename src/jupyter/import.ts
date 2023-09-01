@@ -363,8 +363,8 @@ export class IpynbImport {
 
     /**
      * 解析输出
-     * @params {array} outputs: 输出对象列表
-     * @return {string}: 最终结果
+     * @param outputs 输出对象列表
+     * @return 最终结果
      */
     async parseOutputs(outputs: Ipynb.Output[]): Promise<string> {
         const markdowns = [];
@@ -374,10 +374,7 @@ export class IpynbImport {
                 case "stream": {
                     const markdown = parseText(
                         this.parseSource(output.text),
-                        { // 解析参数
-                            escaped: true, // 是否转义
-                            cntrl: true, // 是否解析控制字符
-                        },
+                        this.config.jupyter.import.parser,
                     );
                     switch (output.name) {
                         case "stdout":

@@ -21,6 +21,8 @@ import type { BlockID, ISiyuanGlobal } from "@workspace/types/siyuan";
 import manifest from "~/public/plugin.json";
 
 import "./index.less";
+import "xterm/css/xterm.css";
+
 import icon_jupyter_client from "./assets/symbols/icon-jupyter-client.symbol?raw";
 import icon_jupyter_client_text from "./assets/symbols/icon-jupyter-client-text.symbol?raw";
 import icon_jupyter_client_simple from "./assets/symbols/icon-jupyter-client-simple.symbol?raw";
@@ -44,6 +46,7 @@ import Item from "@workspace/components/siyuan/menu/Item.svelte"
 import Settings from "./components/Settings.svelte";
 import JupyterDock from "./components/JupyterDock.svelte";
 import SessionManager from "./components/SessionManager.svelte";
+import XtermOutputElement from "./components/XtermOutputElement";
 import { asyncPrompt } from "@workspace/components/siyuan/dialog/prompt";
 
 import {
@@ -83,7 +86,7 @@ import type { WorkerHandlers } from "./workers/jupyter";
 import type { ComponentEvents } from "svelte";
 
 declare var globalThis: ISiyuanGlobal;
-export type PluginHandlers = THandlersWrapper<TemplatePlugin["handlers"]>;
+export type PluginHandlers = THandlersWrapper<JupyterClientPlugin["handlers"]>;
 export type TMenuContext = IBlockMenuContext | {
     isDocumentBlock: true,
     isMultiBlock: false,
@@ -94,7 +97,7 @@ export interface ICodeCell {
     code: string;
 }
 
-export default class TemplatePlugin extends siyuan.Plugin {
+export default class JupyterClientPlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
 
     declare public readonly i18n: I18N;
@@ -159,6 +162,17 @@ export default class TemplatePlugin extends siyuan.Plugin {
                 func: this.updateSessions,
             },
         } as const;
+
+        /**
+         * 注册自定义 HTMLElement 组件
+         * REF: https://developer.mozilla.org/zh-CN/docs/Web/API/CustomElementRegistry
+         * REF: https://developer.mozilla.org/zh-CN/docs/Web/API/CustomElementRegistry/define
+        */
+        const XtermOutputElementWrap = XtermOutputElement(this);
+        globalThis.customElements.define(
+            XtermOutputElementWrap.TAG_NAME,
+            XtermOutputElementWrap,
+        );
     }
 
     onload(): void {
@@ -223,7 +237,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
             }),
         };
 
-        this.loadData(TemplatePlugin.GLOBAL_CONFIG_NAME)
+        this.loadData(JupyterClientPlugin.GLOBAL_CONFIG_NAME)
             .then(config => {
                 this.config = mergeIgnoreArray(DEFAULT_CONFIG, config || {}) as IConfig;
             })
@@ -321,7 +335,7 @@ export default class TemplatePlugin extends siyuan.Plugin {
             this.config = config;
         }
         await this.updateWorkerConfig(restart);
-        await this.saveData(TemplatePlugin.GLOBAL_CONFIG_NAME, this.config);
+        await this.saveData(JupyterClientPlugin.GLOBAL_CONFIG_NAME, this.config);
     }
 
     /* 初始化通讯桥 */
@@ -914,18 +928,28 @@ export default class TemplatePlugin extends siyuan.Plugin {
                 },
             },
             {
+                icon: "iconCode",
+                label: this.i18n.menu.run.submenu.terminal.label,
+                accelerator: fn__code("Xterm"),
+                disabled,
+                click: async () => {
+                    const options = { xterm: true, escaped: false, cntrl: false };
+                    await execute(options);
+                },
+            },
+            {
                 icon: "icon-jupyter-client-text",
                 label: this.i18n.menu.run.submenu.escape.enable.label,
                 accelerator: this.i18n.menu.run.submenu.escape.enable.accelerator,
                 disabled,
-                submenu: buildCntrlMenuItems({ escaped: true, cntrl: true }),
+                submenu: buildCntrlMenuItems({ xterm: false, escaped: true, cntrl: true }),
             },
             {
                 icon: "iconMarkdown",
                 label: this.i18n.menu.run.submenu.escape.disable.label,
                 accelerator: this.i18n.menu.run.submenu.escape.disable.accelerator,
                 disabled,
-                submenu: buildCntrlMenuItems({ escaped: false, cntrl: true }),
+                submenu: buildCntrlMenuItems({ xterm: false, escaped: false, cntrl: true }),
             },
         ];
         return submenu;

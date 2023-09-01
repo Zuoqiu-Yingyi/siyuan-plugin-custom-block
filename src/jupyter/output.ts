@@ -15,21 +15,59 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import stripAnsi from "strip-ansi";
 import { isEmptyObject } from "@workspace/utils/misc/object";
 import {
     createIAL,
     createStyle,
 } from "@workspace/utils/siyuan/ial";
+import { escapeHTML } from "@workspace/utils/misc/html";
+
+/**
+ * 构建 xterm 元素
+ * @param stream 流
+ * @param format 格式
+ * @param blockId 块 ID
+ * @param save 是否保存
+ */
+export function xtermElement(
+    stream: string,
+    format?: "base64" | "raw",
+    blockId?: string,
+    save?: boolean,
+): string {
+    const elenent: Record<string, string> = {};
+    if (blockId) elenent["data-block-id"] = blockId;
+    if (save) elenent["data-save"] = "true";
+    const element_attrs = Object.entries(elenent).map(([k, v]) => `${k}="${v}"`).join(" ");
+
+    const pre: Record<string, string> = {
+        id: "stream",
+    };
+    if (format) pre["data-format"] = format;
+    const pre_attrs = Object.entries(pre).map(([k, v]) => `${k}="${v}"`).join(" ");
+    const pre_data = (format === "base64" || stream.includes("\n\n"))
+        ? Buffer.from(stream).toString("base64")
+        : escapeHTML(stream);
+
+    return [
+        "<div>",
+        `<jupyter-xterm-output ${element_attrs}>`,
+        `<pre ${pre_attrs}>${pre_data}</pre>`,
+        "</jupyter-xterm-output>",
+        "</div>",
+    ].join("\n")
+}
 
 export class Output {
     public static readonly ZWS = "\u200B"; // 零宽空格
     public static readonly REGEXP = { // 正则表达式
-        mark: /([\<\>\{\}\[\]\(\)\`\~\#\$\^\*\_\=\|\:\\])/g, // 匹配需转义的 Markdown 标志符号
+        mark: /([\<\>\{\}\[\]\(\)\`\~\#\$\^\*\_\=\|\:\-\\])/g, // 匹配需转义的 Markdown 标志符号
         ANSIesc: /\x1b[^a-zA-Z]*[a-zA-Z]/g, // ANSI 转义序列
         richtext: /\x1b\\?\[((?:\d*)(?:\\?;\d+)*)m([^\x1b]*)/g, // 控制台富文本控制字符
 
         escaped: {
-            mark: /(?:\\([\<\>\{\}\[\]\(\)\`\~\#\$\^\*\_\=\|\:\\]))/g, // 匹配被转义的 Markdown 标志符号
+            mark: /(?:\\([\<\>\{\}\[\]\(\)\`\~\#\$\^\*\_\=\|\:\-\\]))/g, // 匹配被转义的 Markdown 标志符号
             richtext: /\x1b\\\[((?:\d*)(?:\\?;\d+)*)m([^\x1b]*)/g, // 被转义的控制台富文本控制字符
         },
     } as const;
@@ -44,6 +82,23 @@ export class Output {
     }
 
     /* 👇可链式调用的方法👇 */
+
+    /**
+     * 构建 xterm 元素
+     * @param format 格式
+     * @param blockId 块 ID
+     */
+    buildXtermElement(
+        format?: "base64" | "raw",
+        blockId?: string,
+    ) {
+        this.text = xtermElement(
+            this.text,
+            format,
+            blockId,
+        );
+        return this;
+    }
 
     /**
      * 转义 Markdown 标志符
@@ -365,10 +420,12 @@ export class Output {
                                 if (line.length > 0) {
                                     /* markdown 标志内测不能存在空白字符 */
                                     // if (mark.u && escaped) // 移除 <u></u> 标签内的转义符号
-                                    if (escaped) // 移除 <span></span> 标签内的转义符号
+                                    if (types.length > 0 && escaped) // 移除 <span></span> 标签内的转义符号
                                         line = line.replaceAll(Output.REGEXP.escaped.mark, "\$1");
+
                                     /* 标志内测添加零宽空格 */
-                                    return `${pre_mark}${Output.ZWS}${line}${Output.ZWS}${suf_mark}${ial}`;
+                                    // return `${pre_mark}${Output.ZWS}${line}${Output.ZWS}${suf_mark}${ial}`;
+                                    return `${pre_mark}${line}${suf_mark}${ial}`;
                                 }
                                 else return "";
                             })
@@ -383,6 +440,15 @@ export class Output {
     /* 移除控制台 ANSI 转义序列(保留 \b, \r) */
     removeCmdControlChars() {
         this.text = this.text.replaceAll(Output.REGEXP.ANSIesc, "");
+        return this;
+    }
+
+    /**
+     * 移除控制台 ANSI 转义序列
+     * @see {@link https://www.npmjs.com/package/strip-ansi}
+     */
+    stripAnsi() {
+        this.text = stripAnsi(this.text);
         return this;
     }
 }

@@ -19,6 +19,7 @@ import type {
     ServerConnection,
     KernelMessage,
 } from "@jupyterlab/services";
+import type xterm from "xterm";
 
 export interface IJupyterServerSettings extends Partial<ServerConnection.ISettings> {
     baseUrl: string; // The base url of the server.
@@ -34,6 +35,7 @@ export interface IJupyterServer {
 
 /* 解析器参数 */
 export interface IJupyterParserOptions {
+    xterm: boolean; // 是否启用 xterm 显示输出流
     escaped: boolean; // 是否转义
     cntrl: boolean; // 是否解析控制字符
 }
@@ -57,6 +59,11 @@ export interface IJupyter {
     import: IJupyterImport;
 }
 
+export interface IXterm {
+    options: xterm.ITerminalOptions;
+}
+
 export interface IConfig {
     jupyter: IJupyter;
+    xterm: IXterm;
 }

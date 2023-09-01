@@ -32,17 +32,26 @@ export interface IData {
 /**
  * 解析文本
  * @param text 文本
- * @param params 解析选项
+ * @param options 解析选项
+ * @param blockId 生成的块 ID
  * @returns 解析后的文本
  */
 export function parseText(
     text: string = "",
-    params: IJupyterParserOptions,
+    options: IJupyterParserOptions,
+    blockId?: string,
 ): string {
     const output = new Output(text);
-    if (params.escaped) output.escapeMark();
-    if (params.cntrl) output.parseCmdControlChars(params.escaped);
-    else output.removeCmdControlChars();
+    if (options.xterm) {
+        output.buildXtermElement("base64", blockId);
+    }
+    else {
+        if (options.escaped) output.escapeMark();
+        if (options.cntrl) output.parseCmdControlChars(options.escaped);
+        else output.removeCmdControlChars();
+        // else output.stripAnsi();
+    }
+
     return output.toString();
 }
 
