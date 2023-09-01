@@ -133,7 +133,7 @@
     /* 点击确认按钮 */
     async function onConfirm(e: ComponentEvents<Dialog>["confirm"]) {
         try {
-            var session_model: Session.IModel | undefined;
+            var session_model: Session.IModel | undefined = session;
             if (flag_session_new) {
                 if (session.kernel) {
                     // 创建会话并连接

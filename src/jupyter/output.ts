@@ -21,7 +21,9 @@ import {
     createIAL,
     createStyle,
 } from "@workspace/utils/siyuan/ial";
+import { encode } from "@workspace/utils/misc/base64";
 import { escapeHTML } from "@workspace/utils/misc/html";
+import { trimPrefix, trimSuffix } from "@workspace/utils/misc/string";
 
 /**
  * 构建 xterm 元素
@@ -41,19 +43,32 @@ export function xtermElement(
     if (save) elenent["data-save"] = "true";
     const element_attrs = Object.entries(elenent).map(([k, v]) => `${k}="${v}"`).join(" ");
 
-    const pre: Record<string, string> = {
+    const streams: Record<string, string> = {
         id: "stream",
+        style: "display: none;"
     };
-    if (format) pre["data-format"] = format;
-    const pre_attrs = Object.entries(pre).map(([k, v]) => `${k}="${v}"`).join(" ");
-    const pre_data = (format === "base64" || stream.includes("\n\n"))
-        ? Buffer.from(stream).toString("base64")
+    if (format) streams["data-format"] = format;
+    const stream_attrs = Object.entries(streams).map(([k, v]) => `${k}="${v}"`).join(" ");
+    const stream_data = (format === "base64" || stream.includes("\n\n"))
+        ? encode(stream, true)
         : escapeHTML(stream);
+
+    const content: Record<string, string> = {
+        id: "content",
+    };
+    const content_attrs = Object.entries(content).map(([k, v]) => `${k}="${v}"`).join(" ");
+    const content_data = trimSuffix( // 移除末尾的换行符
+        trimPrefix( // 移除开头的换行符
+            stripAnsi(stream) // 移除控制台 ANSI 转义序列
+                .replaceAll(/\n+/g, "\n"), // 移除多余的换行符
+            "\n"),
+        "\n");
 
     return [
         "<div>",
         `<jupyter-xterm-output ${element_attrs}>`,
-        `<pre ${pre_attrs}>${pre_data}</pre>`,
+        `<pre ${stream_attrs}>${stream_data}</pre>`,
+        `<pre ${content_attrs}>\n${content_data}\n</pre>`,
         "</jupyter-xterm-output>",
         "</div>",
     ].join("\n")
@@ -146,6 +161,42 @@ export class Output {
         const reg = escaped
             ? Output.REGEXP.escaped.richtext
             : Output.REGEXP.richtext;
+        const mark = {
+            strong: false, // 加粗
+            em: false, // 倾斜
+            s: false, // 删除线
+            u: false, // 下划线
+        }; // 标志
+
+        // REF: https://zhuanlan.zhihu.com/p/184924477
+        const custom: {
+            ground: "" | "color" | "background-color", // color 前景颜色, background-color: 背景颜色
+            mode: number, // 第二个参数的模式 (前景或背景)
+            color: string, // 颜色
+        } = {
+            ground: "",
+            mode: 0,
+            color: "",
+        }; // 使用 ANSI 转义序列自定义颜色
+        var style: Record<string, string> = {}; // ial 样式列表
+
+        /* 清除样式 */
+        const clearCustom = () => {
+            custom.ground = "";
+            custom.mode = 0;
+            custom.color = "";
+        }
+        const clearStyle = () => {
+            clearCustom();
+
+            mark.strong = false; // 加粗
+            mark.em = false; // 倾斜
+            mark.s = false; // 删除线
+            mark.u = false; // 下划线
+
+            style = {};
+        };
+
         this.text = this.text
             .replaceAll(/\x1bc/g, '') // 不解析清屏命令
             .replaceAll(/\x1b\\?\[\\?\?\d+[lh]/g, '') // 不解析光标显示命令
@@ -154,25 +205,7 @@ export class Output {
                 reg,
                 (match, p1, p2, offset, string) => {
                     // REF: https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/replaceAll
-                    let mark = {
-                        strong: false, // 加粗
-                        em: false, // 倾斜
-                        s: false, // 删除线
-                        u: false, // 下划线
-                    }; // 标志
 
-                    // REF: https://zhuanlan.zhihu.com/p/184924477
-                    const custom: {
-                        ground: null | "color" | "background-color", // color 前景颜色, background-color: 背景颜色
-                        mode: number | null, // 第二个参数的模式
-                        color: string | null, // 颜色
-                    } = {
-                        ground: null,
-                        mode: null,
-                        color: null,
-                    }; // 使用 ANSI 转义序列自定义颜色
-
-                    let style: Record<string, string> = {}; // ial 样式列表
                     let ial = ""; // 行级元素的 IAL 字符串
 
                     const params = p1
@@ -184,8 +217,13 @@ export class Output {
                             /* 颜色值必须是有效的 */
                             if (num >= 0 && num <= 255) {
                                 switch (custom.mode) {
-                                    case 2: // 24 位色
-                                        if (!custom.color) custom.color = "#";
+                                    /**
+                                     * 24 位色
+                                     * 前景: \e[38;2;<R>;<G>;<B>m
+                                     * 背景: \e[48;2;<R>;<G>;<B>m
+                                     */
+                                    case 2:
+                                        if (!custom.color.startsWith("#")) custom.color = "#";
                                         switch (custom.color.length) {
                                             case 1:
                                             case 3:
@@ -194,11 +232,18 @@ export class Output {
                                             case 5:
                                                 custom.color += num.toString(16).toUpperCase().padStart(2, "0");
                                                 if (custom.ground) style[custom.ground] = custom.color;
+                                                break;
                                             default:
                                                 break;
                                         }
                                         break;
-                                    case 5: // 8 位色
+
+                                    /**
+                                     * 8 位色
+                                     * 前景: \e[38;5;<n>m
+                                     * 背景: \e[48;5;<n>m
+                                     */
+                                    case 5:
                                         custom.color = `var(--custom-jupyter-256-color-${num.toString().padStart(3, "0")})`;
                                         if (custom.ground) style[custom.ground] = custom.color;
                                         break;
@@ -206,18 +251,13 @@ export class Output {
                                         break;
                                 }
                             }
+                            clearCustom();
                         }
                         else { // 暂未自定义颜色
                             switch (num) {
                                 case 0: // 清除样式
-                                    mark = {
-                                        strong: false, // 加粗
-                                        em: false, // 倾斜
-                                        s: false, // 删除线
-                                        u: false, // 下划线
-                                    };
-                                    style = {};
-                                    break;
+                                    clearStyle();
+                                    continue;
                                 case 1: // 加粗
                                     mark.strong = true;
                                     break;
@@ -263,7 +303,41 @@ export class Output {
                                     const suf = num % 10; // 最后一位数
 
                                     switch (pre) {
-                                        default:
+                                        case 1: // 设置字体 (不支持)
+                                            continue;
+                                        case 2: // 关闭样式
+                                            switch (suf) {
+                                                case 0: // 尖角体 (不支持)
+                                                    break;
+                                                case 1: // 取消加粗
+                                                    mark.strong = false;
+                                                    break;
+                                                case 2: // 取消变暗
+                                                    delete style.opacity;
+                                                    break;
+                                                case 3: // 取消斜体
+                                                    mark.em = false;
+                                                    break;
+                                                case 4: // 取消下划线
+                                                    mark.u = false;
+                                                    break;
+                                                case 5: // 取消呼吸闪烁
+                                                    delete style.animation;
+                                                    break;
+                                                case 6: // 取消快速闪烁
+                                                    delete style.animation;
+                                                    break;
+                                                case 7: // 取消反色
+                                                    delete style.filter;
+                                                    break;
+                                                case 8: // 取消透明
+                                                    delete style.opacity;
+                                                    break;
+                                                case 9: // 取消删除线
+                                                    mark.s = false
+                                                    break;
+                                            }
+                                            continue;
                                         case 3:
                                         case 9:
                                             /* 设置前景色 */
@@ -274,6 +348,12 @@ export class Output {
                                             /* 设置背景色 */
                                             k = "background-color";
                                             break;
+                                        case 5:
+                                        case 6:
+                                        case 7:
+                                        case 8:
+                                        default: // (不支持)
+                                            continue;
                                     }
 
                                     /* 颜色 */
@@ -327,10 +407,10 @@ export class Output {
                                                     delete style[k];
                                                     break;
                                             } // switch (suf)
-                                            break;
+                                            continue;
                                         case 9:
                                         case 10:
-                                            /* 亮色颜色 */
+                                            /* 鲜明颜色 */
                                             switch (suf) {
                                                 case 0: // 黑色
                                                     style[k] = "var(--custom-jupyter-ansi-color-black-intense)";
@@ -356,26 +436,23 @@ export class Output {
                                                 case 7: // 白色
                                                     style[k] = "var(--custom-jupyter-ansi-color-white-intense)";
                                                     break;
-                                                case 8: // 自定义颜色
+                                                case 8: // 自定义颜色 (8 位色 / 24 位色)
                                                     custom.ground = k;
                                                     continue;
-                                                case 9: // 默认
+                                                case 9: // 默认颜色
                                                 // REF [node.js - What is this \u001b[9... syntax of choosing what color text appears on console, and how can I add more colors? - Stack Overflow](https://stackoverflow.com/questions/23975735/what-is-this-u001b9-syntax-of-choosing-what-color-text-appears-on-console)
                                                 default:
                                                     delete style[k];
                                                     break;
                                             } // switch (suf)
-                                            break;
+                                            continue;
                                         default:
-                                            break;
+                                            continue;
                                     } // switch (pre)
-                                    break;
+                                    continue;
                                 } // default
                             } // switch (param)
                         }
-                        custom.ground = null;
-                        custom.mode = null;
-                        custom.color = null;
                     }
 
                     /* 生成前缀/后缀 */
@@ -412,7 +489,7 @@ export class Output {
 
                     return p2
                         .replaceAll("\r\n", "\n") // 替换换行符
-                        .replaceAll("\n{2,}", "\n\n") // 替换多余的换行符
+                        .replaceAll(/\n{2,}/g, "\n\n") // 替换多余的换行符
                         .split("\n\n") // 按块分割
                         .map((block: string) => Output.ZWS + block // 段首添加零宽空格
                             .split("\n") // 按照换行分隔

@@ -58,9 +58,8 @@ export const DEFAULT_CONFIG: IConfig = {
             allowTransparency: true,
             disableStdin: true,
             convertEol: true,
-            // cursorStyle: "bar",
-            // cursorWidth: 1,
-            fontFamily: "Sarasa Mono SC",
+            logLevel: "off",
+            fontFamily: "JetBrainsMono-Regular",
         },
     },
 };
