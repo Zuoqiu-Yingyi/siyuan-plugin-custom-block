@@ -15,13 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { getActiveBlocks } from "@workspace/utils/siyuan/dom";
+import { getActiveBlocks, isSiyuanBlock } from "@workspace/utils/siyuan/dom";
 import CONSTANTS from "@/constants";
 
 import type {
     BlockID,
     ISiyuanGlobal,
 } from "@workspace/types/siyuan";
+import { createIAL } from "@workspace/utils/siyuan/ial";
 
 declare var globalThis: ISiyuanGlobal;
 
@@ -92,4 +93,59 @@ export function getActiveCellBlocks(): ICodeCellBlocks {
             break;
     }
     return cells;
+}
+
+/**
+ * 构造新的代码单元格
+ * @param lang 代码语言
+ * @param index 单元格序号
+ * @returns kramdown 文本
+ */
+export function buildNewCodeCell(
+    lang: string = globalThis.siyuan?.storage?.["local-codelang"] ?? "",
+    index: string = " ",
+): string {
+    return [
+        `\`\`\`${lang}`,
+        "",
+        "```",
+        createIAL({
+            [CONSTANTS.attrs.code.type.key]: CONSTANTS.attrs.code.type.value,
+            [CONSTANTS.attrs.code.index]: index,
+        }),
+    ].join("\n");
+}
+
+/**
+ * 判断一个元素是否为代码单元格元素
+ * @param element HTML 元素
+ * @returns 是否为单元格元素
+ */
+export function isCodeCell(element: any): boolean {
+    return isSiyuanBlock(element)
+        && element?.getAttribute(CONSTANTS.attrs.code.type.key) === CONSTANTS.attrs.code.type.value;
+}
+
+/**
+ * 判断一个元素是否为输出单元格元素
+ * @param element HTML 元素
+ * @returns 是否为单元格元素
+ */
+export function isOutputCell(element: any): boolean {
+    return isSiyuanBlock(element)
+        && element?.getAttribute(CONSTANTS.attrs.output.type.key) === CONSTANTS.attrs.output.type.value;
+}
+
+/**
+ * 判断一个元素是否为单元格元素
+ * @param element HTML 元素
+ * @returns 是否为单元格元素
+ */
+export function isCell(element: any): boolean {
+    return isSiyuanBlock(element)
+        && (
+            element?.getAttribute(CONSTANTS.attrs.code.type.key) === CONSTANTS.attrs.code.type.value
+            ||
+            element?.getAttribute(CONSTANTS.attrs.output.type.key) === CONSTANTS.attrs.output.type.value
+        );
 }

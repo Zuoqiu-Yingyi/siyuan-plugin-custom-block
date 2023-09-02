@@ -59,6 +59,12 @@ import {
     getBlockMenuContext,
     type IBlockMenuContext,
 } from "@workspace/utils/siyuan/menu/block";
+import {
+    getCurrentBlockID,
+    isSiyuanBlock,
+    isSiyuanDocument,
+    isSiyuanDocumentTitle,
+} from "@workspace/utils/siyuan/dom";
 import { Logger } from "@workspace/utils/logger";
 import { fn__code } from "@workspace/utils/siyuan/text/span";
 import { mergeIgnoreArray } from "@workspace/utils/misc/merge";
@@ -72,9 +78,12 @@ import { DEFAULT_SETTINGS } from "./jupyter/settings";
 import { DEFAULT_CONFIG } from "./configs/default";
 import {
     blockDOM2codeCells,
+    buildNewCodeCell,
     getActiveCellBlocks,
+    isCodeCell,
     type ICodeCell,
     type ICodeCellBlocks,
+    isOutputCell,
 } from "./utils/cell";
 
 import type { I18N } from "./utils/i18n";
@@ -92,9 +101,7 @@ import type {
     IClickEditorContentEvent,
     IClickEditorTitleIconEvent,
 } from "@workspace/types/siyuan/events";
-import type {
-    THandlersWrapper,
-} from "@workspace/utils/worker/bridge";
+import type { THandlersWrapper } from "@workspace/utils/worker/bridge";
 import type { WorkerHandlers } from "./workers/jupyter";
 import type { ComponentEvents } from "svelte";
 
@@ -270,7 +277,28 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                 /* 跳转到到最后一个块 */
                 const last_cell = blocks.cells.at(-1);
                 if (last_cell) {
-                    await this.gotoBlock(last_cell.id);
+                    await sleep(250);
+                    await this.gotoBlock(last_cell.id, false);
+                }
+            },
+        });
+
+        this.addCommand({ // 运行所选代码块/光标所在代码块并插入新代码单元格
+            langKey: "run-selected-cells-and-insert-below",
+            langText: this.i18n.commands.runSelectedCellsAndInsertBelow.text,
+            hotkey: "⌥↩", // 默认快捷键 Alt + Enter
+            customHotkey: "⌥↩", // 自定义快捷键
+            editorCallback: async () => {
+                /* 运行当前所选的块 */
+                const blocks = await this.executeSelectedCellBlocks();
+
+                /* 插入代码单元格 */
+                const new_cell = await this.insertNewCodeCell(blocks);
+
+                /* 跳转到刚刚插入的单元格 */
+                if (new_cell) {
+                    await sleep(250);
+                    this.gotoBlock(new_cell.id, false);
                 }
             },
         });
@@ -1220,12 +1248,106 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     }
 
     /**
+     * 插入一个新的代码单元格
+     * @param blocks 当前选择的块
+     * @returns 新代码块块信息
+     */
+    protected async insertNewCodeCell(blocks: ICodeCellBlocks): Promise<
+        void
+        | sdk.types.kernel.api.block.insertBlock.IOperation
+        | sdk.types.kernel.api.block.appendBlock.IOperation
+    > {
+        const payload: sdk.types.kernel.api.block.insertBlock.IPayload = {
+            data: buildNewCodeCell(),
+            dataType: "markdown",
+        };
+
+        switch (blocks.elements.length) {
+            case 0: { // 插入到当前块后
+                const id = getCurrentBlockID();
+                if (id) { // 成功获取到当前块
+                    payload.previousID = id;
+                    break;
+                }
+                else return;
+            }
+            default: { // 插入到所选择的块后
+                const element = blocks.elements.at(-1)!;
+                if (!isSiyuanBlock(element)) return;
+
+                if (isCodeCell(element)) { // 所选块为代码单元格
+                    const nextElement = element.nextElementSibling;
+                    switch (true) {
+                        case isOutputCell(nextElement): // 下一个块为输出单元格
+                            payload.previousID = (nextElement as HTMLElement).dataset.nodeId; // 插入到下一个块后
+                            break;
+
+                        case isCodeCell(nextElement): // 下一个块为代码单元格
+                        case isSiyuanBlock(nextElement): // 下一个块为思源块
+                            payload.nextID = (nextElement as HTMLElement).dataset.nodeId; // 插入到下一个块前
+                            break;
+
+                        default: { // 该块为当前容器最后一个块
+                            const parentElement = element.parentElement;
+                            let parentID;
+                            switch (true) {
+                                case isSiyuanDocument(parentElement): { // 上层是文档块
+                                    const previousElement = parentElement?.previousElementSibling;
+                                    if (isSiyuanDocumentTitle(previousElement)) {
+                                        parentID = (parentElement as HTMLElement).dataset.nodeId! // 追加到容器块末尾
+                                        break;
+                                    }
+                                    else return;
+                                }
+
+                                case isSiyuanBlock(parentElement): // 上层也是思源块
+                                    parentID = (parentElement as HTMLElement).dataset.nodeId!; // 追加到容器块末尾
+                                    break;
+
+                                default:
+                                    return;
+                            }
+                            try {
+                                /* 在容器后方插入块 */
+                                const response = await this.client.appendBlock({
+                                    ...payload,
+                                    parentID,
+                                });
+                                return response.data[0]?.doOperations[0];
+                            }
+                            catch (error) {
+                                return;
+                            }
+                        }
+                    }
+                }
+                else { // 所选块非代码单元格
+                    payload.previousID = element.dataset.nodeId; // 插入到该块后
+                    break;
+                }
+                break;
+            }
+        }
+
+        try {
+            /* 在指定块前/后插入块 */
+            const response = await this.client.insertBlock(payload);
+            return response.data[0]?.doOperations[0];
+        }
+        catch (error) {
+            return;
+        }
+    }
+
+    /**
      * 转到块
      * @param id 块 ID
+     * @param heightlight 是否高亮块
      * @param afterOpen 打开后回调
      */
     public async gotoBlock(
         id: BlockID,
+        heightlight: boolean = true,
         afterOpen?: () => void | Promise<void>,
     ): Promise<void> {
         await siyuan.openTab({
@@ -1233,8 +1355,9 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             doc: {
                 id,
                 action: [
-                    "cb-get-focus", // 光标定位到块
-                    "cb-get-hl", // 高亮块
+                    heightlight
+                        ? "cb-get-hl" // 高亮块
+                        : "cb-get-focus", // 光标定位到块
                 ],
             },
             keepCursor: false, // 焦点跳转到新 tab
