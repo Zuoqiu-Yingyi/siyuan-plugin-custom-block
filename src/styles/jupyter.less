@@ -345,9 +345,24 @@
     &[data-theme-mode=dark] {
         .dark-root();
     }
+
+    /* 暗淡 \e[2m */
+    --custom-jupyter-opacity-dull: 0.75;
+
+    /* 呼吸 \e[5m */
+    --custom-jupyter-animation-breath: breath 4s ease-in-out infinite;
+
+    /* 闪烁 \e[6m */
+    --custom-jupyter-animation-blink: blink 0.5s steps(2) infinite;
+
+    /* 反色 \e[7m */
+    --custom-jupyter-filter-invert: invert(1);
+
+    /* 透明 \e[8m */
+    --custom-jupyter-opacity-transparent: 0;
 }
 
-/* 👇动画👇 */
+/* 👇关键帧👇 */
 
 /* 呼吸 */
 /* REF [css3之呼吸灯效果 - hanfe1 - 博客园](https: //www.cnblogs.com/hanfe1/p/12611400.html) */

@@ -308,6 +308,7 @@ export type TExtendedParams = [
  * @param codeID 代码块 ID
  * @param connection 会话连接
  * @param options 代码块解析选项
+ * @param goto 运行时是否跳转到对应代码块
  * @param args {@link Kernel.IKernelConnection.requestExecute} 原始参数
  * @see
  * {@link https://jupyter-client.readthedocs.io/en/latest/messaging.html#execute | Execute Messaging in Jupyter}  
@@ -318,13 +319,15 @@ async function executeCode(
     code: string,
     codeID: string,
     connection: Session.ISessionConnection,
-    options: IJupyterParserOptions, // 代码块解析选项
+    options: IJupyterParserOptions,
+    goto: boolean,
     ...args: TExtendedParams
 ): Promise<void> {
     if (connection.kernel) {
         const context: IExecuteContext = {
             client: {
                 id: clientID,
+                goto,
             },
             code: {
                 id: codeID,
@@ -631,11 +634,13 @@ async function handleExecuteInputMessage(
         }`;
 
     /* 打开并定位到块 */
-    await bridge.call<PluginHandlers["openBlock"]>(
-        "openBlock",
-        context.code.id,
-        context.client.id,
-    );
+    if (context.client.goto) {
+        await bridge.call<PluginHandlers["gotoBlock"]>(
+            "gotoBlock",
+            context.code.id,
+            context.client.id,
+        );
+    }
     await updateBlockAttrs(context);
 }
 
@@ -1218,6 +1223,7 @@ const handlers = {
             codeID: string, // 代码块 ID
             sessionID: string, // 会话 ID
             options: IJupyterParserOptions, // 代码块解析选项
+            goto: boolean, // 运行时是否跳转到对应代码块
             ...args: TExtendedParams
         ): Promise<Session.IModel | undefined> {
             const connection = id_2_session_connection.get(sessionID);
@@ -1228,6 +1234,7 @@ const handlers = {
                     codeID,
                     connection,
                     options,
+                    goto,
                     ...args,
                 );
             }

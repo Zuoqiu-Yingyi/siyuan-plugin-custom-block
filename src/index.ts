@@ -16,7 +16,10 @@
  */
 
 import siyuan from "siyuan";
-import type { BlockID, ISiyuanGlobal } from "@workspace/types/siyuan";
+import type {
+    BlockID,
+    ISiyuanGlobal,
+} from "@workspace/types/siyuan";
 
 import manifest from "~/public/plugin.json";
 
@@ -53,7 +56,8 @@ import {
     FLAG_MOBILE,
 } from "@workspace/utils/env/front-end";
 import {
-    getBlockMenuContext, type IBlockMenuContext,
+    getBlockMenuContext,
+    type IBlockMenuContext,
 } from "@workspace/utils/siyuan/menu/block";
 import { Logger } from "@workspace/utils/logger";
 import { fn__code } from "@workspace/utils/siyuan/text/span";
@@ -66,9 +70,18 @@ import uuid from "@workspace/utils/misc/uuid";
 import CONSTANTS from "./constants";
 import { DEFAULT_SETTINGS } from "./jupyter/settings";
 import { DEFAULT_CONFIG } from "./configs/default";
+import {
+    blockDOM2codeCells,
+    getActiveCellBlocks,
+    type ICodeCell,
+    type ICodeCellBlocks,
+} from "./utils/cell";
 
 import type { I18N } from "./utils/i18n";
-import type { IConfig, IJupyterParserOptions } from "./types/config";
+import type {
+    IConfig,
+    IJupyterParserOptions,
+} from "./types/config";
 import type {
     KernelSpec,
     Kernel,
@@ -92,10 +105,6 @@ export type TMenuContext = IBlockMenuContext | {
     isMultiBlock: false,
     id: BlockID,
 };
-export interface ICodeCell {
-    id: BlockID;
-    code: string;
-}
 
 export default class JupyterClientPlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
@@ -141,9 +150,16 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
 
         this.SETTINGS_DIALOG_ID = `${this.name}-settings-dialog`;
         this.handlers = {
-            openBlock: {
+            gotoBlock: {
                 this: this,
-                func: this.openBlock,
+                func: async (
+                    blockID: BlockID,
+                    clientID: string,
+                ) => {
+                    if (clientID === this.clientId) {
+                        await this.gotoBlock(blockID);
+                    }
+                },
             },
             inputRequest: {
                 this: this,
@@ -169,10 +185,11 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
          * REF: https://developer.mozilla.org/zh-CN/docs/Web/API/CustomElementRegistry/define
         */
         const XtermOutputElementWrap = XtermOutputElement(this);
-        globalThis.customElements.define(
-            XtermOutputElementWrap.TAG_NAME,
-            XtermOutputElementWrap,
-        );
+        globalThis.customElements.get(XtermOutputElementWrap.TAG_NAME)
+            ?? globalThis.customElements.define(
+                XtermOutputElementWrap.TAG_NAME,
+                XtermOutputElementWrap,
+            );
     }
 
     onload(): void {
@@ -237,6 +254,28 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             }),
         };
 
+        /**
+         * 注册快捷键命令
+         * 在 onload 结束后即刻解析, 因此不能在回调函数中注册
+         */
+        this.addCommand({ // 仅运行所选代码块/光标所在代码块
+            langKey: "run-selected-cells",
+            langText: this.i18n.commands.runSelectedCells.text,
+            hotkey: "⌘↩", // 默认快捷键 Ctrl + Enter
+            customHotkey: "⌘↩", // 自定义快捷键
+            editorCallback: async () => {
+                /* 运行当前所选的块 */
+                const blocks = await this.executeSelectedCellBlocks();
+
+                /* 跳转到到最后一个块 */
+                const last_cell = blocks.cells.at(-1);
+                if (last_cell) {
+                    await this.gotoBlock(last_cell.id);
+                }
+            },
+        });
+
+        /* 加载数据 */
         this.loadData(JupyterClientPlugin.GLOBAL_CONFIG_NAME)
             .then(config => {
                 this.config = mergeIgnoreArray(DEFAULT_CONFIG, config || {}) as IConfig;
@@ -264,6 +303,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                     await this.updateWorkerConfig(true);
                 }
 
+                /* 注册事件监听器 */
                 this.eventBus.on("click-editortitleicon", this.blockMenuEventListener);
                 this.eventBus.on("click-blockicon", this.blockMenuEventListener);
                 this.eventBus.on("click-editorcontent", this.clickEditorContentEventListener);
@@ -439,8 +479,11 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
 
     /**
      * jupyter 请求
+     * @param pathname 请求路径
+     * @param init 请求参数
+     * @returns 响应体
      */
-    public jupyterFetch(
+    public async jupyterFetch(
         pathname: string,
         init: RequestInit = {},
     ): Promise<Response> {
@@ -467,6 +510,51 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             url,
             init,
         );
+    }
+
+    /**
+     * 加载内核图标
+     * @param spec 内核清单
+     * @param defaultIcon 默认图标
+     * @returns 内核图标引用 ID
+     */
+    public async loadKernelSpecIcon(
+        spec: KernelSpec.ISpecModel,
+        defaultIcon: string = "#icon-jupyter-client-kernelspec",
+    ): Promise<string> {
+        const pathname = (() => {
+            switch (true) {
+                case "logo-svg" in spec.resources:
+                    return spec.resources["logo-svg"];
+                case "logo-32x32" in spec.resources:
+                    return spec.resources["logo-32x32"];
+                case "logo-64x64" in spec.resources:
+                    return spec.resources["logo-64x64"];
+                default:
+                    if (Object.keys(spec.resources).length > 0) {
+                        return Object.values(spec.resources)[0];
+                    } else {
+                        return "";
+                    }
+            }
+        })();
+
+        if (pathname) {
+            const response = await this.jupyterFetch(pathname, {
+                method: "GET",
+            });
+            const blob = await response.blob();
+
+            if (this.kernelName2objectURL.has(spec.name)) {
+                return this.kernelName2objectURL.get(spec.name)!;
+            } else {
+                const objectURL = URL.createObjectURL(blob);
+                this.kernelName2objectURL.set(spec.name, objectURL);
+                return objectURL;
+            }
+        } else {
+            return defaultIcon;
+        }
     }
 
     /**
@@ -644,6 +732,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                             });
                             manager.$on("confirm", (e: ComponentEvents<SessionManager>["confirm"]) => {
                                 dialog.destroy();
+                                this.updateDockFocusItem(id);
                             });
                         }
                     },
@@ -873,7 +962,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         context: TMenuContext,
     ): siyuan.IMenuItemOption[] {
         const disabled = !session?.kernel;
-        const jupyter = context.isDocumentBlock || context.isMultiBlock;
+        const flag_cell = context.isDocumentBlock || context.isMultiBlock;
         const execute = async (options: IJupyterParserOptions) => {
             if (restart) {
                 await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.restart"]>(
@@ -883,7 +972,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             }
 
             const html = await this.getBlockDOM(context);
-            const cells = this.blockDOM2codeCalls(html, jupyter);
+            const cells = blockDOM2codeCells(html, flag_cell);
             await this.requestExecuteCells(
                 cells,
                 session!,
@@ -1053,12 +1142,14 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
      * @param codeID 代码块 ID
      * @param sessionID 会话 ID
      * @param options 代码块解析选项
+     * @param goto 运行时跳转到对应的代码块
      */
     protected async requestExecuteCell(
         code: string,
         codeID: string,
         sessionID: string,
         options: IJupyterParserOptions,
+        goto: boolean = this.config.jupyter.execute.goto,
     ): Promise<void> {
         await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.requestExecute"]>(
             "jupyter.session.kernel.connection.requestExecute",
@@ -1067,6 +1158,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             codeID,
             sessionID,
             options,
+            goto,
         );
     }
 
@@ -1075,11 +1167,13 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
      * @param blocks 按照执行顺序排序的多个代码块
      * @param session 会话
      * @param options 代码块解析选项
+     * @param goto 运行时跳转到对应的代码块
      */
     protected async requestExecuteCells(
         cells: ICodeCell[],
         session: Session.IModel,
         options: IJupyterParserOptions,
+        goto: boolean = this.config.jupyter.execute.goto,
     ): Promise<void> {
         for (const cele of cells) {
             /* 运行该代码块 */
@@ -1088,8 +1182,65 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                 cele.id,
                 session.id,
                 options,
+                goto,
             );
         }
+    }
+
+    /**
+     * 运行所选代码块
+     * @returns 所选代码块
+     */
+    protected async executeSelectedCellBlocks(): Promise<ICodeCellBlocks> {
+        const blocks = getActiveCellBlocks();
+        if (blocks.cells.length > 0) {
+            const cell = blocks.cells[0];
+            const response = await this.client.getBlockInfo({
+                id: cell.id,
+            });
+            const session = this.doc2session.get(response.data.rootID);
+            if (session) {
+                await this.requestExecuteCells(
+                    blocks.cells,
+                    session,
+                    this.config.jupyter.execute.output.parser,
+                    false,
+                );
+            }
+            else {
+                // 当前文档未连接会话
+                this.siyuan.showMessage(this.i18n.messages.sessionNotConnected.text);
+            }
+        }
+        else {
+            // 未选择有效的块
+            this.siyuan.showMessage(this.i18n.messages.noValidBlockSelected.text);
+        }
+        return blocks;
+    }
+
+    /**
+     * 转到块
+     * @param id 块 ID
+     * @param afterOpen 打开后回调
+     */
+    public async gotoBlock(
+        id: BlockID,
+        afterOpen?: () => void | Promise<void>,
+    ): Promise<void> {
+        await siyuan.openTab({
+            app: this.app,
+            doc: {
+                id,
+                action: [
+                    "cb-get-focus", // 光标定位到块
+                    "cb-get-hl", // 高亮块
+                ],
+            },
+            keepCursor: false, // 焦点跳转到新 tab
+            removeCurrentTab: false, // 不移除原页签
+            afterOpen,
+        });
     }
 
     /**
@@ -1115,28 +1266,15 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         return html;
     }
 
-    /**
-     * 将块 DOM 转换为代码单元
-     * @param html 块 DOM 字符串
-     * @param jupyter 是否仅提取 custom-jupyter-type="code" 的代码块
-     * @returns 代码单元列表
-     */
-    protected blockDOM2codeCalls(
-        html: string,
-        jupyter: boolean,
-    ): ICodeCell[] {
-        const element = document.createElement("div");
-        element.innerHTML = html;
-        const blocks = Array.from(element.querySelectorAll<HTMLDivElement>("div.code-block[data-node-id]"));
-        return blocks
-            .filter(block => (jupyter
-                ? block.getAttribute(CONSTANTS.attrs.code.type.key) === CONSTANTS.attrs.code.type.value
-                : true
-            ))
-            .map(block => ({
-                id: block.dataset.nodeId!,
-                code: globalThis.Lute.BlockDOM2Content(block.outerHTML),
-            }));
+    /* 更新侧边栏当前文档对应的项 */
+    protected updateDockFocusItem(docID: BlockID): void {
+        const session = this.doc2session.get(docID);
+        this.jupyterDock.component?.$set({
+            currentSpec: session?.kernel?.name,
+            currentKernel: session?.kernel?.id,
+            currentSession: session?.id,
+            currentDocument: docID,
+        });
     }
 
     /* 块菜单菜单弹出事件监听器 */
@@ -1170,6 +1308,8 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                 label: this.i18n.displayName,
                 accelerator: this.name,
             });
+
+            this.updateDockFocusItem(context.protyle.block.rootID!);
         }
     };
 
@@ -1183,83 +1323,26 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                 globalThis.siyuan.storage["local-codelang"] = protyle.background.ial[CONSTANTS.attrs.kernel.language];
             }
         }
+
+        this.updateDockFocusItem(protyle.block.rootID!);
     }
 
     /**
-     * 加载内核图标
-     * @param spec 内核清单
-     * @param defaultIcon 默认图标
-     * @returns 内核图标引用 ID
+     * 请求输入
+     * @param blockID 块 ID
+     * @param clientID 客户端 ID
+     * @param prompt 输入提示
      */
-    async loadKernelSpecIcon(
-        spec: KernelSpec.ISpecModel,
-        defaultIcon: string = "#icon-jupyter-client-kernelspec",
-    ): Promise<string> {
-        const pathname = (() => {
-            switch (true) {
-                case "logo-svg" in spec.resources:
-                    return spec.resources["logo-svg"];
-                case "logo-32x32" in spec.resources:
-                    return spec.resources["logo-32x32"];
-                case "logo-64x64" in spec.resources:
-                    return spec.resources["logo-64x64"];
-                default:
-                    if (Object.keys(spec.resources).length > 0) {
-                        return Object.values(spec.resources)[0];
-                    } else {
-                        return "";
-                    }
-            }
-        })();
-
-        if (pathname) {
-            const response = await this.jupyterFetch(pathname, {
-                method: "GET",
-            });
-            const blob = await response.blob();
-
-            if (this.kernelName2objectURL.has(spec.name)) {
-                return this.kernelName2objectURL.get(spec.name)!;
-            } else {
-                const objectURL = URL.createObjectURL(blob);
-                this.kernelName2objectURL.set(spec.name, objectURL);
-                return objectURL;
-            }
-        } else {
-            return defaultIcon;
-        }
-    }
-
-    /* 打开块 */
-    public readonly openBlock = async (
-        blockID: string,
-        clientID: string,
-    ) => {
-        if (clientID === this.clientId) {
-            await siyuan.openTab({
-                app: this.app,
-                doc: {
-                    id: blockID,
-                    action: [
-                        "cb-get-focus", // 光标定位到块
-                        "cb-get-hl", // 高亮块
-                    ],
-                },
-                keepCursor: false, // 焦点跳转到新 tab
-                removeCurrentTab: false, // 不移除原页签
-            });
-        }
-    }
-
-    /* 请求输入 */
     public readonly inputRequest = async (
-        blockID: string,
+        blockID: BlockID,
         clientID: string,
-        prompt: string,
+        prompt: string = "",
     ) => {
         if (clientID === this.clientId) {
             /* 定位到请求输入块 */
-            await this.openBlock(blockID, clientID);
+            if (this.config.jupyter.execute.input.goto) {
+                await this.gotoBlock(blockID);
+            }
 
             try {
                 /* 输入框 */

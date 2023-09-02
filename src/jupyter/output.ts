@@ -57,12 +57,16 @@ export function xtermElement(
         id: "content",
     };
     const content_attrs = Object.entries(content).map(([k, v]) => `${k}="${v}"`).join(" ");
-    const content_data = trimSuffix( // 移除末尾的换行符
-        trimPrefix( // 移除开头的换行符
-            stripAnsi(stream) // 移除控制台 ANSI 转义序列
-                .replaceAll(/\n+/g, "\n"), // 移除多余的换行符
-            "\n"),
-        "\n");
+    const content_data = escapeHTML( // 转义 HTML
+        trimSuffix( // 移除末尾的换行符
+            trimPrefix( // 移除开头的换行符
+                stripAnsi(stream) // 移除控制台 ANSI 转义序列
+                    .replaceAll(/\n+/g, "\n"), // 移除多余的换行符
+                "\n",
+            ),
+            "\n",
+        ),
+    );
 
     return [
         "<div>",
@@ -267,7 +271,7 @@ export class Output {
                                         custom.mode = 2;
                                         continue;
                                     }
-                                    style.opacity = "0.75";
+                                    style.opacity = "var(--custom-jupyter-opacity-dull)";
                                     break;
                                 case 3: // 斜体
                                     mark.em = true;
@@ -281,16 +285,16 @@ export class Output {
                                         custom.mode = 5;
                                         continue;
                                     }
-                                    style.animation = "breath 4s ease-in-out infinite";
+                                    style.animation = "var(--custom-jupyter-animation-breath)";
                                     break;
                                 case 6: // 快速闪烁
-                                    style.animation = "blink 0.5s steps(2) infinite";
+                                    style.animation = "var(--custom-jupyter-animation-blink)";
                                     break;
                                 case 7: // 反色
-                                    style.filter = "invert(1)";
+                                    style.filter = "var(--custom-jupyter-filter-invert)";
                                     break;
                                 case 8: // 透明
-                                    style.opacity = "0";
+                                    style.opacity = "var(--custom-jupyter-opacity-transparent)";
                                     break;
                                 case 9: // 删除线
                                     mark.s = true

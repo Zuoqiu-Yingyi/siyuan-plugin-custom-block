@@ -41,13 +41,20 @@ export interface IJupyterParserOptions {
 }
 
 export interface IJupyterExecute {
+    goto: boolean; // 运行时是否默认跳转到对应的代码块 (使用命令运行时忽略该选项)
     content: Omit<KernelMessage.IExecuteRequestMsg["content"], "code">;
+    input: IJupyterInput;
     output: IJupyterOutput;
 }
 
 export interface IJupyterOutput {
     parser: IJupyterParserOptions;
 }
+
+export interface IJupyterInput {
+    goto: boolean; // 输入请求时是否跳转到对应的代码块
+}
+
 
 export interface IJupyterImport {
     parser: IJupyterParserOptions;

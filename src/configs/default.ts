@@ -30,12 +30,16 @@ export const DEFAULT_CONFIG: IConfig = {
             },
         },
         execute: {
+            goto: true,
             content: {
                 silent: false,
                 store_history: true,
                 user_expressions: {},
                 allow_stdin: true,
                 stop_on_error: true,
+            },
+            input: {
+                goto: true,
             },
             output: {
                 parser: {

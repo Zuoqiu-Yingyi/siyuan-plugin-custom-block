@@ -49,7 +49,11 @@
     }; // 内核清单
     export let kernels: Kernel.IModel[] = []; // 活动的内核列表
     export let sessions: Session.IModel[] = []; // 活动的会话列表
-    export let currentSession: string = ""; // 当前的会话
+
+    export let currentSpec: string = ""; // 当前的内核定义
+    export let currentKernel: string = ""; // 当前的内核 ID
+    export let currentSession: string = ""; // 当前的会话 ID
+    export let currentDocument: string = ""; // 当前的文档 ID
 
     const ROOT_DIRECTORY = "/"; // 根目录
 
@@ -84,7 +88,9 @@
                 name: spec.name,
                 path: spec_path,
                 directory: RESOURCES_DIRECTORY,
+                focus: spec.name === currentSpec,
                 folded: false,
+
                 icon: plugin.kernelName2objectURL.has(spec.name) //
                     ? plugin.kernelName2objectURL.get(spec.name) //
                     : await plugin.loadKernelSpecIcon(spec),
@@ -111,7 +117,9 @@
                         name: kernel.id,
                         path: kernel_path,
                         directory: spec_path,
+                        focus: kernel.id === currentKernel,
                         folded: false,
+
                         icon: `#icon-jupyter-client-kernel-${kernel.execution_state}`,
                         iconAriaLabel: kernel.execution_state,
                         text: kernel.name,
@@ -136,6 +144,7 @@
                                 name: session.id,
                                 path: session_path,
                                 directory: kernel_path,
+                                focus: session.id === currentSession,
                                 folded: false,
 
                                 icon: `#icon-jupyter-client-session-${session.type}`,
@@ -164,6 +173,7 @@
                                             name: document.id,
                                             path: document_path,
                                             directory: session_path,
+                                            focus: document.id === currentDocument,
 
                                             icon: /^[1-9a-f]+$/.test(document.icon) //
                                                 ? utf32Decode(document.icon) // 32 位 unicode 编码的 emoji
@@ -210,6 +220,8 @@
                 name,
                 path: `${KERNELSPECS_DIRECTORY}/${name}`,
                 directory: KERNELSPECS_DIRECTORY,
+                focus: name === currentSpec,
+
                 icon: KERNELSPECS_ICON,
                 text: name,
                 textAriaLabel: spec.display_name,
@@ -241,6 +253,8 @@
                 name: kernel.id,
                 path: `${KERNELS_DIRECTORY}/${kernel.id}`,
                 directory: KERNELS_DIRECTORY,
+                focus: kernel.id === currentKernel,
+
                 icon: `#icon-jupyter-client-kernel-${kernel.execution_state}`,
                 iconAriaLabel: kernel.execution_state,
                 text: kernel.name,
@@ -264,6 +278,7 @@
                 name: session.id,
                 path: `${SESSIONS_DIRECTORY}/${session.id}`,
                 directory: SESSIONS_DIRECTORY,
+                focus: session.id === currentSession,
 
                 icon: `#icon-jupyter-client-session-${session.type}`,
                 iconAriaLabel: session.type,
@@ -278,6 +293,58 @@
             });
         }
         return nodes;
+    }
+
+    /* 动态更新当前文档 */
+    function updateCurrentDocument(
+        specName: string, // 内核名称
+        kernelID: string, // 内核 ID
+        sessionID: string, // 会话 ID
+        documentID: string, // 文档 ID
+    ): void {
+        // plugin.logger.debug(documentID, sessionID);
+
+        /* 遍历内核清单 */
+        roots[0].children?.forEach((spec, i) => {
+            /* 遍历内核 */
+            spec.children?.forEach((kernel, j) => {
+                /* 遍历会话 */
+                kernel.children?.forEach((session, k) => {
+                    /* 遍历文档 */
+                    session.children?.forEach((document, l) => {
+                        // 高亮当前文档
+                        roots[0].children![i].children![j].children![k].children![l].focus = document.name === documentID;
+                    });
+                    // 高亮当前会话
+                    roots[0].children![i].children![j].children![k].focus = session.name === sessionID;
+                });
+                // 高亮当前内核
+                roots[0].children![i].children![j].focus = kernel.name === kernelID;
+            });
+            // 高亮当前定义
+            roots[0].children![i].focus = spec.name === specName;
+        });
+    }
+
+    /* 动态更新当前内核定义 */
+    function updateCurrentSpec(specName: string): void {
+        roots[1].children?.forEach((spec, i) => {
+            roots[1].children![i].focus = spec.name === specName;
+        });
+    }
+
+    /* 动态更新当前内核 */
+    function updateCurrentKernel(kernelID: string): void {
+        roots[2].children?.forEach((kernel, i) => {
+            roots[2].children![i].focus = kernel.name === kernelID;
+        });
+    }
+
+    /* 动态更新当前会话 */
+    function updateCurrentSession(sessionID: string): void {
+        roots[3].children?.forEach((session, i) => {
+            roots[3].children![i].focus = session.name === sessionID;
+        });
     }
 
     /* 标题栏配置 */
@@ -359,6 +426,7 @@
         });
     }
 
+    /* 动态更新内核清单 */
     $: {
         roots[1].count = Object.keys(kernelspecs.kernelspecs).length;
         kernelspecs2node(kernelspecs).then(async children => {
@@ -369,27 +437,23 @@
         });
     }
 
+    /* 动态更新活跃的内核 */
     $: {
         roots[2].count = kernels.length;
         roots[2].children = kernels2node(kernels);
     }
 
+    /* 动态更新活跃的会话 */
     $: {
         roots[3].count = sessions.length;
         roots[3].children = sessions2node(sessions);
     }
 
-    /* 动态更新当前会话 */
     $: {
-        if ((roots[2].children?.length ?? 0) > 0) {
-            roots[2].children?.forEach(session => {
-                if (session.name === currentSession) {
-                    session.focus = true;
-                } else {
-                    session.focus = false;
-                }
-            });
-        }
+        updateCurrentSpec(currentSpec);
+        updateCurrentKernel(currentKernel);
+        updateCurrentSession(currentSession);
+        updateCurrentDocument(currentSpec, currentKernel, currentSession, currentDocument);
     }
 
     /* 回收资源 */

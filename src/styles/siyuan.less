@@ -54,12 +54,14 @@
     [data-node-id][custom-jupyter-block-type] {
         &::before {
             /* 运行序号 */
-            content: "[" attr(custom-jupyter-index)"]:";
-            font-size: 85%;
-            position: absolute;
-            top: 0;
-            left: 0.25em !important;
+            content: "[" attr(custom-jupyter-index) "]:";
+            position: sticky;
+
+            top: 0.25em;
             z-index: 1;
+
+            line-height: 1em;
+            font-size: 75%;
             font-weight: bolder;
         }
 
@@ -69,6 +71,10 @@
             &::before {
                 /* 运行完成 */
                 // color: var(--b3-card-success-color);
+                position: absolute;
+
+                top: 0.5em;
+                left: 0.25em;
             }
 
             &::after {
@@ -105,6 +111,23 @@
             &[custom-jupyter-index="E"]::before {
                 /* 运行结果有误 */
                 color: var(--b3-card-error-color);
+            }
+
+            // 分割线
+            >.hr[data-node-id] {
+                margin-top: 0;
+                margin-bottom: 0;
+
+                padding-top: 0;
+                padding-bottom: 0;
+
+                >div {
+                    height: 1em;
+
+                    &::after {
+                        top: 0.5em;
+                    }
+                }
             }
         }
 

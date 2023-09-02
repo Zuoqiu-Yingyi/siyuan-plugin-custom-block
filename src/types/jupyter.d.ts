@@ -38,6 +38,7 @@ export interface IExecuteHorizontalRule {
 export interface IExecuteContext {
     client: {
         id: string; // 客户端 ID
+        goto: boolean; // 运行时是否跳转到对应代码块
     };
     code: {
         id: string; // 代码块 ID

@@ -1,19 +1,16 @@
 {
-    "displayName": "Jupyter 客户端",
-    "messages": {
-        "uninitialized": {
-            "text": "Jupyter 客户端未初始化"
+    "commands": {
+        "runSelectedCells": {
+            "text": "运行所选代码块"
         },
-        "inputRequest": {
-            "title": "输入请求"
+        "runSelectedCellsAndGotoNext": {
+            "text": "运行所选代码块并跳转到下一个代码块"
         },
-        "lastRunTime": {
-            "text": "上次执行"
-        },
-        "runtime": {
-            "text": "用时"
+        "runSelectedCellsAndInsertBelow": {
+            "text": "运行所选代码块并在下方插入新代码块"
         }
     },
+    "displayName": "Jupyter 客户端",
     "dock": {
         "kernels": {
             "text": "运行的内核"
@@ -48,6 +45,38 @@
         "title": "Jupyter"
     },
     "menu": {
+        "import": {
+            "accelerator": "*.ipynb",
+            "label": "导入文件",
+            "submenu": {
+                "append": {
+                    "label": "追加到当前文档末尾"
+                },
+                "override": {
+                    "label": "覆盖当前文档"
+                }
+            }
+        },
+        "kernel": {
+            "label": "内核",
+            "submenu": {
+                "info": {
+                    "label": "内核&emsp;ID: ${1}<br/>内核名称: ${2}<br/>内核语言: ${3}<br/>内核备注: ${4}"
+                },
+                "interrupt": {
+                    "label": "中断内核"
+                },
+                "reconnect": {
+                    "label": "重新连接"
+                },
+                "restart": {
+                    "label": "重启内核"
+                },
+                "shutdown": {
+                    "label": "关闭内核"
+                }
+            }
+        },
         "open": {
             "label": "打开"
         },
@@ -69,55 +98,35 @@
                 "all": {
                     "label": "运行所有单元格"
                 },
-                "restart": {
-                    "label": "运行所有单元格",
-                    "accelerator": "重启内核"
+                "cntrl": {
+                    "disable": {
+                        "accelerator": "纯文本",
+                        "label": "忽略控制字符"
+                    },
+                    "enable": {
+                        "accelerator": "富文本",
+                        "label": "解析控制字符"
+                    }
                 },
                 "custom": {
                     "label": "使用自定义配置项运行"
                 },
-                "terminal": {
-                    "label": "输出内容至终端"
-                },
                 "escape": {
-                    "enable": {
-                        "label": "输出转义文本",
-                        "accelerator": "转义符号"
-                    },
                     "disable": {
-                        "label": "输出原始文本",
-                        "accelerator": "渲染符号"
-                    }
-                },
-                "cntrl": {
-                    "enable": {
-                        "label": "解析控制字符",
-                        "accelerator": "富文本"
+                        "accelerator": "渲染符号",
+                        "label": "输出原始文本"
                     },
-                    "disable": {
-                        "label": "忽略控制字符",
-                        "accelerator": "纯文本"
+                    "enable": {
+                        "accelerator": "转义符号",
+                        "label": "输出转义文本"
                     }
-                }
-            }
-        },
-        "kernel": {
-            "label": "内核",
-            "submenu": {
-                "info": {
-                    "label": "内核&emsp;ID: ${1}<br/>内核名称: ${2}<br/>内核语言: ${3}<br/>内核备注: ${4}"
-                },
-                "reconnect": {
-                    "label": "重新连接"
-                },
-                "interrupt": {
-                    "label": "中断内核"
                 },
                 "restart": {
-                    "label": "重启内核"
+                    "accelerator": "重启内核",
+                    "label": "运行所有单元格"
                 },
-                "shutdown": {
-                    "label": "关闭内核"
+                "terminal": {
+                    "label": "输出内容至终端"
                 }
             }
         },
@@ -134,65 +143,32 @@
                     "label": "关闭会话"
                 }
             }
+        }
+    },
+    "messages": {
+        "inputRequest": {
+            "title": "输入请求"
         },
-        "import": {
-            "accelerator": "*.ipynb",
-            "label": "导入文件",
-            "submenu": {
-                "append": {
-                    "label": "追加到当前文档末尾"
-                },
-                "override": {
-                    "label": "覆盖当前文档"
-                }
-            }
+        "lastRunTime": {
+            "text": "上次执行"
+        },
+        "noValidBlockSelected": {
+            "text": "未选择有效的块"
+        },
+        "runtime": {
+            "text": "用时"
+        },
+        "sessionNotConnected": {
+            "text": "当前文档未连接会话"
+        },
+        "sessionOccupied": {
+            "text": "该会话已被占用"
+        },
+        "uninitialized": {
+            "text": "Jupyter 客户端未初始化"
         }
     },
     "settings": {
-        "sessionSettings": {
-            "connect": {
-                "title": "会话选择",
-                "description": "新建一个会话或选择一个当前活跃的会话",
-                "options": {
-                    "new": {
-                        "text": "新建会话"
-                    }
-                }
-            },
-            "name": {
-                "title": "会话名称",
-                "description": "自定义会话名称"
-            },
-            "path": {
-                "title": "会话路径",
-                "description": "文件在 Jupyter 工作空间中的路径，对应的目录也是内核运行时的工作目录"
-            },
-            "type": {
-                "title": "会话类型",
-                "description": "<code class='fn__code'>console</code>：Jupyter 控制台，交互式运行环境<br/><code class='fn__code'>notebook</code>：Jupyter 笔记本，<code class='fn__code'>*.ipynb</code> 文件"
-            },
-            "confirm": {
-                "new": "新建",
-                "connect": "连接",
-                "update": "更新"
-            },
-            "kernel": {
-                "title": "内核选择",
-                "description": "选择会话所使用的内核，可以使用无内核、新内核或正在运行的内核<br/><code class='fn__code'>⏹ 禁用内核</code>：不使用内核<br/><code class='fn__code'>▶ 启动内核 [语言名称] 内核名称: 内核描述</code>：创建一个新内核<br/><code class='fn__code'>♻ 复用内核 [语言名称] 内核名称: 会话名称</code>：使用其他会话的内核",
-                "options": {
-                    "no": {
-                        "text": "禁用内核"
-                    },
-                    "new": {
-                        "text": "启动内核"
-                    },
-                    "use": {
-                        "text": "复用内核"
-                    }
-                }
-            },
-            "title": "会话设置"
-        },
         "generalSettings": {
             "reset": {
                 "description": "重置所有设置选项为默认选项（重置后将刷新页面）",
@@ -229,6 +205,50 @@
                 }
             },
             "title": "Jupyter 设置"
+        },
+        "sessionSettings": {
+            "confirm": {
+                "connect": "连接",
+                "new": "新建",
+                "update": "更新"
+            },
+            "connect": {
+                "description": "新建一个会话或选择一个当前活跃的会话",
+                "options": {
+                    "new": {
+                        "text": "新建会话"
+                    }
+                },
+                "title": "会话选择"
+            },
+            "kernel": {
+                "description": "选择会话所使用的内核，可以使用无内核、新内核或正在运行的内核<br/><code class='fn__code'>⏹ 禁用内核</code>：不使用内核<br/><code class='fn__code'>▶ 启动内核 [语言名称] 内核名称: 内核描述</code>：创建一个新内核<br/><code class='fn__code'>♻ 复用内核 [语言名称] 内核名称: 会话名称</code>：使用其他会话的内核",
+                "options": {
+                    "new": {
+                        "text": "启动内核"
+                    },
+                    "no": {
+                        "text": "禁用内核"
+                    },
+                    "use": {
+                        "text": "复用内核"
+                    }
+                },
+                "title": "内核选择"
+            },
+            "name": {
+                "description": "自定义会话名称",
+                "title": "会话名称"
+            },
+            "path": {
+                "description": "文件在 Jupyter 工作空间中的路径，对应的目录也是内核运行时的工作目录",
+                "title": "会话路径"
+            },
+            "title": "会话设置",
+            "type": {
+                "description": "<code class='fn__code'>console</code>：Jupyter 控制台，交互式运行环境<br/><code class='fn__code'>notebook</code>：Jupyter 笔记本，<code class='fn__code'>*.ipynb</code> 文件",
+                "title": "会话类型"
+            }
         }
     }
 }

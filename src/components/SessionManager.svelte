@@ -156,16 +156,22 @@
                 }
             } else if (!flag_session_connected) {
                 if (session.kernel) {
-                    // 连接已有会话
-                    session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.connectTo"]>(
-                        "jupyter.sessions.connectTo", //
-                        docID,
-                        {
-                            model: session,
-                            username: plugin.username,
-                            clientId: plugin.clientId,
-                        },
-                    );
+                    if (plugin.session2docs.has(session.id)) {
+                        // 该会话已被占用
+                        plugin.siyuan.showMessage(i18n.messages.sessionOccupied.text);
+                        return;
+                    } else {
+                        // 连接已有会话
+                        session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.connectTo"]>(
+                            "jupyter.sessions.connectTo", //
+                            docID,
+                            {
+                                model: session,
+                                username: plugin.username,
+                                clientId: plugin.clientId,
+                            },
+                        );
+                    }
                 }
             } else {
                 // 更新发生更改的会话信息
