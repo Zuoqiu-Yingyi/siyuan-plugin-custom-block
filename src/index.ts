@@ -265,7 +265,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
          * 注册快捷键命令
          * 在 onload 结束后即刻解析, 因此不能在回调函数中注册
          */
-        this.addCommand({ // 仅运行所选代码块/光标所在代码块
+        this.addCommand({ // 仅运行所选代码单元格 / 光标所在代码块
             langKey: "run-selected-cells",
             langText: this.i18n.commands.runSelectedCells.text,
             hotkey: "⌘↩", // 默认快捷键 Ctrl + Enter
@@ -277,8 +277,38 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                 /* 跳转到到最后一个块 */
                 const last_cell = blocks.cells.at(-1);
                 if (last_cell) {
-                    await sleep(250);
+                    // await sleep(250);
                     await this.gotoBlock(last_cell.id, false);
+                }
+            },
+        });
+
+        this.addCommand({ // 运行所选代码单元格 / 光标所在代码块并跳转到下一个代码单元格
+            langKey: "run-selected-cells-and-goto-next",
+            langText: this.i18n.commands.runSelectedCellsAndGotoNext.text,
+            hotkey: "⇧↩", // 默认快捷键 Shift + Enter
+            customHotkey: "⇧↩", // 自定义快捷键
+            editorCallback: async () => {
+                /* 运行当前所选的块 */
+                const blocks = await this.executeSelectedCellBlocks();
+
+                /* 获取下一个代码单元格 */
+                const next_cell = await this.getNextCodeCell(blocks);
+
+                if (next_cell) { // 存在下一个代码单元格
+                    /* 跳转到下一个代码单元格 */
+                    // await sleep(250);
+                    await this.gotoBlock(next_cell.id, false);
+                }
+                else { // 不存在下一个代码单元格
+                    /* 插入新代码单元格 */
+                    const new_cell = await this.insertNewCodeCell(blocks);
+
+                    /* 跳转到刚刚插入的单元格 */
+                    if (new_cell) {
+                        // await sleep(250);
+                        await this.gotoBlock(new_cell.id, false);
+                    }
                 }
             },
         });
@@ -292,13 +322,13 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                 /* 运行当前所选的块 */
                 const blocks = await this.executeSelectedCellBlocks();
 
-                /* 插入代码单元格 */
+                /* 插入新代码单元格 */
                 const new_cell = await this.insertNewCodeCell(blocks);
 
                 /* 跳转到刚刚插入的单元格 */
                 if (new_cell) {
-                    await sleep(250);
-                    this.gotoBlock(new_cell.id, false);
+                    // await sleep(250);
+                    await this.gotoBlock(new_cell.id, false);
                 }
             },
         });
@@ -1245,6 +1275,34 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             this.siyuan.showMessage(this.i18n.messages.noValidBlockSelected.text);
         }
         return blocks;
+    }
+
+    /**
+     * 获取下一个代码单元格
+     * @param blocks 当前选择的块
+     * @returns 下一个代码单元格的块 ID
+     */
+    protected async getNextCodeCell(blocks: ICodeCellBlocks): Promise<void | ICodeCell> {
+        const last_cell = blocks.cells.at(-1);
+        if (last_cell) {
+            /* 获取最后一个单元格所在文档 */
+            const response_getBlockInfo = await this.client.getBlockInfo({
+                id: last_cell.id,
+            });
+            const block_info = response_getBlockInfo.data;
+
+            /* 获取文档内容 */
+            const response_getDoc = await this.client.getDoc({ id: block_info.rootID });
+            const html = response_getDoc.data.content;
+
+            /* 获取下一个代码单元格 ID */
+            const cells = blockDOM2codeCells(html, true);
+            const current_cell_index = cells.findIndex(cell => cell.id === last_cell.id);
+            if (current_cell_index >= 0) {
+                const next_cell = cells.at(current_cell_index + 1);
+                return next_cell;
+            }
+        }
     }
 
     /**
