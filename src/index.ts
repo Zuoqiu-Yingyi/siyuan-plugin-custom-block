@@ -110,6 +110,29 @@ export default class WebviewPlugin extends siyuan.Plugin {
     }
 
     onload(): void {
+        /**
+         * 注册快捷键命令
+         * 在 onload 结束后即刻解析, 因此不能在回调函数中注册
+         */
+        this.addCommand({
+            langKey: "openDesktopWindow",
+            langText: this.i18n.menu.openDesktopWindow.label,
+            hotkey: "⇧⌘N", // 默认快捷键
+            customHotkey: "", // 自定义快捷键
+            callback: () => {
+                this.openSiyuanDesktopWindow();
+            },
+        });
+        this.addCommand({
+            langKey: "openMobildWindow",
+            langText: this.i18n.menu.openMobildWindow.label,
+            hotkey: "", // 默认快捷键
+            customHotkey: "", // 自定义快捷键
+            callback: () => {
+                this.openSiyuanMobileWindow();
+            },
+        });
+
         // this.logger.debug(this);
         this.loadData(WebviewPlugin.GLOBAL_CONFIG_NAME)
             .then(config => {
@@ -131,26 +154,6 @@ export default class WebviewPlugin extends siyuan.Plugin {
                 this.eventBus.on("open-menu-blockref", this.blockRefMenuEventListener);
                 /* 超链接菜单 */
                 this.eventBus.on("open-menu-link", this.linkMenuEventListener);
-
-                /* 快捷键/命令 */
-                this.addCommand({
-                    langKey: "openDesktopWindow",
-                    langText: this.i18n.menu.openDesktopWindow.label,
-                    hotkey: "⇧⌘N",
-                    customHotkey: "",
-                    callback: () => {
-                        this.openSiyuanDesktopWindow();
-                    },
-                });
-                this.addCommand({
-                    langKey: "openMobildWindow",
-                    langText: this.i18n.menu.openMobildWindow.label,
-                    hotkey: "",
-                    customHotkey: "",
-                    callback: () => {
-                        this.openSiyuanMobileWindow();
-                    },
-                });
             })
 
     }
