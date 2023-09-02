@@ -1,13 +1,306 @@
 {
+    "commands": {
+        "runSelectedCells": {
+            "text": "Run selected cells"
+        },
+        "runSelectedCellsAndGotoNext": {
+            "text": "Run selected cells and go to next cell"
+        },
+        "runSelectedCellsAndInsertBelow": {
+            "text": "Run selected cells and insert below"
+        }
+    },
     "displayName": "Jupyter Client",
+    "dock": {
+        "kernels": {
+            "text": "Running kernels"
+        },
+        "kernelspecs": {
+            "text": "Installed kernels"
+        },
+        "menu": {
+            "shutdownAllKernels": {
+                "label": "Shutdown all kernels"
+            },
+            "shutdownAllSessions": {
+                "label": "Shutdown all sessions"
+            },
+            "shutdownKernel": {
+                "label": "Shutdown kernel"
+            },
+            "shutdownSession": {
+                "label": "Shutdown session"
+            }
+        },
+        "refresh": {
+            "ariaLabel": "Refresh",
+            "label": "Refresh"
+        },
+        "resources": {
+            "text": "Jupyter resources list"
+        },
+        "sessions": {
+            "text": "Running sessions"
+        },
+        "title": "Jupyter"
+    },
+    "menu": {
+        "import": {
+            "accelerator": "*.ipynb",
+            "label": "Import file",
+            "submenu": {
+                "append": {
+                    "label": "Append to current document"
+                },
+                "override": {
+                    "label": "Override current document"
+                }
+            }
+        },
+        "kernel": {
+            "label": "Kernel",
+            "submenu": {
+                "info": {
+                    "label": "Kernel ID: ${1}<br/>Kernel Name: ${2}<br/>Kernel Language: ${3}<br/>Kernel comment: ${4}"
+                },
+                "interrupt": {
+                    "label": "Interrupt kernel"
+                },
+                "reconnect": {
+                    "label": "Reconnect"
+                },
+                "restart": {
+                    "label": "Restart kernel"
+                },
+                "shutdown": {
+                    "label": "Shutdown kernel"
+                }
+            }
+        },
+        "open": {
+            "label": "Open"
+        },
+        "openTab": {
+            "label": "Open in new tab"
+        },
+        "openTabBackground": {
+            "label": "Open in background tab"
+        },
+        "openTabBottom": {
+            "label": "Open below"
+        },
+        "openTabRight": {
+            "label": "Open right"
+        },
+        "run": {
+            "label": "Run",
+            "submenu": {
+                "all": {
+                    "label": "Run all cells"
+                },
+                "cntrl": {
+                    "disable": {
+                        "accelerator": "Plain text",
+                        "label": "Ignore control characters"
+                    },
+                    "enable": {
+                        "accelerator": "Rich text",
+                        "label": "Parse control characters"
+                    }
+                },
+                "custom": {
+                    "label": "Run with custom configuration"
+                },
+                "escape": {
+                    "disable": {
+                        "accelerator": "Render symbols",
+                        "label": "Output raw text"
+                    },
+                    "enable": {
+                        "accelerator": "Escape symbols",
+                        "label": "Output escaped text"
+                    }
+                },
+                "restart": {
+                    "accelerator": "Restart kernel",
+                    "label": "Run all cells"
+                },
+                "terminal": {
+                    "label": "Output to terminal"
+                }
+            }
+        },
+        "session": {
+            "label": "Session",
+            "submenu": {
+                "info": {
+                    "label": "Session ID: ${1}<br/>Session Name: ${2}<br/>Session Path: ${3}<br/>Session Type: ${4}"
+                },
+                "settings": {
+                    "label": "Session settings"
+                },
+                "shutdown": {
+                    "label": "Shutdown session"
+                }
+            }
+        }
+    },
+    "messages": {
+        "inputRequest": {
+            "title": "Input request"
+        },
+        "lastRunTime": {
+            "text": "Last run"
+        },
+        "noValidBlockSelected": {
+            "text": "No valid block selected"
+        },
+        "runtime": {
+            "text": "Runtime"
+        },
+        "sessionNotConnected": {
+            "text": "Current document not connected to a session"
+        },
+        "sessionOccupied": {
+            "text": "Session is currently occupied"
+        },
+        "uninitialized": {
+            "text": "Jupyter client uninitialized"
+        }
+    },
     "settings": {
         "generalSettings": {
             "reset": {
-                "description": "Reset all settings options to default options (refresh page after reset)",
+                "description": "Reset all settings options to default (will refresh the page)",
                 "text": "Reset",
                 "title": "Reset settings options"
             },
-            "title": "General"
+            "title": "General settings"
+        },
+        "jupyterSettings": {
+            "executeTab": {
+                "executeGoto": {
+                    "description": "Whether to automatically go to the currently executing code block during execution",
+                    "title": "Go to code block during execution"
+                },
+                "inputGoto": {
+                    "description": "Whether to automatically go to the currently executing code block when requesting user input",
+                    "title": "Go to code block when input"
+                },
+                "stopOnError": {
+                    "description": "Whether to abort execution when an uncaught exception is encountered",
+                    "title": "Stop on error"
+                },
+                "title": "Code execution"
+            },
+            "globalTab": {
+                "enable": {
+                    "description": "Enable to attempt to establish connection with Jupyter service",
+                    "title": "Enable Jupyter client"
+                },
+                "title": "Global"
+            },
+            "importTab": {
+                "cntrl": {
+                    "description": "Whether to parse rich text styles using control characters <code class='fn__code'>\\e</code><br/>Only effective when displaying content using the SiYuan paragraph block and is applied only to the text output of code cells in imported files<br/>When enabled, it will render rich text styles in the output text<br/>When disabled, it will remove rich text styles from the output text",
+                    "title": "Parse control characters"
+                },
+                "escaped": {
+                    "description": "Whether to escape Markdown symbols<br/>Only effective when displaying content using the SiYuan paragraph block and is applied only to the text output of code cells in imported files<br/>When enabled, it will display the raw text content of the output text (escaping all Markdown symbols)<br/>When disabled, it will consider the content of the output text as Markdown text for rendering",
+                    "title": "Escape symbols"
+                },
+                "title": "Import",
+                "xterm": {
+                    "description": "Whether to use <a href='https://xtermjs.org/'>xterm.js</a> to render the content of code cell outputs in imported files<br/>When enabled, it will ignore the settings of <code class='fn__code'>Escape symbols</code> and <code class='fn__code'>Parse control characters</code><br/>When disabled, it will use the SiYuan paragraph block to display the content of cell outputs in imported files",
+                    "title": "Render output content with Xterm"
+                }
+            },
+            "outputTab": {
+                "cntrl": {
+                    "description": "Whether to parse rich text styles set using control characters <code class='fn__code'>\\e</code><br/>Only effective when displaying output content using the SiYuan paragraph block<br/>When enabled, it will render rich text styles in the output content<br/>When disabled, it will remove rich text styles from the output content",
+                    "title": "Parse control characters"
+                },
+                "escaped": {
+                    "description": "Whether to escape Markdown symbols<br/>Only effective when displaying output content using the SiYuan paragraph block<br/>When enabled, it will display the raw text content of the output text (escaping all Markdown symbols)<br/>When disabled, it will consider the content of the output text as Markdown text for rendering",
+                    "title": "Escape symbols"
+                },
+                "title": "Output",
+                "xterm": {
+                    "description": "Whether to use <a href='https://xtermjs.org/'>xterm.js</a> to render the content of program runtime outputs<br/>When enabled, it will ignore the settings of <code class='fn__code'>Escape symbols</code> and <code class='fn__code'>Parse control characters</code><br/>When disabled, it will use the SiYuan paragraph block to display the output content",
+                    "title": "Render output content with Xterm"
+                }
+            },
+            "serviceTab": {
+                "appUrl": {
+                    "description": "Pathname for the Jupyter service",
+                    "title": "Jupyter service pathname"
+                },
+                "baseUrl": {
+                    "description": "Base URL for the Jupyter service",
+                    "title": "Jupyter service URL"
+                },
+                "title": "Service",
+                "token": {
+                    "description": "Jupyter service access token",
+                    "title": "Jupyter Token"
+                },
+                "wsUrl": {
+                    "description": "WebSocket URL for Jupyter kernel interaction",
+                    "title": "Kernel WebSocket URL"
+                }
+            },
+            "title": "Jupyter Settings"
+        },
+        "sessionSettings": {
+            "confirm": {
+                "connect": "Connect",
+                "new": "New",
+                "update": "Update"
+            },
+            "connect": {
+                "description": "Create a new session or select a current active session",
+                "options": {
+                    "new": {
+                        "text": "New Session"
+                    }
+                },
+                "title": "Session Selection"
+            },
+            "kernel": {
+                "description": "Select the kernel to use for the session, you can use No Kernel, New Kernel, or Running Kernel<br/><code class='fn__code'>⏹ Disable Kernel</code>: Do not use a kernel<br/><code class='fn__code'>▶ Start Kernel [Language Name] Kernel Name: Kernel Description</code>: Create a new kernel<br/><code class='fn__code'>♻ Reuse Kernel [Language Name] Kernel Name: Session Name</code>: Use the kernel from another session",
+                "options": {
+                    "new": {
+                        "text": "Start Kernel"
+                    },
+                    "no": {
+                        "text": "Disable Kernel"
+                    },
+                    "use": {
+                        "text": "Reuse Kernel"
+                    }
+                },
+                "title": "Kernel Selection"
+            },
+            "name": {
+                "description": "Customize the session name",
+                "title": "Session Name"
+            },
+            "path": {
+                "description": "The path to the file in the Jupyter workspace, the corresponding directory is also the working directory of the kernel runtime",
+                "title": "Session Path"
+            },
+            "title": "Session Settings",
+            "type": {
+                "description": "<code class='fn__code'>console</code>: Jupyter console, interactive runtime environment<br/><code class='fn__code'>notebook</code>: Jupyter notebook, <code class='fn__code'>*.ipynb</code> file",
+                "title": "Session Type"
+            }
+        },
+        "xtermSettings": {
+            "fontFamily": {
+                "description": "The font to use when displaying output using <a href='https://xtermjs.org/'>xterm.js</a>",
+                "title": "Font Family"
+            },
+            "title": "Xterm Settings"
         }
     }
 }

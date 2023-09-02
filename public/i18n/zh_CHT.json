@@ -1,13 +1,306 @@
 {
+    "commands": {
+        "runSelectedCells": {
+            "text": "運行所選代碼塊"
+        },
+        "runSelectedCellsAndGotoNext": {
+            "text": "運行所選代碼塊並跳轉到下一個代碼塊"
+        },
+        "runSelectedCellsAndInsertBelow": {
+            "text": "運行所選代碼塊並在下方插入新代碼塊"
+        }
+    },
     "displayName": "Jupyter 客戶端",
+    "dock": {
+        "kernels": {
+            "text": "運行的內核"
+        },
+        "kernelspecs": {
+            "text": "已安裝內核"
+        },
+        "menu": {
+            "shutdownAllKernels": {
+                "label": "關閉所有內核"
+            },
+            "shutdownAllSessions": {
+                "label": "關閉所有會話"
+            },
+            "shutdownKernel": {
+                "label": "關閉內核"
+            },
+            "shutdownSession": {
+                "label": "關閉會話"
+            }
+        },
+        "refresh": {
+            "ariaLabel": "刷新",
+            "label": "刷新"
+        },
+        "resources": {
+            "text": "Jupyter 資源列表"
+        },
+        "sessions": {
+            "text": "運行的會話"
+        },
+        "title": "Jupyter"
+    },
+    "menu": {
+        "import": {
+            "accelerator": "*.ipynb",
+            "label": "導入文件",
+            "submenu": {
+                "append": {
+                    "label": "追加到當前文檔末尾"
+                },
+                "override": {
+                    "label": "覆蓋當前文檔"
+                }
+            }
+        },
+        "kernel": {
+            "label": "內核",
+            "submenu": {
+                "info": {
+                    "label": "內核&emsp;ID: ${1}<br/>內核名稱: ${2}<br/>內核語言: ${3}<br/>內核備註: ${4}"
+                },
+                "interrupt": {
+                    "label": "中斷內核"
+                },
+                "reconnect": {
+                    "label": "重新連接"
+                },
+                "restart": {
+                    "label": "重啟內核"
+                },
+                "shutdown": {
+                    "label": "關閉內核"
+                }
+            }
+        },
+        "open": {
+            "label": "打開"
+        },
+        "openTab": {
+            "label": "在新頁籤中打開"
+        },
+        "openTabBackground": {
+            "label": "在後臺頁籤中打開"
+        },
+        "openTabBottom": {
+            "label": "在頁簽下側打開"
+        },
+        "openTabRight": {
+            "label": "在頁籤右側打開"
+        },
+        "run": {
+            "label": "運行",
+            "submenu": {
+                "all": {
+                    "label": "運行所有單元格"
+                },
+                "cntrl": {
+                    "disable": {
+                        "accelerator": "純文本",
+                        "label": "忽略控制字符"
+                    },
+                    "enable": {
+                        "accelerator": "富文本",
+                        "label": "解析控制字符"
+                    }
+                },
+                "custom": {
+                    "label": "使用自定義配置項運行"
+                },
+                "escape": {
+                    "disable": {
+                        "accelerator": "渲染符號",
+                        "label": "輸出原始文本"
+                    },
+                    "enable": {
+                        "accelerator": "轉義符號",
+                        "label": "輸出轉義文本"
+                    }
+                },
+                "restart": {
+                    "accelerator": "重啟內核",
+                    "label": "運行所有單元格"
+                },
+                "terminal": {
+                    "label": "輸出內容至終端"
+                }
+            }
+        },
+        "session": {
+            "label": "會話",
+            "submenu": {
+                "info": {
+                    "label": "會話&emsp;ID: ${1}<br/>會話名稱: ${2}<br/>會話路徑: ${3}<br/>會話類型: ${4}"
+                },
+                "settings": {
+                    "label": "會話設置"
+                },
+                "shutdown": {
+                    "label": "關閉會話"
+                }
+            }
+        }
+    },
+    "messages": {
+        "inputRequest": {
+            "title": "輸入請求"
+        },
+        "lastRunTime": {
+            "text": "上次執行"
+        },
+        "noValidBlockSelected": {
+            "text": "未選擇有效的塊"
+        },
+        "runtime": {
+            "text": "用時"
+        },
+        "sessionNotConnected": {
+            "text": "當前文檔未連接會話"
+        },
+        "sessionOccupied": {
+            "text": "該會話已被佔用"
+        },
+        "uninitialized": {
+            "text": "Jupyter 客戶端未初始化"
+        }
+    },
     "settings": {
         "generalSettings": {
             "reset": {
-                "description": "重置所有設定選項為預設選項（重置後將重新整理頁面）",
+                "description": "重置所有設置選項為默認選項（重置後將刷新頁面）",
                 "text": "重置",
-                "title": "重置設定選項"
+                "title": "重置設置選項"
             },
-            "title": "常規設定"
+            "title": "常規設置"
+        },
+        "jupyterSettings": {
+            "executeTab": {
+                "executeGoto": {
+                    "description": "運行時是否自動跳轉到當前執行的代碼塊",
+                    "title": "運行時跳轉"
+                },
+                "inputGoto": {
+                    "description": "請求用戶輸入文本時是否自動跳轉到當前執行的代碼塊",
+                    "title": "輸入時跳轉"
+                },
+                "stopOnError": {
+                    "description": "運行代碼時是否在遇到未捕獲的異常後中止執行",
+                    "title": "錯誤中斷"
+                },
+                "title": "代碼運行"
+            },
+            "globalTab": {
+                "enable": {
+                    "description": "開啟後將嘗試與 Jupyter 服務建立連接",
+                    "title": "啟用 Jupyter 客戶端"
+                },
+                "title": "全局"
+            },
+            "importTab": {
+                "cntrl": {
+                    "description": "是否解析使用控制字符 <code class='fn__code'>\\e</code> 設置的富文本樣式<br/>僅在使用思源段落塊顯示內容時生效，僅應用於所導入文件中代碼單元格的文本輸出<br/>開啟後將渲染輸出文本的富文本樣式<br/>關閉後將移除輸出文本的富文本樣式",
+                    "title": "解析控制字符"
+                },
+                "escaped": {
+                    "description": "是否轉義 Markdown 標誌符號<br/>僅在使用思源段落塊顯示內容時生效，僅應用於所導入文件中代碼單元格的文本輸出<br/>開啟後將顯示輸出文本的原始文本內容（轉義所有的 Markdown 標誌符號）<br/>關閉後將輸出文本的內容視為 Markdown 文本以進行渲染",
+                    "title": "轉義標誌符號"
+                },
+                "title": "導入",
+                "xterm": {
+                    "description": "是否使用 <a href='https://xtermjs.org/'>xterm.js</a> 渲染代碼單元格輸出的內容<br/>開啟後將忽略 <code class='fn__code'>轉義標誌符號</code> 與 <code class='fn__code'>解析控制字符</code> 設置項<br/>關閉後將使用思源段落塊顯示導入文件中單元格輸出的內容",
+                    "title": "使用 Xterm 渲染輸出內容"
+                }
+            },
+            "outputTab": {
+                "cntrl": {
+                    "description": "是否解析使用控制字符 <code class='fn__code'>\\e</code> 設置的富文本樣式<br/>僅在使用思源段落塊顯示輸出內容時生效<br/>開啟後將渲染輸出內容的富文本樣式<br/>關閉後將移除輸出內容的富文本樣式",
+                    "title": "解析控制字符"
+                },
+                "escaped": {
+                    "description": "是否轉義 Markdown 標誌符號<br/>僅在使用思源段落塊顯示輸出內容時生效<br/>開啟後將顯示輸出文本的原始文本內容（轉義所有的 Markdown 標誌符號）<br/>關閉後將輸出文本的內容視為 Markdown 文本以進行渲染",
+                    "title": "轉義標誌符號"
+                },
+                "title": "輸出",
+                "xterm": {
+                    "description": "是否使用 <a href='https://xtermjs.org/'>xterm.js</a> 渲染程序運行時輸出的內容<br/>開啟後將忽略 <code class='fn__code'>轉義標誌符號</code> 與 <code class='fn__code'>解析控制字符</code> 設置項<br/>關閉後將使用思源段落塊顯示輸出的內容",
+                    "title": "使用 Xterm 渲染輸出內容"
+                }
+            },
+            "serviceTab": {
+                "appUrl": {
+                    "description": "Jupyter 服務的 URL 路徑",
+                    "title": "Jupyter 服務路徑"
+                },
+                "baseUrl": {
+                    "description": "Jupyter 服務的基址 URL",
+                    "title": "Jupyter 服務 URL"
+                },
+                "title": "服務",
+                "token": {
+                    "description": "Jupyter 服務訪問 Token",
+                    "title": "Jupyter Token"
+                },
+                "wsUrl": {
+                    "description": "用於與 Jupyter 內核交互的 WebSocket URL",
+                    "title": "內核 WebSocket URL"
+                }
+            },
+            "title": "Jupyter 設置"
+        },
+        "sessionSettings": {
+            "confirm": {
+                "connect": "連接",
+                "new": "新建",
+                "update": "更新"
+            },
+            "connect": {
+                "description": "新建一個會話或選擇一個當前活躍的會話",
+                "options": {
+                    "new": {
+                        "text": "新建會話"
+                    }
+                },
+                "title": "會話選擇"
+            },
+            "kernel": {
+                "description": "選擇會話所使用的內核，可以使用無內核、新內核或正在運行的內核<br/><code class='fn__code'>⏹ 禁用內核</code>：不使用內核<br/><code class='fn__code'>▶ 啟動內核 [語言名稱] 內核名稱: 內核描述</code>：創建一個新內核<br/><code class='fn__code'>♻ 複用內核 [語言名稱] 內核名稱: 會話名稱</code>：使用其他會話的內核",
+                "options": {
+                    "new": {
+                        "text": "啟動內核"
+                    },
+                    "no": {
+                        "text": "禁用內核"
+                    },
+                    "use": {
+                        "text": "複用內核"
+                    }
+                },
+                "title": "內核選擇"
+            },
+            "name": {
+                "description": "自定義會話名稱",
+                "title": "會話名稱"
+            },
+            "path": {
+                "description": "文件在 Jupyter 工作空間中的路徑，對應的目錄也是內核運行時的工作目錄",
+                "title": "會話路徑"
+            },
+            "title": "會話設置",
+            "type": {
+                "description": "<code class='fn__code'>console</code>：Jupyter 控制檯，交互式運行環境<br/><code class='fn__code'>notebook</code>：Jupyter 筆記本，<code class='fn__code'>*.ipynb</code> 文件",
+                "title": "會話類型"
+            }
+        },
+        "xtermSettings": {
+            "fontFamily": {
+                "description": "使用 <a href='https://xtermjs.org/'>xterm.js</a> 顯示輸出內容時所使用的字體",
+                "title": "字體"
+            },
+            "title": "Xterm 設置"
         }
     }
 }

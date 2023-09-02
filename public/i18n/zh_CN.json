@@ -178,30 +178,75 @@
             "title": "常规设置"
         },
         "jupyterSettings": {
+            "executeTab": {
+                "executeGoto": {
+                    "description": "运行时是否自动跳转到当前执行的代码块",
+                    "title": "运行时跳转"
+                },
+                "inputGoto": {
+                    "description": "请求用户输入文本时是否自动跳转到当前执行的代码块",
+                    "title": "输入时跳转"
+                },
+                "stopOnError": {
+                    "description": "运行代码时是否在遇到未捕获的异常后中止执行",
+                    "title": "错误中断"
+                },
+                "title": "代码运行"
+            },
             "globalTab": {
                 "enable": {
                     "description": "开启后将尝试与 Jupyter 服务建立连接",
                     "title": "启用 Jupyter 客户端"
                 },
-                "title": "全局设置"
+                "title": "全局"
+            },
+            "importTab": {
+                "cntrl": {
+                    "description": "是否解析使用控制字符 <code class='fn__code'>\\e</code> 设置的富文本样式<br/>仅在使用思源段落块显示内容时生效，仅应用于所导入文件中代码单元格的文本输出<br/>开启后将渲染输出文本的富文本样式<br/>关闭后将移除输出文本的富文本样式",
+                    "title": "解析控制字符"
+                },
+                "escaped": {
+                    "description": "是否转义 Markdown 标志符号<br/>仅在使用思源段落块显示内容时生效，仅应用于所导入文件中代码单元格的文本输出<br/>开启后将显示输出文本的原始文本内容（转义所有的 Markdown 标志符号）<br/>关闭后将输出文本的内容视为 Markdown 文本以进行渲染",
+                    "title": "转义标志符号"
+                },
+                "title": "导入",
+                "xterm": {
+                    "description": "是否使用 <a href='https://xtermjs.org/'>xterm.js</a> 渲染代码单元格输出的内容<br/>开启后将忽略 <code class='fn__code'>转义标志符号</code> 与 <code class='fn__code'>解析控制字符</code> 设置项<br/>关闭后将使用思源段落块显示导入文件中单元格输出的内容",
+                    "title": "使用 Xterm 渲染输出内容"
+                }
+            },
+            "outputTab": {
+                "cntrl": {
+                    "description": "是否解析使用控制字符 <code class='fn__code'>\\e</code> 设置的富文本样式<br/>仅在使用思源段落块显示输出内容时生效<br/>开启后将渲染输出内容的富文本样式<br/>关闭后将移除输出内容的富文本样式",
+                    "title": "解析控制字符"
+                },
+                "escaped": {
+                    "description": "是否转义 Markdown 标志符号<br/>仅在使用思源段落块显示输出内容时生效<br/>开启后将显示输出文本的原始文本内容（转义所有的 Markdown 标志符号）<br/>关闭后将输出文本的内容视为 Markdown 文本以进行渲染",
+                    "title": "转义标志符号"
+                },
+                "title": "输出",
+                "xterm": {
+                    "description": "是否使用 <a href='https://xtermjs.org/'>xterm.js</a> 渲染程序运行时输出的内容<br/>开启后将忽略 <code class='fn__code'>转义标志符号</code> 与 <code class='fn__code'>解析控制字符</code> 设置项<br/>关闭后将使用思源段落块显示输出的内容",
+                    "title": "使用 Xterm 渲染输出内容"
+                }
             },
             "serviceTab": {
                 "appUrl": {
-                    "description": "Jupyter 服务的应用路径",
-                    "title": "Jupyter 应用路径"
+                    "description": "Jupyter 服务的 URL 路径",
+                    "title": "Jupyter 服务路径"
                 },
                 "baseUrl": {
                     "description": "Jupyter 服务的基址 URL",
                     "title": "Jupyter 服务 URL"
                 },
-                "title": "服务设置",
+                "title": "服务",
                 "token": {
                     "description": "Jupyter 服务访问 Token",
                     "title": "Jupyter Token"
                 },
                 "wsUrl": {
-                    "description": "Jupyter 内核交互 URL",
-                    "title": "内核 Web Socket URL"
+                    "description": "用于与 Jupyter 内核交互的 WebSocket URL",
+                    "title": "内核 WebSocket URL"
                 }
             },
             "title": "Jupyter 设置"
@@ -249,6 +294,13 @@
                 "description": "<code class='fn__code'>console</code>：Jupyter 控制台，交互式运行环境<br/><code class='fn__code'>notebook</code>：Jupyter 笔记本，<code class='fn__code'>*.ipynb</code> 文件",
                 "title": "会话类型"
             }
+        },
+        "xtermSettings": {
+            "fontFamily": {
+                "description": "使用 <a href='https://xtermjs.org/'>xterm.js</a> 显示输出内容时所使用的字体",
+                "title": "字体"
+            },
+            "title": "Xterm 设置"
         }
     }
 }

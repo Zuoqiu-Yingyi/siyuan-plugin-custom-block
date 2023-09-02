@@ -20,40 +20,39 @@ import type { IConfig } from "@/types/config";
 export const DEFAULT_CONFIG: IConfig = {
     jupyter: {
         server: {
-            enable: false,
+            enable: false, // ⚙
             settings: {
-                baseUrl: "",
-                appUrl: "",
-                wsUrl: "",
-                token: "",
-                appendToken: false,
+                baseUrl: "", // ⚙
+                appUrl: "", // ⚙
+                wsUrl: "", // ⚙
+                token: "", // ⚙
             },
         },
         execute: {
-            goto: true,
+            goto: true, // ⚙
             content: {
                 silent: false,
                 store_history: true,
                 user_expressions: {},
                 allow_stdin: true,
-                stop_on_error: true,
+                stop_on_error: true, // ⚙
             },
             input: {
-                goto: true,
+                goto: true, // ⚙
             },
             output: {
                 parser: {
-                    xterm: false,
-                    escaped: true,
-                    cntrl: true,
+                    xterm: false, // ⚙
+                    escaped: true, // ⚙
+                    cntrl: true, // ⚙
                 },
             },
         },
         import: {
             parser: {
-                xterm: false,
-                escaped: true,
-                cntrl: true,
+                xterm: false, // ⚙
+                escaped: true, // ⚙
+                cntrl: true, // ⚙
             },
         },
     },
@@ -63,7 +62,7 @@ export const DEFAULT_CONFIG: IConfig = {
             disableStdin: true,
             convertEol: true,
             logLevel: "off",
-            fontFamily: "JetBrainsMono-Regular",
+            fontFamily: "JetBrainsMono-Regular", // ⚙
         },
     },
 };

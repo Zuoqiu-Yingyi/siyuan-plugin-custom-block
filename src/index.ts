@@ -29,6 +29,7 @@ import "xterm/css/xterm.css";
 import icon_jupyter_client from "./assets/symbols/icon-jupyter-client.symbol?raw";
 import icon_jupyter_client_text from "./assets/symbols/icon-jupyter-client-text.symbol?raw";
 import icon_jupyter_client_simple from "./assets/symbols/icon-jupyter-client-simple.symbol?raw";
+import icon_jupyter_client_terminal from "./assets/symbols/icon-jupyter-client-terminal.symbol?raw";
 import icon_jupyter_client_kernelspec from "./assets/symbols/icon-jupyter-client-kernelspec.symbol?raw";
 import icon_jupyter_client_kernel from "./assets/symbols/icon-jupyter-client-kernel.symbol?raw";
 import icon_jupyter_client_kernel_unknown from "./assets/symbols/icon-jupyter-client-kernel-unknown.symbol?raw";
@@ -207,6 +208,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             icon_jupyter_client,
             icon_jupyter_client_text,
             icon_jupyter_client_simple,
+            icon_jupyter_client_terminal,
             icon_jupyter_client_kernelspec,
             icon_jupyter_client_kernel,
             icon_jupyter_client_kernel_unknown,
