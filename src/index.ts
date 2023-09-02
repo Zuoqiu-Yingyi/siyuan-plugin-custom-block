@@ -362,6 +362,9 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                     );
                     await this.updateWorkerConfig(true);
                 }
+                else { // worker 已正常运行, 强制刷新 jupyter 资源列表
+                    await this.jupyterForceRefresh();
+                }
 
                 /* 注册事件监听器 */
                 this.eventBus.on("click-editortitleicon", this.blockMenuEventListener);
@@ -371,14 +374,6 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     }
 
     onLayoutReady(): void {
-        // @ts-ignore
-        // globalThis.jupyter = new Jupyter(
-        //     this.config.jupyter.server.settings,
-        //     this.logger,
-        //     (...args: any[]) => null,
-        //     (...args: any[]) => null,
-        //     (...args: any[]) => null,
-        // );
     }
 
     onunload(): void {
@@ -570,6 +565,33 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             url,
             init,
         );
+    }
+
+    /**
+     * 强制刷新 jupyter 资源列表
+     */
+    public async jupyterForceRefresh(): Promise<void> {
+        const results = await Promise.allSettled([
+            this.bridge?.call<WorkerHandlers["jupyter.kernelspecs.specs"]>(
+                "jupyter.kernelspecs.specs",
+            ),
+            this.bridge?.call<WorkerHandlers["jupyter.kernels.running"]>(
+                "jupyter.kernels.running",
+            ),
+            this.bridge?.call<WorkerHandlers["jupyter.sessions.running"]>(
+                "jupyter.sessions.running",
+            ),
+        ]);
+
+        if (results[0].status === "fulfilled" && results[0].value) {
+            this.updateKernelSpecs(results[0].value);
+        }
+        if (results[1].status === "fulfilled" && results[1].value) {
+            this.updateKernels(results[1].value);
+        }
+        if (results[2].status === "fulfilled" && results[2].value) {
+            this.updateSessions(results[2].value);
+        }
     }
 
     /**

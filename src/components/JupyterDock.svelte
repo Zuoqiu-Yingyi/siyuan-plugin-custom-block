@@ -359,9 +359,10 @@
                 ariaLabel: plugin.i18n.dock.refresh.ariaLabel,
                 tooltipsDirection: TooltipsDirection.sw,
                 onClick: async (_e, _element, _props) => {
-                    await plugin.bridge?.call<WorkerHandlers["jupyter.refresh"]>(
-                        "jupyter.refresh", //
-                    );
+                    // await plugin.bridge?.call<WorkerHandlers["jupyter.refresh"]>(
+                    //     "jupyter.refresh", //
+                    // );
+                    await plugin.jupyterForceRefresh();
                 },
             },
             {

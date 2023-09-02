@@ -1043,6 +1043,10 @@ const handlers = {
         get this() { return jupyter },
         get func() { return jupyter?.refresh ?? _undefined<Jupyter["refresh"]> },
     },
+    "jupyter.kernelspecs.specs": { // 获取内核清单
+        this: self,
+        func: () => jupyter?.kernelspecs.specs,
+    },
     "jupyter.kernelspecs.refreshSpecs": { // 刷新内核清单
         get this() { return jupyter?.kernelspecs },
         get func() { return jupyter?.kernelspecs.refreshSpecs ?? _undefined<Jupyter["kernelspecs"]["refreshSpecs"]> },
