@@ -16,8 +16,6 @@
 /* 思源样式 */
 
 :root {
-    // 面包屑高度
-    --jupyter-client-breadcrumb-height: 2rem;
     // jupyter 主题色
     --jupyter-client-jupyter-theme-color: #F37726;
 }
@@ -34,19 +32,19 @@
     &[custom-jupyter-kernel-status] {
 
         &::after {
-            content: "["
-                attr(custom-jupyter-kernel-language) "] "
-                attr(custom-jupyter-kernel-name) " | "
-                attr(custom-jupyter-kernel-display-name) " ["
-                attr(custom-jupyter-kernel-connection-status) "] ["
-                attr(custom-jupyter-kernel-status) "]";
+            content: "#️⃣" attr(custom-jupyter-kernel-language) // 内核语言
+                " ⚛" attr(custom-jupyter-kernel-name) // 内核名称
+                " ℹ" attr(custom-jupyter-kernel-display-name) // 内核描述
+                " 📶" attr(custom-jupyter-kernel-connection-status) // 连接状态
+                " 💡" attr(custom-jupyter-kernel-status) // 内核状态
+                "";
             position: absolute;
-            top: calc(var(--jupyter-client-breadcrumb-height) + 2.5em);
+            bottom: 0.5em;
             right: 1em;
             z-index: 1;
 
             font-size: 0.75em;
-            padding: 2px;
+            padding: 3px;
             outline: 1px solid var(--jupyter-client-jupyter-theme-color);
         }
     }

@@ -93,7 +93,8 @@
     }
 
     /* 可选的内核列表 */
-    const kernel_options: { key: string; text: string }[] = [];
+    const kernel_options: { key: string; text: string }[] = []; // 包含复用内核
+    const kernel_options_new: { key: string; text: string }[] = []; // 不包含复用内核
     /* 禁用内核 */
     kernel_options.push({
         key: "",
@@ -108,6 +109,7 @@
                 text: `▶ ${i18n.settings.sessionSettings.kernel.options.new.text} [${k!.language}] ${k!.name}: ${k!.display_name}`,
             })),
     );
+    kernel_options_new.push(...kernel_options);
     /* 使用内核 */
     kernel_options.push(
         ...plugin.sessions
@@ -156,22 +158,16 @@
                 }
             } else if (!flag_session_connected) {
                 if (session.kernel) {
-                    if (plugin.session2docs.has(session.id)) {
-                        // 该会话已被占用
-                        plugin.siyuan.showMessage(i18n.messages.sessionOccupied.text);
-                        return;
-                    } else {
-                        // 连接已有会话
-                        session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.connectTo"]>(
-                            "jupyter.sessions.connectTo", //
-                            docID,
-                            {
-                                model: session,
-                                username: plugin.username,
-                                clientId: plugin.clientId,
-                            },
-                        );
-                    }
+                    // 连接已有会话
+                    session_model = await plugin.bridge?.call<WorkerHandlers["jupyter.sessions.connectTo"]>(
+                        "jupyter.sessions.connectTo", //
+                        docID,
+                        {
+                            model: session,
+                            username: plugin.username,
+                            clientId: plugin.newClientId,
+                        },
+                    );
                 }
             } else {
                 // 更新发生更改的会话信息
@@ -393,7 +389,7 @@
                       session.kernel?.name ?? // 启动内核
                       plugin.kernelspecs.default // 默认启动内核
                     : ""}
-                options={kernel_options}
+                options={flag_session_new ? kernel_options_new : kernel_options}
                 disabled={flag_session_new // 若为新建会话, 可以编辑
                     ? false
                     : !flag_session_connected // 若为未连接且正在运行的会话, 不能编辑

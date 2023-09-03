@@ -101,6 +101,7 @@ import type {
     IClickBlockIconEvent,
     IClickEditorContentEvent,
     IClickEditorTitleIconEvent,
+    ILoadedProtyleEvent,
 } from "@workspace/types/siyuan/events";
 import type { THandlersWrapper } from "@workspace/utils/worker/bridge";
 import type { WorkerHandlers } from "./workers/jupyter";
@@ -164,7 +165,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                     blockID: BlockID,
                     clientID: string,
                 ) => {
-                    if (clientID === this.clientId) {
+                    if (clientID === this.clientId && this.doc2session.has(blockID)) {
                         await this.gotoBlock(blockID);
                     }
                 },
@@ -370,6 +371,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                 this.eventBus.on("click-editortitleicon", this.blockMenuEventListener);
                 this.eventBus.on("click-blockicon", this.blockMenuEventListener);
                 this.eventBus.on("click-editorcontent", this.clickEditorContentEventListener);
+                this.eventBus.on("loaded-protyle", this.loadedProtyleEventListener);
             });
     }
 
@@ -379,6 +381,8 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     onunload(): void {
         this.eventBus.off("click-editortitleicon", this.blockMenuEventListener);
         this.eventBus.off("click-blockicon", this.blockMenuEventListener);
+        this.eventBus.off("click-editorcontent", this.clickEditorContentEventListener);
+        this.eventBus.off("loaded-protyle", this.loadedProtyleEventListener);
 
         if (this.worker) {
             this.bridge
@@ -411,6 +415,14 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                 },
             });
         }
+    }
+
+    public get baseUrl(): string {
+        return this.config?.jupyter.server.settings.baseUrl || DEFAULT_SETTINGS.baseUrl;
+    }
+
+    public get newClientId(): string {
+        return globalThis.Lute.NewNodeID();
     }
 
     /* 重置插件配置 */
@@ -470,10 +482,6 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         catch (error) {
             return false;
         }
-    }
-
-    public get baseUrl(): string {
-        return this.config?.jupyter.server.settings.baseUrl || DEFAULT_SETTINGS.baseUrl;
     }
 
     /**
@@ -1424,7 +1432,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     /**
      * 转到块
      * @param id 块 ID
-     * @param heightlight 是否高亮块
+     * @param heightlight 是否高亮块 (高亮块时光标将不在块内)
      * @param afterOpen 打开后回调
      */
     public async gotoBlock(
@@ -1530,6 +1538,33 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         }
 
         this.updateDockFocusItem(protyle.block.rootID!);
+    }
+
+    /* 编辑器加载事件监听器 */
+    protected readonly loadedProtyleEventListener = async (e: ILoadedProtyleEvent) => {
+        // this.logger.debug(e);
+        const protyle = e.detail;
+
+        /* 更新内核状态 */
+        if (!this.doc2session.has(protyle.block.rootID!)) {
+            const attrs: Record<string, string> = {};
+            if (protyle.background?.ial?.[CONSTANTS.attrs.kernel.connection_status]
+                && protyle.background.ial[CONSTANTS.attrs.kernel.connection_status] !== "disconnected"
+            ) {
+                attrs[CONSTANTS.attrs.kernel.connection_status] = "disconnected"
+            }
+            if (protyle.background?.ial?.[CONSTANTS.attrs.kernel.status]
+                && protyle.background.ial[CONSTANTS.attrs.kernel.status] !== "unknown"
+            ) {
+                attrs[CONSTANTS.attrs.kernel.status] = "unknown"
+            }
+            if (Object.keys(attrs).length > 0) {
+                await this.client.setBlockAttrs({
+                    id: protyle.block.rootID!,
+                    attrs,
+                });
+            }
+        }
     }
 
     /**

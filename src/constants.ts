@@ -14,6 +14,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+import type {
+    KernelSpec,
+    Kernel,
+    Session,
+} from "@jupyterlab/services";
+
 export default {
     JUPYTER_WORKER_FILE_NAME: "jupyter", // web worker 文件名称
     JUPYTER_WORKER_BROADCAST_CHANNEL_NAME: "jupyter-worker", // web worker 任务广播通道名称
@@ -22,18 +29,72 @@ export default {
     JUPYTER_RUNTIME_FORMAT: "HH:mm:ss.SSS", // 运行用时格式
     attrs: { // 块属性
         kernel: {
-            id: "custom-jupyter-kernel-id", // 内核 ID
-            name: "custom-jupyter-kernel-name", // 内核名称
-            language: "custom-jupyter-kernel-language", // 内核语言
-            display_name: 'custom-jupyter-kernel-display-name', // 内核友好名称
-            status: 'custom-jupyter-kernel-status', // 内核状态
-            connection_status: 'custom-jupyter-kernel-connection-status', // 内核连接
+            /**
+             * 内核 ID
+             * {@link KernelSpec.ISpecModel.id}
+             */
+            id: "custom-jupyter-kernel-id",
+
+            /**
+             * 内核名称
+             * {@link KernelSpec.ISpecModel.name}
+             */
+            name: "custom-jupyter-kernel-name",
+
+            /**
+             * 内核语言
+             * {@link KernelSpec.ISpecModel.language}
+             */
+            language: "custom-jupyter-kernel-language",
+
+            /**
+             * 内核可读名称
+             * {@link KernelSpec.ISpecModel.display_name}
+             */
+            display_name: 'custom-jupyter-kernel-display-name',
+
+            /**
+             * 内核状态
+             * {@link Kernel.Status}
+             * ```ts
+             * type Status = 'unknown' | 'starting' | 'idle' | 'busy' | 'terminating' | 'restarting' | 'autorestarting' | 'dead';
+             * ```
+             */
+            status: 'custom-jupyter-kernel-status',
+
+            /**
+             * 连接状态
+             * {@link Kernel.ConnectionStatus}
+             * ```ts
+             * type ConnectionStatus = 'connected' | 'connecting' | 'disconnected';
+             * ```
+             */
+            connection_status: 'custom-jupyter-kernel-connection-status',
         },
         session: {
-            id: "custom-jupyter-session-id", // 会话 ID
-            type: "custom-jupyter-session-type", // 会话类型
-            name: "custom-jupyter-session-name", // 会话名称
-            path: "custom-jupyter-session-path", // 会话路径
+            /**
+             * 会话 ID
+             * {@link Session.IModel.id}
+             */
+            id: "custom-jupyter-session-id",
+
+            /**
+             * 会话类型
+             * {@link Session.IModel.type}
+             */
+            type: "custom-jupyter-session-type",
+
+            /**
+             * 会话名称
+             * {@link Session.IModel.name}
+             */
+            name: "custom-jupyter-session-name",
+
+            /**
+             * 会话路径
+             * {@link Session.IModel.path}
+             */
+            path: "custom-jupyter-session-path",
         },
         code: {
             type: {

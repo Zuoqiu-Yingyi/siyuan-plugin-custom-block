@@ -46,7 +46,6 @@ export default function (plugin: InstanceType<typeof JupyterClientPlugin>) {
 export class XtermOutputElement extends HTMLElement {
     public static readonly TAG_NAME = "jupyter-xterm-output";
     protected static readonly ELEMENT_ID_STYLE = "style";
-    protected static readonly ELEMENT_ID_STREAM = "stream";
     protected static readonly ELEMENT_ID_CONTENT = "content";
     protected static readonly ELEMENT_ID_PREVIEW = "preview";
 
@@ -56,11 +55,10 @@ export class XtermOutputElement extends HTMLElement {
     public readonly shadowRoot: ShadowRoot; // 样式表引用地址
 
     protected link?: HTMLLinkElement | null; // 样式表引用标签
-    protected stream?: HTMLPreElement | null; // 存放输出流数据的标签
-    protected content?: HTMLPreElement | null; // 存放输出流文本的标签
+    protected content?: HTMLPreElement | null; // 存放输出流文本的标签 (data-stream 保存 base 64 编码的数据)
     protected preview?: HTMLDivElement | null; // 存放渲染结果的标签
 
-    protected data: string = ""; // 输出流的原始文本
+    protected data: string = ""; // 输出流的原始内容
     protected terminal?: InstanceType<typeof Terminal>; // xterm 终端实例
     protected fitAddon?: InstanceType<typeof FitAddon>; // xterm 终端实例
     protected resizeObserver?: InstanceType<typeof ResizeObserver>; // xterm 终端实例
@@ -81,7 +79,6 @@ export class XtermOutputElement extends HTMLElement {
      */
     connectedCallback(): void {
         this.link = this.querySelector(`link#${XtermOutputElement.ELEMENT_ID_STYLE}`);
-        this.stream = this.querySelector(`pre#${XtermOutputElement.ELEMENT_ID_STREAM}`);
         this.content = this.querySelector(`pre#${XtermOutputElement.ELEMENT_ID_CONTENT}`);
         this.preview = this.querySelector(`div#${XtermOutputElement.ELEMENT_ID_PREVIEW}`);
 
@@ -94,25 +91,11 @@ export class XtermOutputElement extends HTMLElement {
             this.shadowRoot.appendChild(this.link);
         }
 
-        if (this.stream) { // 存在输出流的原始文本
-            this.shadowRoot.appendChild(this.stream);
+        if (this.content) { // 存在输出流的内容
+            this.shadowRoot.appendChild(this.content);
+            this.content.style.display = "none"; // 隐藏文本内容
 
-            /* 隐藏文本内容 */
-            if (this.content) {
-                this.content.style.display = "none";
-                this.shadowRoot.appendChild(this.content);
-            }
-
-            switch (this.stream.dataset.format) {
-                case "base64":
-                    this.data = decode(this.stream.innerText.trim());
-                    break;
-
-                case "raw":
-                default:
-                    this.data = this.stream.innerText;
-                    break;
-            }
+            this.data = decode(this.content.dataset.stream ?? "");
 
             if (this.preview) { // 已渲染
                 this.shadowRoot.appendChild(this.preview);

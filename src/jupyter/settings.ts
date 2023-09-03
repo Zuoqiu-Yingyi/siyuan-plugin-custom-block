@@ -20,7 +20,7 @@ import type { ServerConnection } from "@jupyterlab/services";
 
 export const DEFAULT_SETTINGS: IJupyterServerSettings = {
     baseUrl: "http://localhost:8888/",
-    appUrl: "/app",
+    appUrl: "/lab",
     wsUrl: "",
     token: "",
 } as const;

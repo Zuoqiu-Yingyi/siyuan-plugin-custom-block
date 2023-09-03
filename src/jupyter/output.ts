@@ -34,7 +34,6 @@ import { trimPrefix, trimSuffix } from "@workspace/utils/misc/string";
  */
 export function xtermElement(
     stream: string,
-    format?: "base64" | "raw",
     blockId?: string,
     save?: boolean,
 ): string {
@@ -43,18 +42,9 @@ export function xtermElement(
     if (save) elenent["data-save"] = "true";
     const element_attrs = Object.entries(elenent).map(([k, v]) => `${k}="${v}"`).join(" ");
 
-    const streams: Record<string, string> = {
-        id: "stream",
-        style: "display: none;"
-    };
-    if (format) streams["data-format"] = format;
-    const stream_attrs = Object.entries(streams).map(([k, v]) => `${k}="${v}"`).join(" ");
-    const stream_data = (format === "base64" || stream.includes("\n\n"))
-        ? encode(stream, true)
-        : escapeHTML(stream);
-
     const content: Record<string, string> = {
         id: "content",
+        "data-stream": encode(stream, true),
     };
     const content_attrs = Object.entries(content).map(([k, v]) => `${k}="${v}"`).join(" ");
     const content_data = escapeHTML( // 转义 HTML
@@ -71,7 +61,6 @@ export function xtermElement(
     return [
         "<div>",
         `<jupyter-xterm-output ${element_attrs}>`,
-        `<pre ${stream_attrs}>${stream_data}</pre>`,
         `<pre ${content_attrs}>\n${content_data}\n</pre>`,
         "</jupyter-xterm-output>",
         "</div>",
@@ -104,16 +93,13 @@ export class Output {
 
     /**
      * 构建 xterm 元素
-     * @param format 格式
      * @param blockId 块 ID
      */
     buildXtermElement(
-        format?: "base64" | "raw",
         blockId?: string,
     ) {
         this.text = xtermElement(
             this.text,
-            format,
             blockId,
         );
         return this;

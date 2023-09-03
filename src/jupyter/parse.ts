@@ -43,7 +43,7 @@ export function parseText(
 ): string {
     const output = new Output(text);
     if (options.xterm) {
-        output.buildXtermElement("base64", blockId);
+        output.buildXtermElement(blockId);
     }
     else {
         if (options.escaped) output.escapeMark();
