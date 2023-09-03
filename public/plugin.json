@@ -2,7 +2,7 @@
     "name": "jupyter-client",
     "author": "Zuoqiu Yingyi",
     "url": "https://github.com/Zuoqiu-Yingyi/siyuan-plugin-jupyter-client",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "displayName": {
         "default": "Jupyter Client",
         "zh_CN": "Jupyter 客户端",
