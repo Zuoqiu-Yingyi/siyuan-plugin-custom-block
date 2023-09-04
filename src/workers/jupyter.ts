@@ -32,9 +32,16 @@ import { DEFAULT_CONFIG } from "@/configs/default";
 import { IpynbImport } from "@/jupyter/import";
 import { Jupyter } from "@/jupyter";
 import { Output } from "@/jupyter/output";
-import { parseData, parseText, type IData } from "@/jupyter/parse";
+import {
+    parseData,
+    parseText,
+    type IData,
+} from "@/jupyter/parse";
 
-import type { IConfig, IJupyterParserOptions } from "@/types/config";
+import type {
+    IConfig,
+    IJupyterParserOptions,
+} from "@/types/config";
 import type {
     IFunction,
     THandlersWrapper,

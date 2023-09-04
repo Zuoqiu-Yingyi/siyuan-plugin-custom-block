@@ -33,18 +33,12 @@
 
     * 可能需要设置 Jupyter 配置文件中的如下字段
 
-      * JupyterLab: `~/.jupyter/jupyter_lab_config.py`
+      * `JupyterLab`: `~/.jupyter/jupyter_lab_config.py`
+        `Jupyter Notebook`: `~/.jupyter/jupyter_notebook_config.py`
 
         ```python
         c.ServerApp.allow_origin = '*'
         c.ServerApp.disable_check_xsrf = True
-        c.IdentityProvider.token = '<自定义的访问 Token>'
-        ```
-      * `Jupyter Notebook`: `~/.jupyter/jupyter_notebook_config.py`
-
-        ```python
-        c.NotebookApp.allow_origin = '*'
-        c.NotebookApp.disable_check_xsrf = True
         c.IdentityProvider.token = '<自定义的访问 Token>'
         ```
   * 打开本插件, 并打开本插件的 <kbd>插件设置面板</kbd>

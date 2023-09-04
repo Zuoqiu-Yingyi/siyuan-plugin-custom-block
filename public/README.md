@@ -33,19 +33,13 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
 
     * You may need to set the following fields in the Jupyter configuration file
 
-      * JupyterLab: `~/.jupyter/jupyter_lab_config.py`
+      * `JupyterLab`: `~/.jupyter/jupyter_lab_config.py`
+        `Jupyter Notebook`: `~/.jupyter/jupyter_notebook_config.py`
 
         ```python
         c.ServerApp.allow_origin = '*'
         c.ServerApp.disable_check_xsrf = True
-        c.IdentityProvider.token = 'custom'
-        ```
-      * `Jupyter Notebook`: `~/.jupyter/jupyter_notebook_config.py`
-
-        ```python
-        c.NotebookApp.allow_origin = '*'
-        c.NotebookApp.disable_check_xsrf = True
-        c.IdentityProvider.token = 'custom'
+        c.IdentityProvider.token = '<Custom Asset Token>'
         ```
   * Open the plugin and open the <kbd>Plugin Settings Panel</kbd>
 
