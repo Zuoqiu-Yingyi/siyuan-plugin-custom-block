@@ -22,16 +22,21 @@
     import Tab from "@workspace/components/siyuan/tab/Tab.svelte";
     import BlockIcon from "@workspace/components/siyuan/misc/BlockIcon.svelte";
     import { TooltipsDirection } from "@workspace/components/siyuan/misc/tooltips";
-    import type { Electron } from "@workspace/types/electron";
+    import { FLAG_ELECTRON } from "@workspace/utils/env/native-front-end";
+    import { isStaticPathname } from "@workspace/utils/siyuan/url";
+
+    import type siyuan from "siyuan";
     import type WebviewPlugin from "@/index";
+    import type { Electron } from "@workspace/types/electron";
     import type { I18N } from "@/utils/i18n";
 
     export let src: string;
-    export let tab: any;
+    export let tab: siyuan.ITabModel;
     export let plugin: InstanceType<typeof WebviewPlugin>;
 
+    export let title: string = ""; // 页面标题
     export let useragent: string = plugin.useragent; // 用户代理
-    export let background: string = plugin.background; // 用户代理
+    export let background: string = plugin.background; // 背景
 
     const i18n = plugin.i18n as unknown as I18N;
 
@@ -41,32 +46,43 @@
     let loading = false; // 页面是否正在加载
     let address = decodeURI(src); // 地址栏
     let devtools_opened = false; // 开发者工具是否已打开
+
+    let iframe: HTMLIFrameElement; // iframe 标签
     let webview: Electron.WebviewTag; // webview 标签
     let webview_pointer_events_disable = false; // 是否禁用 webview 的鼠标事件
 
     let status_display = false; // 状态栏显示状态
     let status = ""; // 状态栏内容
 
+    /* 加载 URL */
+    function loadURL(address: string): void {
+        if (FLAG_ELECTRON) {
+            webview?.loadURL?.(address);
+        } else {
+            src = address;
+        }
+    }
+
     /* 转到上一页 */
     function onGoBack() {
         if (can_back) {
-            webview?.goBack();
+            webview?.goBack?.();
         }
     }
 
     /* 转到下一页 */
     function onGoForward() {
         if (can_back) {
-            webview?.goBack();
+            webview?.goBack?.();
         }
     }
 
     /* 刷新或终止加载按钮 */
     function onRefreshOrStop() {
         if (loading) {
-            webview?.stop();
+            webview?.stop?.();
         } else {
-            webview?.reload();
+            webview?.reload?.();
         }
     }
 
@@ -76,15 +92,35 @@
 
         if (address) {
             try {
-                const url = new URL(address);
-                webview.loadURL(url.href);
-            } catch (e) {
                 try {
-                    const url = new URL(`http://${address}`);
-                    webview.loadURL(url.href.replace(/^http:/, ""));
-                } catch (error) {
-                    plugin.siyuan.showMessage(`${plugin.name}:\nURL <code class="fn__code">${address}</code> ${i18n.message.nonStandardURL}\n`, undefined, "error");
+                    // 判断是否为标准 URL
+                    const url = new URL(address);
+                    address = url.href;
+                } catch (e) {
+                    switch (true) {
+                        case address.startsWith("//"): {
+                            /* `//` 协议 */
+                            const url = new URL(`https:${address}`);
+                            address = url.href;
+                            break;
+                        }
+                        case isStaticPathname(address, false): {
+                            /* 是否为思源静态文件服务 */
+                            const url = new URL(`${globalThis.document.baseURI}${address}`);
+                            address = url.href;
+                            break;
+                        }
+                        default: {
+                            /* 未设置协议的 URL */
+                            const url = new URL(`https://${address}`);
+                            address = url.href;
+                            break;
+                        }
+                    }
                 }
+                loadURL(address);
+            } catch (error) {
+                plugin.siyuan.showMessage(`${plugin.name}:\nURL <code class="fn__code">${address}</code> ${i18n.message.nonStandardURL}\n`, undefined, "error");
             }
         }
     }
@@ -111,10 +147,10 @@
     /* 打开/关闭开发者工具 */
     function onOpenOrCloseDevTools() {
         if (webview) {
-            if (webview.isDevToolsOpened()) {
-                webview.closeDevTools();
+            if (webview?.isDevToolsOpened?.()) {
+                webview?.closeDevTools?.();
             } else {
-                webview.openDevTools();
+                webview?.openDevTools?.();
             }
         }
     }
@@ -126,7 +162,7 @@
          * REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#event-will-navigate
          * REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#event-did-start-navigation
          */
-        webview.addEventListener("load-commit", e => {
+        webview?.addEventListener?.("load-commit", e => {
             // plugin.logger.debug(e)
             /* 更新地址栏地址 */
             if (e.isMainFrame) {
@@ -136,30 +172,32 @@
 
             /* 是否可后退 */
             // REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#webviewcangoback
-            can_back = webview.canGoBack();
+            can_back = webview?.canGoBack?.();
 
             /* 是否可前进 */
             // REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#webviewcangoback
-            can_forward = webview.canGoForward();
+            can_forward = webview?.canGoForward?.();
         });
 
         /**
          * 更改页签标题
          * REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#%E4%BA%8B%E4%BB%B6-page-title-updated
          */
-        webview.addEventListener("page-title-updated", e => {
+        webview?.addEventListener?.("page-title-updated", e => {
             // plugin.logger.debug(e)
             // plugin.logger.debug(tab);
-            tab.data.title = e.title;
-            tab.tab.updateTitle(e.title);
-            tab.tab.headElement.ariaLabel = e.title;
+            title = e.title;
+
+            tab.data.title = title;
+            tab.tab.updateTitle(title);
+            tab.tab.headElement.ariaLabel = title;
         });
 
         /**
          * 更改页签图标
          * REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#%E4%BA%8B%E4%BB%B6-page-favicon-updated
          */
-        webview.addEventListener("page-favicon-updated", e => {
+        webview?.addEventListener?.("page-favicon-updated", e => {
             // plugin.logger.debug(e)
             const favicons = e.favicons;
 
@@ -186,7 +224,7 @@
                 }
             } else {
                 /* 设置默认图标 */
-                tab.tab.setDocIcon("🌐".codePointAt(0).toString(16), true);
+                tab.tab.setDocIcon("🌐".codePointAt(0).toString(16));
             }
         });
 
@@ -196,12 +234,12 @@
          * REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#event-did-stop-loading
          */
         /* 开始加载 */
-        webview.addEventListener("did-start-loading", _ => {
+        webview?.addEventListener?.("did-start-loading", _ => {
             // plugin.logger.debug(e)
             loading = true;
         });
         /* 停止加载 */
-        webview.addEventListener("did-stop-loading", _ => {
+        webview?.addEventListener?.("did-stop-loading", _ => {
             // plugin.logger.debug(e)
             loading = false;
         });
@@ -210,7 +248,7 @@
          * 开发者工具中打开超链接
          * REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#event-devtools-open-url
          */
-        webview.addEventListener("devtools-open-url", e => {
+        webview?.addEventListener?.("devtools-open-url", e => {
             // plugin.logger.debug(e);
             plugin.openWebviewTab(e.url);
         });
@@ -220,14 +258,14 @@
          * REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#event-devtools-opened
          * REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#event-devtools-closed
          */
-        webview.addEventListener("devtools-opened", e => (devtools_opened = true));
-        webview.addEventListener("devtools-closed", e => (devtools_opened = false));
+        webview?.addEventListener?.("devtools-opened", e => (devtools_opened = true));
+        webview?.addEventListener?.("devtools-closed", e => (devtools_opened = false));
 
         /**
          * 焦点为链接时在状态栏显示链接
          * REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#event-update-target-url
          */
-        webview.addEventListener("update-target-url", e => {
+        webview?.addEventListener?.("update-target-url", e => {
             // plugin.logger.debug(e);
 
             if (e.url) {
@@ -244,11 +282,12 @@
          * 上下文菜单(右键触发)
          * REF https://www.electronjs.org/zh/docs/latest/api/webview-tag#event-context-menu
          */
-        webview.addEventListener("context-menu", e => {
+        webview?.addEventListener?.("context-menu", e => {
             plugin.logger.debug(e);
 
             /* 在超链接上激活上下文菜单(右键点击/键盘上下文键) */
             if (e.params.linkURL) {
+                // TODO: 添加思源菜单以操作超链接
                 plugin.openWebviewTab(e.params.linkURL, e.params.titleText || e.params.linkText || e.params.altText);
             }
         });
@@ -345,12 +384,24 @@
         <webview
             bind:this={webview}
             {src}
+            {title}
             {useragent}
             style:background
             class:pointer-events-disable={webview_pointer_events_disable}
             class="webview fn__flex-1"
             allowpopups
-        />
+        >
+            {#if FLAG_ELECTRON}
+                <iframe
+                    bind:this={iframe}
+                    {src}
+                    {title}
+                    style:background
+                    class="fn__flex-1"
+                    allowfullscreen
+                />
+            {/if}
+        </webview>
         {#if status_display}
             <!-- 状态提示 (显示超链接地址) -->
             <div

@@ -104,6 +104,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
                         src: tab.data.href,
                         tab,
                         plugin,
+                        title: tab.data.title,
                     },
                 });
             },
@@ -131,6 +132,15 @@ export default class WebviewPlugin extends siyuan.Plugin {
             customHotkey: "", // 自定义快捷键
             callback: () => {
                 this.openSiyuanMobileWindow();
+            },
+        });
+        this.addCommand({
+            langKey: "openNewTab",
+            langText: this.i18n.menu.openNewTab.label,
+            hotkey: "⌘T", // 默认快捷键
+            customHotkey: "", // 自定义快捷键
+            callback: () => {
+                this.openWebviewTab("", this.i18n.menu.openNewTab.title);
             },
         });
 
