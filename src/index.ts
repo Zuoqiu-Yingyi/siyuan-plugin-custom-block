@@ -32,6 +32,7 @@ import {
     editorType2Pathname,
     isStaticPathname,
     parseSiyuanURL,
+    parseSiyuanWebURL,
 } from "@workspace/utils/siyuan/url";
 import {
     getBlockMenuContext,
@@ -415,12 +416,38 @@ export default class WebviewPlugin extends siyuan.Plugin {
         this.openWindow(href || buildSiyuanWebURL(Pathname.mobile).href, params);
     }
 
+    /* 打开思源原生窗口 */
+    public openSiyuanNativeWindow(
+        e?: MouseEvent | IPosition,
+        url?: URL,
+    ): void {
+        const params = parseSiyuanWebURL(url);
+        if (params) {
+            const position = this.config.window.params.center
+                ? undefined
+                : {
+                    x: e?.screenX ?? 0,
+                    y: e?.screenY ?? 0,
+                };
+
+            this.siyuan.openWindow({
+                position,
+                height: this.config.window.params.height,
+                width: this.config.window.params.height,
+                doc: {
+                    id: params.id,
+                },
+            })
+        }
+    }
+
     /* 打开思源窗口 */
     public openSiyuanWindow(
         url: URL,
         e?: MouseEvent | IPosition,
+        editorType: EditorType = this.config.window.siyuan.editorType,
     ): void {
-        switch (this.config.window.siyuan.editorType) {
+        switch (editorType) {
             case EditorType.desktop:
                 this.openSiyuanDesktopWindow(e, url.href);
                 break;
@@ -428,28 +455,43 @@ export default class WebviewPlugin extends siyuan.Plugin {
             case EditorType.mobile:
                 this.openSiyuanMobileWindow(e, url.href);
                 break;
+
+            case EditorType.window:
+                this.openSiyuanNativeWindow(e, url);
+                break;
         }
     }
 
     /* 通过 ID 打开思源窗口 */
-    public openSiyuanWindowByID(element: HTMLElement, id: BlockID, focus: boolean) {
+    public openSiyuanWindowByID(
+        id: BlockID,
+        focus: boolean = false,
+        editorType: EditorType = this.config.window.siyuan.editorType,
+    ): void {
         const url = buildSiyuanWebURL(
-            editorType2Pathname(this.config.window.siyuan.editorType),
+            editorType2Pathname(editorType),
             {
                 id,
                 focus,
             },
         );
 
-        this.openSiyuanWindowByURL(element, url);
+        this.openSiyuanWindowByURL(url, editorType);
     }
 
     /* 通过 URL 打开思源窗口 */
-    public openSiyuanWindowByURL(element: HTMLElement, url: URL) {
-        this.openSiyuanWindow(url, {
-            screenX: globalThis.siyuan.coordinates.screenX,
-            screenY: globalThis.siyuan.coordinates.screenY,
-        });
+    public openSiyuanWindowByURL(
+        url: URL,
+        editorType: EditorType = this.config.window.siyuan.editorType,
+    ): void {
+        this.openSiyuanWindow(
+            url,
+            {
+                screenX: globalThis.siyuan.coordinates.screenX,
+                screenY: globalThis.siyuan.coordinates.screenY,
+            },
+            editorType,
+        );
     }
 
     /* 是否为有效的 URL 协议 */
@@ -509,14 +551,14 @@ export default class WebviewPlugin extends siyuan.Plugin {
         submenu.push({
             icon: "iconOpenWindow",
             label: this.i18n.menu.openEditor.label,
-            click: () => this.openSiyuanWindowByID(element, id, false),
+            click: () => this.openSiyuanWindowByID(id, false),
         });
 
         /* 新窗口打开块并聚焦 */
         submenu.push({
             icon: "iconFocus",
             label: this.i18n.menu.openFocusedEditor.label,
-            click: () => this.openSiyuanWindowByID(element, id, true),
+            click: () => this.openSiyuanWindowByID(id, true),
         });
 
         e.detail.menu.addItem({
@@ -626,7 +668,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
                 submenu.push({
                     icon: "iconOpenWindow",
                     label: this.i18n.menu.openByNewWindow.label,
-                    click: () => this.openSiyuanWindowByID(element, param.id, param.focus),
+                    click: () => this.openSiyuanWindowByID(param.id, param.focus),
                 });
                 break;
             }
@@ -772,7 +814,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
             submenu.push({
                 icon: "iconOpenWindow",
                 label: this.i18n.menu.openEditor.label,
-                click: (element) => this.openSiyuanWindowByID(element, context.id, false),
+                click: (element) => this.openSiyuanWindowByID(context.id, false),
             });
 
             if (!context.isDocumentBlock // 不是文档块
@@ -782,7 +824,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
                 submenu.push({
                     icon: "iconFocus",
                     label: this.i18n.menu.openFocusedEditor.label,
-                    click: (element) => this.openSiyuanWindowByID(element, context.id, true),
+                    click: (element) => this.openSiyuanWindowByID(context.id, true),
                 });
             }
 

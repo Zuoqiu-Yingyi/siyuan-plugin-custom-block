@@ -93,7 +93,8 @@
         "description": "The type of SiYuan editor that opens in a new window by default",
         "options": {
           "desktop": "Desktop Editor",
-          "mobile": "Mobile Editor"
+          "mobile": "Mobile Editor",
+          "window": "Native Multi-Window Editor"
         },
         "title": "Editor Type"
       },

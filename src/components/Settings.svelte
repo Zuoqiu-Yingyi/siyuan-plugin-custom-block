@@ -613,6 +613,7 @@
                         options={[
                             { key: EditorType.mobile, text: i18n.settings.siyuan.editorType.options.mobile },
                             { key: EditorType.desktop, text: i18n.settings.siyuan.editorType.options.desktop },
+                            { key: EditorType.window, text: i18n.settings.siyuan.editorType.options.window },
                         ]}
                     />
                 </Item>

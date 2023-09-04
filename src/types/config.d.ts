@@ -65,7 +65,7 @@ export interface IWindowParams extends Electron.BrowserWindowConstructorOptions 
 export interface ISiyuanWindow {
     enable: boolean, // 是否打开思源编辑窗口
     focus: boolean, // 打开的思源编辑窗口是否默认聚焦
-    editorType: EditorType.desktop | EditorType.mobile, // 打开的思源编辑器类型
+    editorType: EditorType.desktop | EditorType.mobile | EditorType.window, // 打开的思源编辑器类型
 }
 
 export interface IConfig {

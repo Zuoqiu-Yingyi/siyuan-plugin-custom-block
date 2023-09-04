@@ -93,7 +93,8 @@
         "description": "默认在新窗口中打开的思源编辑器类型",
         "options": {
           "desktop": "桌面端编辑器",
-          "mobile": "移动端编辑器"
+          "mobile": "移动端编辑器",
+          "window": "原生多窗口编辑器"
         },
         "title": "编辑器类型"
       },
