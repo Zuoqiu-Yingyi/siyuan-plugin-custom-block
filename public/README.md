@@ -38,7 +38,6 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
 
         ```python
         c.ServerApp.allow_origin = '*'
-        c.ServerApp.disable_check_xsrf = True
         c.IdentityProvider.token = '<Custom Asset Token>'
         ```
   * Open the plugin and open the <kbd>Plugin Settings Panel</kbd>

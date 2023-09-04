@@ -38,7 +38,6 @@
 
         ```python
         c.ServerApp.allow_origin = '*'
-        c.ServerApp.disable_check_xsrf = True
         c.IdentityProvider.token = '<自定义的访问 Token>'
         ```
   * 打开本插件, 并打开本插件的 <kbd>插件设置面板</kbd>

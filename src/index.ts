@@ -72,6 +72,7 @@ import { mergeIgnoreArray } from "@workspace/utils/misc/merge";
 import { WorkerBridgeMaster } from "@workspace/utils/worker/bridge/master";
 import { sleep } from "@workspace/utils/misc/sleep";
 import { Counter } from "@workspace/utils/misc/iterator";
+import { toUint8Array } from "@workspace/utils/misc/base64";
 import uuid from "@workspace/utils/misc/uuid";
 
 import CONSTANTS from "./constants";
@@ -144,7 +145,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     public readonly kernelspecs: KernelSpec.ISpecModels = { default: "", kernelspecs: {} };
     public readonly kernels: Kernel.IModel[] = [];
     public readonly sessions: Session.IModel[] = [];
-    public readonly kernelName2objectURL = new Map<string, string>(); // 内核名称 -> object URL
+    public readonly kernelName2logoObjectURL = new Map<string, string>(); // 内核名称 -> object URL
     public readonly kernelName2language = new Map<string, string>(); // 内核名称 -> 内核语言名称
     public readonly kernelName2displayName = new Map<string, string>(); // 内核名称 -> 内核显示名称
     public readonly counter = Counter();
@@ -335,6 +336,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                 }
             },
         });
+        this.logger.debug(this.app.plugins.length, this.app.plugins);
 
         /* 加载数据 */
         this.loadData(JupyterClientPlugin.GLOBAL_CONFIG_NAME)
@@ -549,7 +551,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     public async jupyterFetch(
         pathname: string,
         init: RequestInit = {},
-    ): Promise<Response> {
+    ): Promise<Blob> {
         const url = new URL(this.baseUrl);
         if (pathname.startsWith("/")) {
             url.pathname = pathname;
@@ -569,10 +571,20 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             init.headers = headers;
         }
 
-        return globalThis.fetch(
-            url,
-            init,
-        );
+        /* 避免跨站策略阻止请求 */
+        const response = await this.client.forwardProxy({
+            url: url.href,
+            // @ts-ignore
+            method: init.method,
+            headers: [init.headers as Record<string, string>],
+            responseEncoding: "base64",
+        });
+        if (200 <= response.data.status && response.data.status < 300) {
+            return new Blob([toUint8Array(response.data.body)], { type: response.data.contentType });
+        }
+        else {
+            throw new Error(response.msg);
+        }
     }
 
     /**
@@ -612,6 +624,10 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         spec: KernelSpec.ISpecModel,
         defaultIcon: string = "#icon-jupyter-client-kernelspec",
     ): Promise<string> {
+        if (this.kernelName2logoObjectURL.has(spec.name)) {
+            return this.kernelName2logoObjectURL.get(spec.name)!;
+        }
+
         const pathname = (() => {
             switch (true) {
                 case "logo-svg" in spec.resources:
@@ -630,21 +646,29 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         })();
 
         if (pathname) {
-            const response = await this.jupyterFetch(pathname, {
-                method: "GET",
-            });
-            const blob = await response.blob();
+            try {
+                const blob = await this.jupyterFetch(
+                    pathname,
+                    {
+                        method: "GET",
+                    },
+                );
 
-            if (this.kernelName2objectURL.has(spec.name)) {
-                return this.kernelName2objectURL.get(spec.name)!;
-            } else {
-                const objectURL = URL.createObjectURL(blob);
-                this.kernelName2objectURL.set(spec.name, objectURL);
-                return objectURL;
+                /* 避免在请求过程中其他协程创建完成导致重复创建 */
+                if (this.kernelName2logoObjectURL.has(spec.name)) {
+                    return this.kernelName2logoObjectURL.get(spec.name)!;
+                } else {
+                    const objectURL = URL.createObjectURL(blob);
+                    this.kernelName2logoObjectURL.set(spec.name, objectURL);
+                    return objectURL;
+                }
+            } catch (error) {
+                this.logger.warn(error);
             }
-        } else {
-            return defaultIcon;
         }
+
+        this.kernelName2logoObjectURL.set(spec.name, defaultIcon);
+        return defaultIcon;
     }
 
     /**

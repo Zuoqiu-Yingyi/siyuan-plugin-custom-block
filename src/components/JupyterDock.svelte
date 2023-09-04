@@ -91,8 +91,8 @@
                 focus: spec.name === currentSpec,
                 folded: false,
 
-                icon: plugin.kernelName2objectURL.has(spec.name) //
-                    ? plugin.kernelName2objectURL.get(spec.name) //
+                icon: plugin.kernelName2logoObjectURL.has(spec.name) //
+                    ? plugin.kernelName2logoObjectURL.get(spec.name) //
                     : await plugin.loadKernelSpecIcon(spec),
                 iconAriaLabel: spec.language,
                 text: spec.name,
@@ -228,7 +228,7 @@
             };
 
             /* 设置图标 */
-            const icon = plugin.kernelName2objectURL.get(name);
+            const icon = plugin.kernelName2logoObjectURL.get(name);
             if (icon) {
                 node.icon = icon;
             } else {
@@ -259,7 +259,7 @@
                 iconAriaLabel: kernel.execution_state,
                 text: kernel.name,
                 textAriaLabel: `${datetime.format(DATETIME_FORMAT)}<br/>${datetime.fromNow()}`,
-                symlinkIcon: plugin.kernelName2objectURL.get(kernel.name) ?? KERNELS_ICON,
+                symlinkIcon: plugin.kernelName2logoObjectURL.get(kernel.name) ?? KERNELS_ICON,
                 symlinkAriaLabel: plugin.kernelName2language.get(kernel.name),
                 symlink: true,
                 count: kernel.connections,
@@ -285,7 +285,7 @@
                 text: session.name,
                 textAriaLabel: `${session.kernel?.name}<br/>${session.path}`,
                 symlink: true,
-                symlinkIcon: plugin.kernelName2objectURL.get(session.kernel?.name ?? "") ?? SESSIONS_ICON,
+                symlinkIcon: plugin.kernelName2logoObjectURL.get(session.kernel?.name ?? "") ?? SESSIONS_ICON,
                 symlinkAriaLabel: plugin.kernelName2language.get(session.kernel?.name ?? ""),
                 count: plugin.session2docs.get(session.id)?.size ?? 0,
                 countAriaLabel: session.kernel?.execution_state,
@@ -459,9 +459,10 @@
 
     /* 回收资源 */
     onDestroy(() => {
-        for (const objectURL of plugin.kernelName2objectURL.values()) {
+        for (const objectURL of plugin.kernelName2logoObjectURL.values()) {
             URL.revokeObjectURL(objectURL);
         }
+        plugin.kernelName2logoObjectURL.clear();
     });
 
     /* 折叠文件夹 */

@@ -42,8 +42,9 @@ export function makeSettings(settings: IJupyterServerSettings): ServerConnection
         token: settings.token,
         appendToken: true,
         init: {
+            mode: "cors",
             cache: "no-store",
-            credentials: "include",
+            credentials: "same-origin",
         },
         fetch,
         Request,
