@@ -423,21 +423,22 @@ export default class WebviewPlugin extends siyuan.Plugin {
     ): void {
         const params = parseSiyuanWebURL(url);
         if (params) {
-            const position = this.config.window.params.center
-                ? undefined
-                : {
-                    x: e?.screenX ?? 0,
-                    y: e?.screenY ?? 0,
-                };
-
-            this.siyuan.openWindow({
-                position,
+            const options = {
+                position: this.config.window.params.center
+                    ? undefined
+                    : {
+                        x: e?.screenX ?? 0,
+                        y: e?.screenY ?? 0,
+                    },
                 height: this.config.window.params.height,
                 width: this.config.window.params.height,
                 doc: {
                     id: params.id,
                 },
-            })
+            };
+
+            // this.logger.debug(options);
+            this.siyuan.openWindow(options)
         }
     }
 
