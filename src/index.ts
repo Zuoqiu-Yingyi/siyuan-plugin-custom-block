@@ -24,7 +24,6 @@ import type {
 import manifest from "~/public/plugin.json";
 
 import "./index.less";
-import "xterm/css/xterm.css";
 
 import icon_jupyter_client from "./assets/symbols/icon-jupyter-client.symbol?raw";
 import icon_jupyter_client_text from "./assets/symbols/icon-jupyter-client-text.symbol?raw";
@@ -336,7 +335,6 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                 }
             },
         });
-        this.logger.debug(this.app.plugins.length, this.app.plugins);
 
         /* 加载数据 */
         this.loadData(JupyterClientPlugin.GLOBAL_CONFIG_NAME)
