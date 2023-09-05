@@ -381,7 +381,7 @@ export class IpynbImport {
                             markdowns.push(markdown);
                             break;
                         case "stderr":
-                            const lines = markdown.split("\n{2,}");
+                            const lines = markdown.split(/\n{2,}/);
                             for (let j = 0; j < lines.length; ++j) {
                                 markdowns.push(lines[j]);
                                 markdowns.push(createIAL({ style: CONSTANTS.styles.error }));

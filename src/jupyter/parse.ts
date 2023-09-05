@@ -61,6 +61,7 @@ export function parseText(
  * @param data 数据
  * @param metadata 元数据
  * @param options 解析选项
+ * @param split 解析后的块是否分割
  * @returns 解析后的文本
  */
 export async function parseData(
@@ -68,7 +69,22 @@ export async function parseData(
     options: IJupyterParserOptions,
     data: IData,
     metadata?: Record<string, string>,
-): Promise<string> {
+    split?: false,
+): Promise<string>;
+export async function parseData(
+    client: InstanceType<typeof Client>,
+    options: IJupyterParserOptions,
+    data: IData,
+    metadata?: Record<string, string>,
+    split?: true,
+): Promise<string[]>;
+export async function parseData(
+    client: InstanceType<typeof Client>,
+    options: IJupyterParserOptions,
+    data: IData,
+    metadata?: Record<string, string>,
+    split: boolean = false,
+): Promise<string | string[]> {
     let filedata: string;
     const markdowns = new PriorityQueue<string>();
     for (const [mime, datum] of Object.entries(data)) {
@@ -95,7 +111,7 @@ export async function parseData(
                         markdowns.enqueue(parseText(text, options), 0);
                         break;
                     case "html":
-                        markdowns.enqueue(`<div>${text}</div>`, 1);
+                        markdowns.enqueue(`<div>${text.replaceAll(/\n+/g, "\n")}</div>`, 1);
                         break;
                     case "markdown":
                         markdowns.enqueue(text, 1);
@@ -183,5 +199,9 @@ export async function parseData(
                 break;
         }
     }
-    return markdowns.items.map((item) => item.value).join("\n");
+
+    const blocks = markdowns.items.map((item) => item.value);
+    return split
+        ? blocks
+        : blocks.join("\n\n");
 }

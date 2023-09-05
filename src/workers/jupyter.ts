@@ -733,19 +733,22 @@ async function handleExecuteResultMessage(
     message: KernelMessage.IExecuteResultMsg,
     context: IExecuteContext,
 ): Promise<void> {
-    const kramdown = await parseData(
+    const kramdowns = await parseData(
         client,
         context.output.options,
         message.content.data as IData,
         message.content.metadata as Record<string, string>,
+        true,
     );
 
     context.output.hrs.execute_result.used = true;
-    await client.insertBlock({
-        nextID: context.output.hrs.execute_result.id,
-        data: kramdown,
-        dataType: "markdown",
-    });
+    for (const kramdown of kramdowns) {
+        await client.insertBlock({
+            nextID: context.output.hrs.execute_result.id,
+            data: kramdown,
+            dataType: "markdown",
+        });
+    }
 }
 
 /**
