@@ -57,7 +57,13 @@
     /* 加载 URL */
     function loadURL(address: string): void {
         if (FLAG_ELECTRON) {
-            webview?.loadURL?.(address);
+            try {
+                webview?.loadURL?.(address, {
+                    userAgent: useragent,
+                });
+            } catch (error) {
+                src = address;
+            }
         } else {
             src = address;
         }
@@ -120,6 +126,7 @@
                 }
                 loadURL(address);
             } catch (error) {
+                plugin.logger.warn(error);
                 plugin.siyuan.showMessage(`${plugin.name}:\nURL <code class="fn__code">${address}</code> ${i18n.message.nonStandardURL}\n`, undefined, "error");
             }
         }
@@ -381,27 +388,27 @@
         on:mouseleave={() => (webview_pointer_events_disable = true)}
         class="content fn__flex fn__flex-1"
     >
-        <webview
-            bind:this={webview}
-            {src}
-            {title}
-            {useragent}
-            style:background
-            class:pointer-events-disable={webview_pointer_events_disable}
-            class="webview fn__flex-1"
-            allowpopups
-        >
-            {#if FLAG_ELECTRON}
-                <iframe
-                    bind:this={iframe}
-                    {src}
-                    {title}
-                    style:background
-                    class="fn__flex-1"
-                    allowfullscreen
-                />
-            {/if}
-        </webview>
+        {#if FLAG_ELECTRON}
+            <webview
+                bind:this={webview}
+                {src}
+                {title}
+                {useragent}
+                style:background
+                class:pointer-events-disable={webview_pointer_events_disable}
+                class="webview fn__flex-1"
+                allowpopups
+            />
+        {:else}
+            <iframe
+                bind:this={iframe}
+                {src}
+                {title}
+                style:background
+                class="fn__flex-1"
+                allowfullscreen
+            />
+        {/if}
         {#if status_display}
             <!-- 状态提示 (显示超链接地址) -->
             <div
