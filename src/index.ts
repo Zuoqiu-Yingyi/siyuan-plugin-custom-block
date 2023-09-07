@@ -60,6 +60,7 @@ import {
     type IBlockMenuContext,
 } from "@workspace/utils/siyuan/menu/block";
 import {
+    getCurrentBlock,
     getCurrentBlockID,
     isSiyuanBlock,
     isSiyuanDocument,
@@ -82,9 +83,9 @@ import {
     buildNewCodeCell,
     getActiveCellBlocks,
     isCodeCell,
+    isOutputCell,
     type ICodeCell,
     type ICodeCellBlocks,
-    isOutputCell,
 } from "./utils/cell";
 
 import type { I18N } from "./utils/i18n";
@@ -1556,6 +1557,51 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             if (globalThis.siyuan?.storage) {
                 /* 设置代码块语言 */
                 globalThis.siyuan.storage["local-codelang"] = protyle.background.ial[CONSTANTS.attrs.kernel.language];
+            }
+        }
+
+        /* 为代码块添加运行按钮 */
+        const block_element = getCurrentBlock();
+        if (block_element) { // 当前块存在
+            if (block_element.dataset.type === sdk.siyuan.NodeType.NodeCodeBlock) { // 当前块为代码块
+                const session = this.doc2session.get(protyle.block.rootID); // 当前文档连接的会话
+                const action_run = block_element.querySelector<HTMLElement>(`.${CONSTANTS.JUPYTER_CODE_CELL_ACTION_RUN_CLASS_NAME}`); // 代码块运行按钮
+                if (session // 当前文档已连接会话
+                    && (block_element.getAttribute(CONSTANTS.attrs.code.type.key) === CONSTANTS.attrs.code.type.value // 代码单元格
+                        || block_element.querySelector<HTMLElement>(".protyle-action__language")?.innerText === protyle.background?.ial?.[CONSTANTS.attrs.kernel.language] // 语言与内核语言一致
+                    )
+                ) { // 可运行的代码块
+                    if (!action_run) { // 若运行按钮不存在, 添加该按钮
+                        const action_last = block_element.querySelector<HTMLElement>(".protyle-icon--last"); // 最后一个按钮
+
+                        if (action_last) {
+                            const action = globalThis.document.createElement("span");
+                            action.classList.add(
+                                "b3-tooltips",
+                                "b3-tooltips__nw",
+                                "protyle-icon",
+                                CONSTANTS.JUPYTER_CODE_CELL_ACTION_RUN_CLASS_NAME,
+                            );
+                            action.ariaLabel = this.i18n.menu.run.label;
+                            action.innerHTML = `<svg><use xlink:href="#iconPlay"></use></svg>`;
+                            action.addEventListener("click", async () => {
+                                const cells = blockDOM2codeCells(block_element.outerHTML, false);
+                                await this.requestExecuteCells(
+                                    cells,
+                                    session,
+                                    this.config.jupyter.execute.output.parser,
+                                );
+                            });
+
+                            action_last.parentElement?.insertBefore(action, action_last);
+                        }
+                    }
+                }
+                else { // 不可运行的代码块
+                    if (action_run) { // 若运行按钮存在, 移除该按钮
+                        action_run.remove();
+                    }
+                }
             }
         }
 
