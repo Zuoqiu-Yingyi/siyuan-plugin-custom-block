@@ -122,8 +122,6 @@ export class IpynbImport {
             ?? this.metadata.kernel_info.name;
         this.attributes[CONSTANTS.attrs.kernel.display_name] = display_name;
 
-        this.attributes[CONSTANTS.attrs.other.prompt] = `${this.language} | ${display_name}`;
-
         return this;
     }
 

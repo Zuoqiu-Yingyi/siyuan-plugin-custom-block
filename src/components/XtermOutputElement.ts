@@ -16,6 +16,7 @@
  */
 
 import "xterm/css/xterm.css";
+import manifest from "~/public/plugin.json";
 
 import {
     Terminal,
@@ -71,7 +72,7 @@ export class XtermOutputElement extends HTMLElement {
         super();
         this.save = this.dataset.save;
         this.blockId = this.dataset.blockId;
-        this.linkHref = `plugins/${this.plugin.name}/index.css`;
+        this.linkHref = `plugins/${this.plugin.name}/index.css?v=${manifest.version}`;
 
         this.shadowRoot = this.attachShadow({ mode: "open" });
     }
