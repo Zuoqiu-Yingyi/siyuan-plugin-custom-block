@@ -25,7 +25,7 @@ import {
 } from "@/utils/enums";
 
 export const DEFAULT_CONFIG: IConfig = {
-    version: "1.0.3",
+    version: "1.1.1",
     features: [
         { // 自定义块 style 属性
             id: "custom-block-style",
