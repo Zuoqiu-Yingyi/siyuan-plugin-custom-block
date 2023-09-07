@@ -26,23 +26,23 @@ import CustomBlockPlugin from "@/index";
 import type { IFeature } from "@/types/config";
 
 /* 分离 token */
-function splitToken(token: string): string[] { 
+function splitToken(token: string): string[] {
     return token.trim().split(/\s+/); // 以空白字符分割
 }
 
 /* 插入 token */
-function insertToken(tokens: string[], token: string): string[] { 
+function insertToken(tokens: string[], token: string): string[] {
     if (tokens.includes(token)) return tokens; // 如果已经存在该 token, 则不做任何操作
     else return [...tokens, token]; // 否则插入该 token
 }
 
 /* 移除 token */
-function removeToken(tokens: string[], token: string): string[] { 
+function removeToken(tokens: string[], token: string): string[] {
     return tokens.filter(t => t !== token); // 删除该 token
 }
 
 /* 切换 token */
-function toggleToken(tokens: string[], token: string): string[] { 
+function toggleToken(tokens: string[], token: string): string[] {
     if (tokens.includes(token)) return removeToken(tokens, token); // 如果已经存在该 token, 则删除该 token
     else return insertToken(tokens, token); // 否则插入该 token
 }
@@ -56,7 +56,7 @@ function replaceToken(tokens: string[], token: string, newToken: string): string
 export default {
     /* 编辑属性 */
     [TaskType.edit]: async (plugin, feature, context, params: { name: string, element: HTMLElement }) => {
-        params.element.innerHTML = ""; // 删除所有下级节点
+        params.element.innerHTML = ""; // 移除菜单项内容
 
         /* 挂载一个 svelte 菜单项组件 */
         const item = new Item({
@@ -70,24 +70,48 @@ export default {
             },
         });
 
-        /* 异步获取该块的 style 属性 */
-        const response = await plugin.client.getBlockAttrs({
-            id: context.id,
-        });
-
-        /* 设置该块的 style 属性 */
-        item.$set({
-            value: response.data[params.name] || "",
-        });
+        if (params.name === "style") {
+            /* 设置该块的 style 属性 */
+            item.$set({
+                value: context.element.getAttribute(params.name) || "",
+            });
+        }
+        else {
+            /* 异步获取该块的属性 */
+            const response = await plugin.client.getBlockAttrs({
+                id: context.id,
+            });
+    
+            /* 设置该块的属性 */
+            item.$set({
+                value: response.data[params.name] || "",
+            });
+        }
 
         /* 每当 input 中值变化时, 更新该块的 style 属性 */
-        item.$on("changed", e => {
-            plugin.client.setBlockAttrs({
-                id: context.id,
-                attrs: {
-                    [params.name]: e.detail.value,
-                },
-            });
+        item.$on("changed", async e => {
+            const attrs = {
+                [params.name]: e.detail.value,
+            };
+
+            const results = await Promise.allSettled(context.blocks.map(block => plugin.client.setBlockAttrs({
+                id: block.id,
+                attrs,
+            })));
+
+            if (params.name === "style") { // 块样式无法使用 `setBlockAttrs` 后同步在编辑器中更新
+                const style = e.detail.value;
+                results.forEach((result, index) => {
+                    switch (result.status) {
+                        case "fulfilled":
+                            context.blocks[index].element.setAttribute("style", style);
+                            break;
+
+                        default:
+                            break;
+                    }
+                });
+            }
         });
     },
     /* 更新块属性 */
