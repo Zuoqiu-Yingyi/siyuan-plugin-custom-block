@@ -22,6 +22,9 @@
         "custom-block-list-view-table": {
             "label": "List - Table View"
         },
+        "custom-block-position-sticky": {
+            "label": "Floating Display"
+        },
         "custom-block-render-content": {
             "label": "Display Block Content"
         },

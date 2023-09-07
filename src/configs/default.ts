@@ -25,7 +25,7 @@ import {
 } from "@/utils/enums";
 
 export const DEFAULT_CONFIG: IConfig = {
-    version: "1.0.2",
+    version: "1.0.3",
     features: [
         { // 自定义块 style 属性
             id: "custom-block-style",
@@ -90,6 +90,29 @@ export const DEFAULT_CONFIG: IConfig = {
                     params: {
                         name: "custom-block-width",
                         token: "full",
+                    },
+                },
+            ],
+        },
+        { // 悬浮显示
+            id: "custom-block-position-sticky",
+            enable: true,
+            mode: MenuItemMode.button,
+            multi: true,
+            icon: "iconPin",
+            accelerator: "position: sticky",
+            style: true,
+            token: "position-sticky",
+            type: {
+                default: { enable: true },
+                [sdk.siyuan.NodeType.NodeDocument]: { enable: false },
+            },
+            tasks: [
+                {
+                    type: TaskType.toggle,
+                    params: {
+                        name: "custom-block-position",
+                        token: "sticky",
                     },
                 },
             ],
