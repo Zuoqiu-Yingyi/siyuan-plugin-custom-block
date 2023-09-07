@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.1.1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.1.0...v1.1.1) (2023-09-07)
+
+
+### Build System
+
+* 更新依赖项 | Update dependencies. ([f41e699](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/f41e699e73226de5801883f40ea128bb4b7b451c))
+
+
+### Miscellaneous
+
+* **custom-block:** release v1.0.3 ([046fc44](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/046fc44ae873fd910fa205b664f210507b32622f))
+* **custom-block:** release v1.1.1 ([5488525](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/54885253551e8f384658cb0f879ff018bc09a0e6))
+
+
+### Continuous Integration
+
+* 优化 CD 配置 | Optimize CD configuration. ([f23bac2](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/f23bac2f2e41095b40f42e85cf3cf33c1eb421f0))
+
+
+### Documentation
+
+* 完善说明文档 | Improve documentation. ([f8509ab](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/f8509ab9a20c43132b89580c48c7fb75a2f4f1b6))
+
+
+### Features
+
+* **custom-block:** 支持设置列表视图中每一项的最大宽度 | Support setting the maximum width of each item in the list view. ([b30f8a3](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/b30f8a3a58b1200d8e1ccdb6f795f20cf0c9adb8))
+* **custom-block:** 添加 `悬浮显示` 功能 | Add `Floating Display` function. ([d665f07](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/d665f076de7394c15a4efc49754a2db211642d5c))
+* **custom-block:** 编辑块样式支持同时设置多个块的块样式 | The block style supports setting the block style of multiple blocks at the same time. ([809f8f4](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/809f8f4b7954a659d51441b86297284334e62340))
+* **open-api:** 添加 `client` 与 `fs` 属性 | Add `client` and `fs` properties. ([1860149](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/18601491d4bc628f071ff5e80c4ffae8a9bf3365))
+
 ## [1.1.0](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.0.1...v1.1.0) (2023-07-20)
 
 
