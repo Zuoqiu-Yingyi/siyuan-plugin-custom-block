@@ -16,7 +16,6 @@
  */
 
 import * as sdk from "@siyuan-community/siyuan-sdk";
-import manifest from "~/public/plugin.json";
 
 import type { IConfig } from "@/types/config";
 
@@ -26,13 +25,13 @@ import {
 } from "@/utils/enums";
 
 export const DEFAULT_CONFIG: IConfig = {
-    version: "1.0.1",
+    version: "1.0.2",
     features: [
         { // 自定义块 style 属性
             id: "custom-block-style",
             enable: true,
             mode: MenuItemMode.input,
-            multi: false,
+            multi: true,
             icon: "#iconTheme",
             type: {
                 default: { enable: true },
@@ -57,6 +56,18 @@ export const DEFAULT_CONFIG: IConfig = {
                 [sdk.siyuan.NodeType.NodeDocument]: { enable: false },
             },
         },
+        { // 全屏显示
+            id: "custom-block-fullscreen",
+            enable: true,
+            mode: MenuItemMode.button,
+            multi: false,
+            icon: "iconFullscreen",
+            tasks: [
+                {
+                    type: TaskType.fullscreen,
+                },
+            ],
+        },
         { // 全宽显示
             id: "custom-block-width-full",
             enable: true,
@@ -80,18 +91,6 @@ export const DEFAULT_CONFIG: IConfig = {
                         name: "custom-block-width",
                         token: "full",
                     },
-                },
-            ],
-        },
-        { // 全屏显示
-            id: "custom-block-fullscreen",
-            enable: true,
-            mode: MenuItemMode.button,
-            multi: false,
-            icon: "iconFullscreen",
-            tasks: [
-                {
-                    type: TaskType.fullscreen,
                 },
             ],
         },
