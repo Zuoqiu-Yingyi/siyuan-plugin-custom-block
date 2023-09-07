@@ -673,7 +673,7 @@ async function handleDisplayDataMessage(
         createIAL({ id: block_id }),
     ].join("\n");
 
-    /* 添加 display -> blick */
+    /* 添加 display_id -> block_id */
     if (message.content.transient?.display_id) {
         const set = context.output.display.get(message.content.transient.display_id) ?? new Set<string>();
         set.add(block_id);

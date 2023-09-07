@@ -262,6 +262,7 @@ export class IpynbImport {
         }
 
         markdown.push(
+            "",
             `---`,
             "}}}",
             createIAL(output_attrs),
@@ -379,11 +380,10 @@ export class IpynbImport {
                             markdowns.push(markdown);
                             break;
                         case "stderr":
-                            const lines = markdown.split(/\n{2,}/);
-                            for (let j = 0; j < lines.length; ++j) {
-                                markdowns.push(lines[j]);
-                                markdowns.push(createIAL({ style: CONSTANTS.styles.error }));
-                            }
+                            markdowns.push("{{{row");
+                            markdowns.push(markdown);
+                            markdowns.push("}}}");
+                            markdowns.push(createIAL({ style: CONSTANTS.styles.warning }));
                             break;
                         default:
                             break;
@@ -395,7 +395,6 @@ export class IpynbImport {
                     markdowns.push(parseText(output.traceback?.join("\n"), this.config.jupyter.import.parser));
                     markdowns.push("}}}");
                     markdowns.push(createIAL({ style: CONSTANTS.styles.error }));
-                    markdowns.join("\n");
                     break;
                 case "execute_result":
                 case "display_data":
