@@ -70,14 +70,19 @@ export default {
             },
         });
 
-        /* 单个块 */
-        if (!context.isMultiBlock) {
-            /* 异步获取该块的 style 属性 */
+        if (params.name === "style") {
+            /* 设置该块的 style 属性 */
+            item.$set({
+                value: context.element.getAttribute(params.name) || "",
+            });
+        }
+        else {
+            /* 异步获取该块的属性 */
             const response = await plugin.client.getBlockAttrs({
                 id: context.id,
             });
-
-            /* 设置该块的 style 属性 */
+    
+            /* 设置该块的属性 */
             item.$set({
                 value: response.data[params.name] || "",
             });
@@ -89,16 +94,22 @@ export default {
                 [params.name]: e.detail.value,
             };
 
-            if (context.isMultiBlock) { // 同时设置多个块的块属性
-                await Promise.allSettled(context.blocks.map(block => plugin.client.setBlockAttrs({
-                    id: block.id,
-                    attrs,
-                })));
-            }
-            else { // 仅设置单个块的块属性
-                await plugin.client.setBlockAttrs({
-                    id: context.id,
-                    attrs,
+            const results = await Promise.allSettled(context.blocks.map(block => plugin.client.setBlockAttrs({
+                id: block.id,
+                attrs,
+            })));
+
+            if (params.name === "style") { // 块样式无法使用 `setBlockAttrs` 后同步在编辑器中更新
+                const style = e.detail.value;
+                results.forEach((result, index) => {
+                    switch (result.status) {
+                        case "fulfilled":
+                            context.blocks[index].element.setAttribute("style", style);
+                            break;
+
+                        default:
+                            break;
+                    }
                 });
             }
         });
