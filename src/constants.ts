@@ -27,7 +27,8 @@ export default {
     JUPYTER_UNKNOWN_VALUE: "unknown", // 未知值
     JUPYTER_LAST_RUN_TIME_FORMAT: "YYYY-MM-DD HH:mm:ss.SSS", // 上次运行时间格式
     JUPYTER_RUNTIME_FORMAT: "HH:mm:ss.SSS", // 运行用时格式
-    JUPYTER_CODE_CELL_ACTION_RUN_CLASS_NAME: "protyle-action__run", // 代码单元格运行按钮类名
+    JUPYTER_CODE_CELL_ACTION_RUN_CLASS_NAME: "protyle-action__jupyter-client-code-cell-run", // 代码单元格运行按钮类名
+    JUPYTER_NOTEBOOK_BUTTON_MENU_CLASS_NAME: "protyle-breadcrumb__jupyter-client-notebook-menu", // 笔记本菜单按钮类名
     attrs: { // 块属性
         kernel: {
             /**

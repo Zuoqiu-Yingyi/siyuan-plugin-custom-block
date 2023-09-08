@@ -1564,7 +1564,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         const block_element = getCurrentBlock();
         if (block_element) { // 当前块存在
             if (block_element.dataset.type === sdk.siyuan.NodeType.NodeCodeBlock) { // 当前块为代码块
-                const session = this.doc2session.get(protyle.block.rootID); // 当前文档连接的会话
+                const session = this.doc2session.get(protyle.block.rootID!); // 当前文档连接的会话
                 const action_run = block_element.querySelector<HTMLElement>(`.${CONSTANTS.JUPYTER_CODE_CELL_ACTION_RUN_CLASS_NAME}`); // 代码块运行按钮
                 if (session // 当前文档已连接会话
                     && (block_element.getAttribute(CONSTANTS.attrs.code.type.key) === CONSTANTS.attrs.code.type.value // 代码单元格
@@ -1631,6 +1631,68 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                     id: protyle.block.rootID!,
                     attrs,
                 });
+            }
+        }
+
+        /* 在面包屑栏右侧添加按钮 */
+        if (protyle.title?.editElement?.innerText.endsWith(".ipynb") // 文档名以 `.ipynb` 结尾
+            || protyle.background?.ial?.[CONSTANTS.attrs.kernel.name] // 文档块属性中有内核名称属性
+        ) {
+            const exit_focus_element = protyle.breadcrumb?.element.parentElement?.querySelector(".protyle-breadcrumb__icon[data-type=exit-focus]");
+            if (exit_focus_element) { // 存在退出焦点按钮
+                if (exit_focus_element.nextElementSibling?.classList.contains(CONSTANTS.JUPYTER_NOTEBOOK_BUTTON_MENU_CLASS_NAME)) { // 存在 jupyter 菜单按钮
+                    return;
+                }
+                else { // 添加菜单按钮
+                    const button = globalThis.document.createElement("button");
+                    button.classList.add(
+                        "block__icon",
+                        "block__icon--show",
+                        "fn__flex-center",
+                        "b3-tooltips",
+                        "b3-tooltips__sw",
+                        CONSTANTS.JUPYTER_NOTEBOOK_BUTTON_MENU_CLASS_NAME,
+                    );
+                    button.dataset.type = "jupyter-client-notebook-menu";
+                    button.ariaLabel = "Jupyter";
+                    button.innerHTML = `<svg><use xlink:href="#icon-jupyter-client-session-notebook"></use></svg>`;
+                    button.addEventListener("click", async e => {
+                        // this.logger.debug(e);
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (protyle.block.rootID && protyle.background?.ial) {
+                            const doc_id = protyle.block.rootID;
+
+                            const menu_items = this.buildJupyterDocumentMenuItems(
+                                doc_id,
+                                protyle.background.ial,
+                                this.doc2session.get(doc_id),
+                                {
+                                    isDocumentBlock: true,
+                                    isMultiBlock: false,
+                                    id: doc_id,
+                                },
+                            );
+
+                            if (menu_items.length > 0) {
+                                const menu = new this.siyuan.Menu();
+                                menu_items.forEach(item => menu.addItem(item));
+    
+                                menu.open({
+                                    x: e.clientX,
+                                    y: e.clientY,
+                                    // isLeft: true,
+                                });
+                            }
+                        }
+                    }, true);
+
+                    exit_focus_element.parentElement!.insertBefore(
+                        button,
+                        exit_focus_element.nextElementSibling,
+                    );
+                }
             }
         }
     }
