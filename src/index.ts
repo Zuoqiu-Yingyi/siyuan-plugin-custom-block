@@ -385,16 +385,31 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         this.eventBus.off("click-editorcontent", this.clickEditorContentEventListener);
         this.eventBus.off("loaded-protyle", this.loadedProtyleEventListener);
 
+        for (const objectURL of this.kernelName2logoObjectURL.values()) {
+            URL.revokeObjectURL(objectURL);
+        }
+
+        this.doc2session.clear();
+        this.doc2info.clear();
+        this.session2docs.clear();
+        this.kernelName2logoObjectURL.clear();
+        this.kernelName2language.clear();
+        this.kernelName2displayName.clear();
+
         if (this.worker) {
             this.bridge
                 ?.call<WorkerHandlers["unload"]>("unload")
                 .then(() => {
                     this.bridge?.terminate();
+                    this.bridge = undefined;
+
                     this.worker?.terminate();
+                    this.worker = undefined;
                 });
         }
         else {
             this.bridge?.terminate();
+            this.bridge = undefined;
         }
     }
 
@@ -1584,14 +1599,14 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                             );
                             action.ariaLabel = this.i18n.menu.run.label;
                             action.innerHTML = `<svg><use xlink:href="#iconPlay"></use></svg>`;
-                            action.addEventListener("click", async () => {
+                            action.onclick = async e => {
                                 const cells = blockDOM2codeCells(block_element.outerHTML, false);
                                 await this.requestExecuteCells(
                                     cells,
                                     session,
                                     this.config.jupyter.execute.output.parser,
                                 );
-                            });
+                            };
 
                             action_last.parentElement?.insertBefore(action, action_last);
                         }
@@ -1656,7 +1671,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                     button.dataset.type = "jupyter-client-notebook-menu";
                     button.ariaLabel = "Jupyter";
                     button.innerHTML = `<svg><use xlink:href="#icon-jupyter-client-session-notebook"></use></svg>`;
-                    button.addEventListener("click", async e => {
+                    button.onclick = async e => {
                         // this.logger.debug(e);
                         e.preventDefault();
                         e.stopPropagation();
@@ -1678,7 +1693,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                             if (menu_items.length > 0) {
                                 const menu = new this.siyuan.Menu();
                                 menu_items.forEach(item => menu.addItem(item));
-    
+
                                 menu.open({
                                     x: e.clientX,
                                     y: e.clientY,
@@ -1686,7 +1701,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                                 });
                             }
                         }
-                    }, true);
+                    };
 
                     exit_focus_element.parentElement!.insertBefore(
                         button,
