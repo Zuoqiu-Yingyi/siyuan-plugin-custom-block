@@ -63,6 +63,7 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
   * Open method
 
     * <kbd>Block Menu</kbd> > <kbd>Plugin</kbd> > <kbd>Jupyter Client</kbd> > <kbd>Session</kbd> > <kbd>Session Settings</kbd>
+    * <kbd>Breadcrumb Bar</kbd> > <kbd>Jupyter Button</kbd> > <kbd>Session</kbd> > <kbd>Session Settings</kbd>
     * <kbd>Plugin Sidebar Panel</kbd> > <kbd>Document Menu</kbd> > <kbd>Session</kbd> > <kbd>Session Settings</kbd>
   * Panel features
 
@@ -112,6 +113,7 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
   * Calling method
 
     * <kbd>Block Menu</kbd> > <kbd>Plugin</kbd> > <kbd>Jupyter Client</kbd> > <kbd>Session</kbd> > <kbd>Close Session</kbd>
+    * <kbd>Breadcrumb Bar</kbd> > <kbd>Jupyter Button</kbd> > <kbd>Session</kbd> > <kbd>Close Session</kbd>
     * <kbd>Plugin Sidebar Panel</kbd> > <kbd>Session Menu</kbd> > <kbd>Close Session</kbd>
     * <kbd>Plugin Sidebar Panel</kbd> > <kbd>Document Menu</kbd> > <kbd>Session</kbd> > <kbd>Close Session</kbd>
   * Notes
@@ -125,6 +127,7 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
   * Calling method
 
     * <kbd>Block Menu</kbd> > <kbd>Plugin</kbd> > <kbd>Jupyter Client</kbd> > <kbd>Kernel</kbd> > <kbd>Reconnect</kbd>
+    * <kbd>Breadcrumb Bar</kbd> > <kbd>Jupyter Button</kbd> > <kbd>Kernel</kbd> > <kbd>Reconnect</kbd>
     * <kbd>Plugin Sidebar Panel</kbd> > <kbd>Document Menu</kbd> > <kbd>Kernel</kbd> > <kbd>Reconnect</kbd>
   * This operation will close the current WebSocket connection and create a new connection
 * Interrupt kernel
@@ -132,6 +135,7 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
   * Calling method
 
     * <kbd>Block Menu</kbd> > <kbd>Plugin</kbd> > <kbd>Jupyter Client</kbd> > <kbd>Kernel</kbd> > <kbd>Interrupt Kernel</kbd>
+    * <kbd>Breadcrumb Bar</kbd> > <kbd>Jupyter Button</kbd> > <kbd>Kernel</kbd> > <kbd>Interrupt Kernel</kbd>
     * <kbd>Plugin Sidebar Panel</kbd> > <kbd>Document Menu</kbd> > <kbd>Kernel</kbd> > <kbd>Interrupt Kernel</kbd>
   * If the kernel is currently running a program (in a busy state), this operation will interrupt the execution of the program, throw a `KeyboardInterrupt` exception, and change the kernel status to ready.
 * Restart kernel
@@ -139,6 +143,7 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
   * Calling method
 
     * <kbd>Block Menu</kbd> > <kbd>Plugin</kbd> > <kbd>Jupyter Client</kbd> > <kbd>Kernel</kbd> > <kbd>Restart Kernel</kbd>
+    * <kbd>Breadcrumb Bar</kbd> > <kbd>Jupyter Button</kbd> > <kbd>Kernel</kbd> > <kbd>Restart Kernel</kbd>
     * <kbd>Plugin Sidebar Panel</kbd> > <kbd>Document Menu</kbd> > <kbd>Kernel</kbd> > <kbd>Restart Kernel</kbd>
   * Close the current kernel, restart a new kernel, and establish a connection with it
   * Notes
@@ -150,6 +155,7 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
   * Calling method
 
     * <kbd>Block Menu</kbd> > <kbd>Plugin</kbd> > <kbd>Jupyter Client</kbd> > <kbd>Kernel</kbd> > <kbd>Close Kernel</kbd>
+    * <kbd>Breadcrumb Bar</kbd> > <kbd>Jupyter Button</kbd> > <kbd>Kernel</kbd> > <kbd>Close Kernel</kbd>
     * <kbd>Plugin Sidebar Panel</kbd> > <kbd>Document Menu</kbd> > <kbd>Kernel</kbd> > <kbd>Close Kernel</kbd>
   * Close the current kernel
   * Notes
@@ -192,6 +198,7 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
     * Calling method
 
       * <kbd>Block Menu</kbd> > <kbd>Plugin</kbd> > <kbd>Jupyter Client</kbd> > <kbd>Run</kbd> > <kbd>Run All Cells</kbd>
+      * <kbd>Breadcrumb Bar</kbd> > <kbd>Jupyter Button</kbd> > <kbd>Run</kbd> > <kbd>Run All Cells</kbd>
       * <kbd>Plugin Sidebar Panel</kbd> > <kbd>Document Menu</kbd> > <kbd>Run</kbd> > <kbd>Run All Cells</kbd>
     * The output text handling solution used at runtime needs to be selected in the sub-menu
   * Restart the kernel and run all code cells in the document
@@ -199,6 +206,7 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
     * Calling method
 
       * <kbd>Block Menu</kbd> > <kbd>Plugin</kbd> > <kbd>Jupyter Client</kbd> > <kbd>Run</kbd> > <kbd>Run All Cells (Restart Kernel)</kbd>
+      * <kbd>Breadcrumb Bar</kbd> > <kbd>Jupyter Button</kbd> > <kbd>Run</kbd> > <kbd>Run All Cells (Restart Kernel)</kbd>
       * <kbd>Plugin Sidebar Panel</kbd> > <kbd>Document Menu</kbd> > <kbd>Run</kbd> > <kbd>Run All Cells (Restart Kernel)</kbd>
     * The output text handling solution used at runtime needs to be selected in the sub-menu
   * Run multiple code cells
@@ -214,6 +222,7 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
     * Calling method
 
       * <kbd>Block Menu</kbd> > <kbd>Plugin</kbd> > <kbd>Jupyter Client</kbd>
+      * <kbd>Code Block</kbd> > <kbd>Run Button</kbd>
     * The output text handling solution used at runtime needs to be selected in the sub-menu
     * If a code block is selected, it will be converted to a code cell and executed
   * Run code cells/code blocks using keyboard shortcuts

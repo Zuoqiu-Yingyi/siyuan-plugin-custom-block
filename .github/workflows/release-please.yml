@@ -14,7 +14,7 @@ permissions:
 
 env:
   PACKAGE_NAME: jupyter-client
-  PACKAGE_VERSION: 0.1.1
+  PACKAGE_VERSION: 0.1.2
 
 jobs:
   release-please:

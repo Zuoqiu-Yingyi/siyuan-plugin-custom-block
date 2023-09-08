@@ -63,6 +63,7 @@
   * 打开方式
 
     * <kbd>文档块菜单</kbd>><kbd>插件</kbd>><kbd>Jupyter 客户端</kbd>><kbd>会话</kbd>><kbd>会话设置</kbd>
+    * <kbd>面包屑栏</kbd>><kbd>Jupyter 按钮</kbd>><kbd>会话</kbd>><kbd>会话设置</kbd>
     * <kbd>本插件侧边面板</kbd>><kbd>文档菜单</kbd>><kbd>会话</kbd>><kbd>会话设置</kbd>
   * 面板功能
 
@@ -112,6 +113,7 @@
   * 调用方式
 
     * <kbd>文档块菜单</kbd>><kbd>插件</kbd>><kbd>Jupyter 客户端</kbd>><kbd>会话</kbd>><kbd>关闭会话</kbd>
+    * <kbd>面包屑栏</kbd>><kbd>Jupyter 按钮</kbd>><kbd>会话</kbd>><kbd>关闭会话</kbd>
     * <kbd>本插件侧边面板</kbd>><kbd>会话菜单</kbd>><kbd>关闭会话</kbd>
     * <kbd>本插件侧边面板</kbd>><kbd>文档菜单</kbd>><kbd>会话</kbd>><kbd>关闭会话</kbd>
   * 注意事项
@@ -125,6 +127,7 @@
   * 调用方式
 
     * <kbd>文档块菜单</kbd>><kbd>插件</kbd>><kbd>Jupyter 客户端</kbd>><kbd>内核</kbd>><kbd>重新连接</kbd>
+    * <kbd>面包屑栏</kbd>><kbd>Jupyter 按钮</kbd>><kbd>内核</kbd>><kbd>重新连接</kbd>
     * <kbd>本插件侧边面板</kbd>><kbd>文档菜单</kbd>><kbd>内核</kbd>><kbd>重新连接</kbd>
   * 该操作会关闭当前所使用的 WebSocket 连接并重新创建一个新的连接
 * 中断内核
@@ -132,6 +135,7 @@
   * 调用方式
 
     * <kbd>文档块菜单</kbd>><kbd>插件</kbd>><kbd>Jupyter 客户端</kbd>><kbd>内核</kbd>><kbd>中断内核</kbd>
+    * <kbd>面包屑栏</kbd>><kbd>Jupyter 按钮</kbd>><kbd>内核</kbd>><kbd>中断内核</kbd>
     * <kbd>本插件侧边面板</kbd>><kbd>文档菜单</kbd>><kbd>内核</kbd>><kbd>中断内核</kbd>
   * 若内核当前正在执行程序 (处于忙碌状态), 该操作会中断程序的执行, 抛出一个 `KeyboardInterrupt` 异常, 内核状态转换为就绪状态
 * 重启内核
@@ -139,6 +143,7 @@
   * 调用方式
 
     * <kbd>文档块菜单</kbd>><kbd>插件</kbd>><kbd>Jupyter 客户端</kbd>><kbd>内核</kbd>><kbd>重启内核</kbd>
+    * <kbd>面包屑栏</kbd>><kbd>Jupyter 按钮</kbd>><kbd>内核</kbd>><kbd>重启内核</kbd>
     * <kbd>本插件侧边面板</kbd>><kbd>文档菜单</kbd>><kbd>内核</kbd>><kbd>重启内核</kbd>
   * 关闭当前所使用的内核, 重新启动一个新内核并与其建立连接
   * 注意事项
@@ -150,6 +155,7 @@
   * 调用方式
 
     * <kbd>文档块菜单</kbd>><kbd>插件</kbd>><kbd>Jupyter 客户端</kbd>><kbd>内核</kbd>><kbd>关闭内核</kbd>
+    * <kbd>面包屑栏</kbd>><kbd>Jupyter 按钮</kbd>><kbd>内核</kbd>><kbd>关闭内核</kbd>
     * <kbd>本插件侧边面板</kbd>><kbd>文档菜单</kbd>><kbd>内核</kbd>><kbd>关闭内核</kbd>
   * 关闭当前所使用的内核
   * 注意事项
@@ -192,6 +198,7 @@
     * 调用方式
 
       * <kbd>文档块菜单</kbd>><kbd>插件</kbd>><kbd>Jupyter 客户端</kbd>><kbd>运行</kbd>><kbd>运行所有单元格</kbd>
+      * <kbd>面包屑栏</kbd>><kbd>Jupyter 按钮</kbd>><kbd>运行</kbd>><kbd>运行所有单元格</kbd>
       * <kbd>本插件侧边面板</kbd>><kbd>文档菜单</kbd>><kbd>运行</kbd>><kbd>运行所有单元格</kbd>
     * 运行时所使用的输出文本处理方案需要次级菜单中选择
   * 重启内核并运行文档中所有代码单元格
@@ -199,6 +206,7 @@
     * 调用方式
 
       * <kbd>文档块菜单</kbd>><kbd>插件</kbd>><kbd>Jupyter 客户端</kbd>><kbd>运行</kbd>><kbd>运行所有单元格 (重启内核)</kbd>
+      * <kbd>面包屑栏</kbd>><kbd>Jupyter 按钮</kbd>><kbd>运行</kbd>><kbd>运行所有单元格 (重启内核)</kbd>
       * <kbd>本插件侧边面板</kbd>><kbd>文档菜单</kbd>><kbd>运行</kbd>><kbd>运行所有单元格 (重启内核)</kbd>
     * 运行时所使用的输出文本处理方案需要次级菜单中选择
   * 运行多个代码单元格
@@ -214,6 +222,7 @@
     * 调用方式
 
       * <kbd>块菜单</kbd>><kbd>插件</kbd>><kbd>Jupyter 客户端</kbd>
+      * <kbd>代码块</kbd>><kbd>运行按钮</kbd>
     * 运行时所使用的输出文本处理方案需要次级菜单中选择
     * 若选择的是代码块, 则会将其转换为代码单元格并运行
   * 使用快捷键运行代码单元格/代码块
