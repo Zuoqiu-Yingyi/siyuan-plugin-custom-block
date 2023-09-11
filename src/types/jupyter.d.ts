@@ -47,6 +47,7 @@ export interface IExecuteContext {
     output: {
         id: string; // 输出块 ID
         new: boolean; // 是否为新的输出块
+        reply: boolean; // 运行请求是否已回复
         attrs: Record<string, string | null>; // 输出块 IAL
         stream: { // 输出流
             attrs: { // 输出流显示块

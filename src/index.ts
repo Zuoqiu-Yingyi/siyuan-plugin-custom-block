@@ -1697,7 +1697,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                                 menu.open({
                                     x: e.clientX,
                                     y: e.clientY,
-                                    // isLeft: true,
+                                    isLeft: true,
                                 });
                             }
                         }

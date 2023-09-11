@@ -302,6 +302,35 @@ async function updateBlockAttrs(context: IExecuteContext): Promise<void> {
     });
 }
 
+/**
+ * 插入新块
+ * @param context 执行上下文
+ * @param nextID 下一个块 ID
+ * @param data 块内容文本 (kramdown)
+ * @param dataType 块内容类型
+ */
+async function insertBlock(
+    context: IExecuteContext,
+    nextID: string,
+    data: string,
+    dataType: "markdown" | "dom" = "markdown",
+): Promise<void> {
+    if (context.output.reply) {
+        await client.appendBlock({
+            parentID: context.output.id,
+            data,
+            dataType,
+        });
+    }
+    else {
+        await client.insertBlock({
+            nextID,
+            data,
+            dataType,
+        });
+    }
+}
+
 export type TExtendedParams = [
     Omit<Parameters<Kernel.IKernelConnection["requestExecute"]>[0], "code">?,
     Parameters<Kernel.IKernelConnection["requestExecute"]>[1]?,
@@ -343,6 +372,7 @@ async function executeCode(
             output: {
                 new: true,
                 id: id(),
+                reply: false,
                 attrs: {},
                 stream: {
                     attrs: {
@@ -576,11 +606,11 @@ async function handleStreamMessage(
 
         context.output.stream.initialized = true;
         context.output.hrs.stream.used = true;
-        await client.insertBlock({
-            nextID: context.output.hrs.stream.id,
-            data: kramdowns.join("\n"),
-            dataType: "markdown",
-        });
+        await insertBlock(
+            context,
+            context.output.hrs.stream.id,
+            kramdowns.join("\n"),
+        );
     }
 }
 
@@ -617,11 +647,11 @@ async function handleErrorMessage(
         ].join("\n");
 
     context.output.hrs.error.used = true;
-    await client.insertBlock({
-        nextID: context.output.hrs.error.id,
-        data: kramdown,
-        dataType: "markdown",
-    });
+    await insertBlock(
+        context,
+        context.output.hrs.error.id,
+        kramdown,
+    );
 }
 
 /**
@@ -681,11 +711,11 @@ async function handleDisplayDataMessage(
     }
 
     context.output.hrs.display_data.used = true;
-    await client.insertBlock({
-        nextID: context.output.hrs.display_data.id,
-        data: kramdown,
-        dataType: "markdown",
-    });
+    await insertBlock(
+        context,
+        context.output.hrs.display_data.id,
+        kramdown,
+    );
 }
 
 /**
@@ -743,11 +773,11 @@ async function handleExecuteResultMessage(
 
     context.output.hrs.execute_result.used = true;
     for (const kramdown of kramdowns) {
-        await client.insertBlock({
-            nextID: context.output.hrs.execute_result.id,
-            data: kramdown,
-            dataType: "markdown",
-        });
+        await insertBlock(
+            context,
+            context.output.hrs.execute_result.id,
+            kramdown,
+        );
     }
 }
 
@@ -782,11 +812,11 @@ async function handleStdinMessage(
                 : code;
 
             context.output.hrs.stream.used = true;
-            await client.insertBlock({
-                nextID: context.output.hrs.stream.id,
-                data: kramdown,
-                dataType: "markdown",
-            });
+            await insertBlock(
+                context,
+                context.output.hrs.stream.id,
+                kramdown,
+            );
 
             future.sendInputReply(
                 {
@@ -812,6 +842,8 @@ async function handleExecuteReplyMessage(
     message: KernelMessage.IExecuteReplyMsg,
     context: IExecuteContext,
 ): Promise<void> {
+    context.output.reply = true;
+
     /* 块运行结束时间 */
     context.code.attrs[CONSTANTS.attrs.code.execute_reply] = message.header.date;
 
@@ -851,9 +883,9 @@ async function handleExecuteReplyMessage(
                     }
                 }
 
-                context.output.hrs.execute_result.used = true;
+                context.output.hrs.execute_reply.used = true;
                 await client.insertBlock({
-                    nextID: context.output.hrs.execute_result.id,
+                    nextID: context.output.hrs.execute_reply.id,
                     data: [
                         "{{{row",
                         kramdowns.join("\n\n"),
