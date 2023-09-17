@@ -55,14 +55,14 @@ export interface IJupyterInput {
     goto: boolean; // 输入请求时是否跳转到对应的代码块
 }
 
-
-export interface IJupyterImport {
-    parser: IJupyterParserOptions;
+export interface IJupyterInspect {
+    detail_level: KernelMessage.IInspectRequestMsg["content"]["detail_level"];
 }
 
 export interface IJupyter {
     server: IJupyterServer;
     execute: IJupyterExecute;
+    inspect: IJupyterInspect;
     import: IJupyterImport;
 }
 

@@ -44,6 +44,9 @@
         },
         "title": "Jupyter"
     },
+    "inspectDock": {
+        "title": "Jupyter 上下文帮助"
+    },
     "menu": {
         "import": {
             "accelerator": "*.ipynb",

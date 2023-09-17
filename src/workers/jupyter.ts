@@ -1287,6 +1287,30 @@ const handlers = {
             return connection?.model;
         },
     },
+    "jupyter.session.kernel.connection.requestComplete": { // 请求自动补全
+        this: self,
+        async func(
+            clientID: string, // 客户端 ID
+            sessionID: string, // 会话 ID
+            content: KernelMessage.ICompleteRequestMsg["content"], // 请求内容
+        ): Promise<KernelMessage.ICompleteReplyMsg | undefined> {
+            const connection = id_2_session_connection.get(sessionID);
+            const message = await connection?.kernel?.requestComplete(content);
+            return message;
+        },
+    },
+    "jupyter.session.kernel.connection.requestInspect": { // 请求上下文参考
+        this: self,
+        async func(
+            clientID: string, // 客户端 ID
+            sessionID: string, // 会话 ID
+            content: KernelMessage.IInspectRequestMsg["content"], // 请求内容
+        ): Promise<KernelMessage.IInspectReplyMsg | undefined> {
+            const connection = id_2_session_connection.get(sessionID);
+            const message = await connection?.kernel?.requestInspect(content);
+            return message;
+        },
+    },
     importIpynb: {
         this: self,
         func: importIpynb,

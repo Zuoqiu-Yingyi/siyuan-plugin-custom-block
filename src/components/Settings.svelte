@@ -453,6 +453,7 @@
                 type={ItemType.text}
                 settingKey="fontFamily"
                 settingValue={config.xterm.options.fontFamily}
+                placeholder="--b3-font-family-code"
                 on:changed={async e => {
                     config.xterm.options.fontFamily = e.detail.value;
                     await updated();

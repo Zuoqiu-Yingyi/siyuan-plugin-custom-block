@@ -26,6 +26,7 @@ import manifest from "~/public/plugin.json";
 import "./index.less";
 
 import icon_jupyter_client from "./assets/symbols/icon-jupyter-client.symbol?raw";
+import icon_jupyter_client_inspect from "./assets/symbols/icon-jupyter-client-inspect.symbol?raw";
 import icon_jupyter_client_text from "./assets/symbols/icon-jupyter-client-text.symbol?raw";
 import icon_jupyter_client_simple from "./assets/symbols/icon-jupyter-client-simple.symbol?raw";
 import icon_jupyter_client_terminal from "./assets/symbols/icon-jupyter-client-terminal.symbol?raw";
@@ -48,6 +49,7 @@ import * as sdk from "@siyuan-community/siyuan-sdk";
 import Item from "@workspace/components/siyuan/menu/Item.svelte"
 import Settings from "./components/Settings.svelte";
 import JupyterDock from "./components/JupyterDock.svelte";
+import JupyterInspectDock from "./components/JupyterInspectDock.svelte";
 import SessionManager from "./components/SessionManager.svelte";
 import XtermOutputElement from "./components/XtermOutputElement";
 import { asyncPrompt } from "@workspace/components/siyuan/dialog/prompt";
@@ -65,6 +67,8 @@ import {
     isSiyuanBlock,
     isSiyuanDocument,
     isSiyuanDocumentTitle,
+    type ICodeBlockCursorPosition,
+    getCodeBlockCursorPosition,
 } from "@workspace/utils/siyuan/dom";
 import { Logger } from "@workspace/utils/logger";
 import { fn__code } from "@workspace/utils/siyuan/text/span";
@@ -73,6 +77,7 @@ import { WorkerBridgeMaster } from "@workspace/utils/worker/bridge/master";
 import { sleep } from "@workspace/utils/misc/sleep";
 import { Counter } from "@workspace/utils/misc/iterator";
 import { toUint8Array } from "@workspace/utils/misc/base64";
+import { encode } from "@workspace/utils/misc/base64";
 import uuid from "@workspace/utils/misc/uuid";
 
 import CONSTANTS from "./constants";
@@ -107,6 +112,7 @@ import type {
 import type { THandlersWrapper } from "@workspace/utils/worker/bridge";
 import type { WorkerHandlers } from "./workers/jupyter";
 import type { ComponentEvents } from "svelte";
+import type xterm from "xterm";
 
 declare var globalThis: ISiyuanGlobal;
 export type PluginHandlers = THandlersWrapper<JupyterClientPlugin["handlers"]>;
@@ -132,11 +138,16 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     public bridge?: InstanceType<typeof WorkerBridgeMaster>; // worker 桥
 
     protected jupyterDock!: {
-        // editor: InstanceType<typeof Editor>,
         dock: ReturnType<siyuan.Plugin["addDock"]>,
         model?: siyuan.IDockModel,
         component?: InstanceType<typeof JupyterDock>,
     }; // Jupyter 管理面板
+
+    protected jupyterInspectDock!: {
+        dock: ReturnType<siyuan.Plugin["addDock"]>,
+        model?: siyuan.IDockModel,
+        component?: InstanceType<typeof JupyterInspectDock>,
+    }; // Jupyter 上下文帮助面板
 
     public readonly doc2session = new Map<string, Session.IModel>(); // 文档 ID 到会话的映射
     public readonly doc2info = new Map<string, sdk.types.kernel.api.block.getDocInfo.IData>(); // 文档 ID 到文档信息的映射
@@ -148,6 +159,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     public readonly kernelName2logoObjectURL = new Map<string, string>(); // 内核名称 -> object URL
     public readonly kernelName2language = new Map<string, string>(); // 内核名称 -> 内核语言名称
     public readonly kernelName2displayName = new Map<string, string>(); // 内核名称 -> 内核显示名称
+    public readonly xtermElements = new Set<InstanceType<ReturnType<typeof XtermOutputElement>>>(); // xterm 组件集合
     public readonly counter = Counter();
     public readonly username = `siyuan-${siyuan.getBackend()}-${siyuan.getFrontend()}`; // 用户名
     public readonly clientId = globalThis.Lute.NewNodeID(); // 客户端 ID
@@ -208,6 +220,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         /* 注册图标 */
         this.addIcons([
             icon_jupyter_client,
+            icon_jupyter_client_inspect,
             icon_jupyter_client_text,
             icon_jupyter_client_simple,
             icon_jupyter_client_terminal,
@@ -261,6 +274,40 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                     plugin.jupyterDock.component?.$destroy();
                     delete plugin.jupyterDock.component;
                     delete plugin.jupyterDock.model;
+                },
+            }),
+        };
+        this.jupyterInspectDock = {
+            dock: this.addDock({
+                config: {
+                    position: "BottomLeft",
+                    size: { width: 256, height: 0 },
+                    icon: "icon-jupyter-client-inspect",
+                    title: this.i18n.inspectDock.title,
+                    show: true,
+                },
+                data: {
+                    stream: "",
+                },
+                type: "-inspect-dock",
+                init() {
+                    // plugin.logger.debug(this);
+
+                    this.element.classList.add("fn__flex-column");
+                    const dock = new JupyterInspectDock({
+                        target: this.element,
+                        props: {
+                            plugin,
+                            ...this.data,
+                        },
+                    });
+                    plugin.jupyterInspectDock.model = this;
+                    plugin.jupyterInspectDock.component = dock;
+                },
+                destroy() {
+                    plugin.jupyterInspectDock.component?.$destroy();
+                    delete plugin.jupyterInspectDock.component;
+                    delete plugin.jupyterInspectDock.model;
                 },
             }),
         };
@@ -457,6 +504,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         if (config && config !== this.config) {
             this.config = config;
         }
+        this.updateXtermElement();
         await this.updateWorkerConfig(restart);
         await this.saveData(JupyterClientPlugin.GLOBAL_CONFIG_NAME, this.config);
     }
@@ -553,6 +601,21 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         );
         if (restart) {
             await this.bridge?.call<WorkerHandlers["restart"]>("restart");
+        }
+    }
+
+    /* 更新 xterm 组件配置 */
+    public updateXtermElement(options: xterm.ITerminalOptions = this.config.xterm.options): void {
+        for (const element of this.xtermElements) {
+            if (element.terminal) {
+                for (const [key, value] of Object.entries(options)) {
+                    // @ts-ignore
+                    if (element.terminal.options[key] !== value) {
+                        // @ts-ignore
+                        element.terminal.options[key] = value;
+                    }
+                }
+            }
         }
     }
 
@@ -1265,6 +1328,55 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     }
 
     /**
+     * 请求上下文参考
+     * @param sessionID 会话 ID
+     * @param position 光标位置
+     */
+    public async requestInspect(
+        sessionID: string,
+        position: ICodeBlockCursorPosition,
+    ): Promise<void> {
+        const message = await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.requestInspect"]>(
+            "jupyter.session.kernel.connection.requestInspect",
+            this.clientId,
+            sessionID,
+            {
+                code: position.code,
+                cursor_pos: position.offset,
+                detail_level: this.config.jupyter.inspect.detail_level,
+            },
+        );
+        // this.logger.debug(message);
+
+        if (message) {
+            switch (message.content.status) {
+                case "ok":
+                    if (message.content.found) { // 查询到上下文帮助信息
+                        const text = message.content.data["text/plain"];
+                        if (text !== undefined) {
+                            const stream = encode(
+                                Array.isArray(text)
+                                    ? text.join()
+                                    : text as string,
+                                true,
+                            );
+                            this.jupyterInspectDock.component?.$set({ stream });
+                        }
+                        else {
+                            this.logger.warn(message);
+                        }
+                    }
+                    break;
+                case "abort":
+                    this.logger.info(message);
+                case "error":
+                    this.logger.warn(message);
+                    break;
+            }
+        }
+    }
+
+    /**
      * 请求运行代码块
      * @param code 代码
      * @param codeID 代码块 ID
@@ -1586,7 +1698,15 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                         || block_element.querySelector<HTMLElement>(".protyle-action__language")?.innerText === protyle.background?.ial?.[CONSTANTS.attrs.kernel.language] // 语言与内核语言一致
                     )
                 ) { // 可运行的代码块
-                    // TODO: q请求提示信息
+                    /* 请求上下文帮助 */
+                    const position = getCodeBlockCursorPosition();
+                    // this.logger.debug(position);
+                    if (position) {
+                        this.requestInspect(
+                            session.id,
+                            position,
+                        );
+                    }
 
                     if (!action_run) { // 若运行按钮不存在, 添加该按钮
                         const action_last = block_element.querySelector<HTMLElement>(".protyle-icon--last"); // 最后一个按钮

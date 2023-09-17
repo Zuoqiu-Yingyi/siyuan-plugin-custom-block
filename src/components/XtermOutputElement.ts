@@ -35,6 +35,8 @@ import type { ISiyuanGlobal } from "@workspace/types/siyuan";
 
 declare var globalThis: ISiyuanGlobal;
 
+export type TObservedAttributes = "data-stream";
+
 export default function (plugin: InstanceType<typeof JupyterClientPlugin>) {
     return class extends XtermOutputElement {
         constructor() {
@@ -47,6 +49,17 @@ export default function (plugin: InstanceType<typeof JupyterClientPlugin>) {
  * REF: https://developer.mozilla.org/zh-CN/docs/Web/API/Web_components
  */
 export class XtermOutputElement extends HTMLElement {
+    /**
+     * REF: https://github.com/mdn/web-components-examples/blob/main/life-cycle-callbacks/main.js
+     * 
+     * Specify observed attributes so that {@link XtermOutputElement.attributeChangedCallback attributeChangedCallback} will work
+     */
+    static get observedAttributes(): TObservedAttributes[] {
+        return [
+            "data-stream",
+        ];
+    }
+
     public static readonly TAG_NAME = "jupyter-xterm-output";
     protected static readonly ELEMENT_ID_STYLE = "style";
     protected static readonly ELEMENT_ID_CONTENT = "content";
@@ -62,9 +75,18 @@ export class XtermOutputElement extends HTMLElement {
     protected preview?: HTMLDivElement | null; // 存放渲染结果的标签
 
     protected data: string = ""; // 输出流的原始内容
-    protected terminal?: InstanceType<typeof Terminal>; // xterm 终端实例
+    protected _terminal?: InstanceType<typeof Terminal>; // xterm 终端实例
     protected fitAddon?: InstanceType<typeof FitAddon>; // xterm 终端实例
     protected resizeObserver?: InstanceType<typeof ResizeObserver>; // xterm 终端实例
+
+    public get fontSize(): number | undefined {
+        return parseFloat(globalThis.getComputedStyle(this).getPropertyValue("font-size"))
+            || globalThis.siyuan?.config?.editor?.fontSize;
+    }
+
+    public get terminal(): InstanceType<typeof Terminal> | undefined {
+        return this._terminal;
+    }
 
     constructor(
         protected readonly plugin: InstanceType<typeof JupyterClientPlugin>,
@@ -79,8 +101,10 @@ export class XtermOutputElement extends HTMLElement {
 
     /**
      * 当 custom element 首次被插入文档 DOM 时调用
+     * REF: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#using_the_lifecycle_callbacks
      */
     connectedCallback(): void {
+        this.plugin.xtermElements.add(this);
         this.link = this.querySelector(`link#${XtermOutputElement.ELEMENT_ID_STYLE}`);
         this.content = this.querySelector(`pre#${XtermOutputElement.ELEMENT_ID_CONTENT}`);
         this.preview = this.querySelector(`div#${XtermOutputElement.ELEMENT_ID_PREVIEW}`);
@@ -94,41 +118,55 @@ export class XtermOutputElement extends HTMLElement {
             this.shadowRoot.appendChild(this.link);
         }
 
-        if (this.content) { // 存在输出流的内容
+        if (this.dataset.stream !== undefined) { // 存在数据流内容 (该组件的属性)
+            this.data = decode(this.dataset.stream);
+        }
+        else if (this.content) { // 存在输出流的内容 (pre 元素属性)
             this.shadowRoot.appendChild(this.content);
             this.content.style.display = "none"; // 隐藏文本内容
 
             this.data = decode(this.content.dataset.stream ?? "");
-
-            if (this.preview) { // 已渲染
-                this.shadowRoot.appendChild(this.preview);
-            }
-            else { // 未渲染
-                this.preview = document.createElement("div");
-                this.preview.id = XtermOutputElement.ELEMENT_ID_PREVIEW;
-                this.sizeObserver(this.preview);
-
-                this.shadowRoot.appendChild(this.preview);
-                const theme = isLightTheme()
-                    ? light_theme
-                    : dark_theme
-
-                this.terminal = new Terminal({
-                    rows: 0,
-                    theme,
-                    fontSize: globalThis.siyuan?.config?.editor?.fontSize,
-                    ...this.plugin.config.xterm.options,
-                });
-                this.fitAddon = new FitAddon();
-
-                this.terminal.loadAddon(this.fitAddon);
-                this.terminal.loadAddon(this.customAddon);
-
-                this.terminal.open(this.preview);
-                this.terminal.write(this.data);
-
-            }
         }
+
+        if (this.preview) { // 已渲染
+            this.shadowRoot.appendChild(this.preview);
+        }
+        else { // 未渲染
+            this.preview = document.createElement("div");
+            this.preview.id = XtermOutputElement.ELEMENT_ID_PREVIEW;
+            this.sizeObserver(this.preview);
+
+            this.shadowRoot.appendChild(this.preview);
+            const theme = isLightTheme()
+                ? light_theme
+                : dark_theme
+
+            this._terminal = new Terminal({
+                rows: 0,
+                theme,
+                fontSize: this.fontSize,
+                ...this.plugin.config.xterm.options,
+            });
+            this.fitAddon = new FitAddon();
+
+            this._terminal.loadAddon(this.fitAddon);
+            this._terminal.loadAddon(this.customAddon);
+
+            this._terminal.open(this.preview);
+            this._terminal.write(this.data, this.fit);
+        }
+    }
+
+    protected async write(data: Parameters<Terminal["write"]>[0]): Promise<void> {
+        return new Promise(resolve => {
+            this._terminal?.write(data, resolve);
+        });
+    }
+
+    protected async writeln(data: Parameters<Terminal["writeln"]>[0]): Promise<void> {
+        return new Promise(resolve => {
+            this._terminal?.writeln(data, resolve);
+        });
     }
 
     protected readonly customAddon = {
@@ -174,15 +212,30 @@ export class XtermOutputElement extends HTMLElement {
         },
         dispose() { },
         fit: () => {
-            // this.plugin.logger.debug(this.terminal.buffer);
-            this.terminal?.resize(
-                this.terminal.cols,
-                this.terminal.buffer.active.baseY
-                + this.terminal.buffer.active.cursorY
+            // this.plugin.logger.debug(this._terminal.buffer);
+            this._terminal?.resize(
+                this._terminal.cols,
+                this._terminal.buffer.active.baseY
+                + this._terminal.buffer.active.cursorY
                 + 1,
             );
         }
     };
+
+    protected readonly fit = () => {
+        try {
+            if (this._terminal) {
+                if (this._terminal.options.fontSize !== this.fontSize) this._terminal.options.fontSize = this.fontSize;
+            }
+
+            // ! 错误无法被捕获
+            this.fitAddon?.fit();
+            this.customAddon?.fit();
+        }
+        catch (error) {
+            this.plugin.logger.warn(error);
+        }
+    }
 
     protected sizeObserver(element: HTMLElement): void {
         /**
@@ -190,16 +243,10 @@ export class XtermOutputElement extends HTMLElement {
          * REF: https://developer.mozilla.org/zh-CN/docs/Web/API/ResizeObserver
          */
         this.resizeObserver ??= new ResizeObserver(
-            deshake(() => { // 消除抖动
-                try {
-                    // ! 错误无法被捕获
-                    this.fitAddon?.fit();
-                    this.customAddon?.fit();
-                }
-                catch (error) {
-                    this.plugin.logger.warn(error);
-                }
-            }, 125),
+            deshake( // 消除抖动
+                this.fit,
+                125,
+            ),
         );
         this.resizeObserver.observe(
             element,
@@ -213,8 +260,9 @@ export class XtermOutputElement extends HTMLElement {
      * 当 custom element 从文档 DOM 中删除时调用
      */
     disconnectedCallback(): void {
+        this.plugin.xtermElements.delete(this);
         this.resizeObserver?.disconnect();
-        this.terminal?.dispose();
+        this._terminal?.dispose();
     }
 
     /**
@@ -226,8 +274,30 @@ export class XtermOutputElement extends HTMLElement {
 
     /**
      * 当 custom element 增加、删除、修改自身属性时调用
+     * 
+     * 需要设置 {@link XtermOutputElement.observedAttributes observedAttributes}
      */
-    attributeChangedCallback(): void {
+    async attributeChangedCallback(
+        name: TObservedAttributes,
+        _oldValue: string,
+        newValue: string,
+    ): Promise<void> {
+        // this.plugin.logger.debug(arguments);
+
+        switch (name) {
+            case "data-stream":
+                if (this._terminal) {
+                    this.data = decode(newValue);
+
+                    await this.write("\n");
+                    this._terminal.clear();
+                    this._terminal.write(this.data, this.fit);
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 }
 

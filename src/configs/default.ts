@@ -48,6 +48,9 @@ export const DEFAULT_CONFIG: IConfig = {
                 },
             },
         },
+        inspect: {
+            detail_level: 1,
+        },
         import: {
             parser: {
                 xterm: false, // ⚙
@@ -62,7 +65,7 @@ export const DEFAULT_CONFIG: IConfig = {
             disableStdin: true,
             convertEol: true,
             logLevel: "off",
-            fontFamily: "JetBrainsMono-Regular", // ⚙
+            fontFamily: "", // ⚙
         },
     },
 };

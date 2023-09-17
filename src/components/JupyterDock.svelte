@@ -37,12 +37,12 @@
     import moment from "@workspace/utils/date/moment";
 
     import type { IBar } from "@workspace/components/siyuan/dock/index";
-    import type Plugin from "@/index";
+    import type JupyterClientPlugin from "@/index";
     import { FileTreeNodeType, type IFileTreeFileNode, type IFileTreeFolderNode, type IFileTreeRootNode } from "@workspace/components/siyuan/tree/file";
     import type { KernelSpec, Kernel, Session } from "@jupyterlab/services";
     import type { WorkerHandlers } from "@/workers/jupyter";
 
-    export let plugin: InstanceType<typeof Plugin>; // 插件对象
+    export let plugin: InstanceType<typeof JupyterClientPlugin>; // 插件对象
     export let kernelspecs: KernelSpec.ISpecModels = {
         default: "",
         kernelspecs: {},
