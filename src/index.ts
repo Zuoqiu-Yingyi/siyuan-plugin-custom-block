@@ -1578,7 +1578,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         /* 为代码块添加运行按钮 */
         const block_element = getCurrentBlock();
         if (block_element) { // 当前块存在
-            if (block_element.dataset.type === sdk.siyuan.NodeType.NodeCodeBlock) { // 当前块为代码块
+            if (block_element.dataset.type === sdk.siyuan.NodeType.NodeCodeBlock && block_element.classList.contains("code-block")) { // 当前块为代码块
                 const session = this.doc2session.get(protyle.block.rootID!); // 当前文档连接的会话
                 const action_run = block_element.querySelector<HTMLElement>(`.${CONSTANTS.JUPYTER_CODE_CELL_ACTION_RUN_CLASS_NAME}`); // 代码块运行按钮
                 if (session // 当前文档已连接会话
@@ -1586,6 +1586,8 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                         || block_element.querySelector<HTMLElement>(".protyle-action__language")?.innerText === protyle.background?.ial?.[CONSTANTS.attrs.kernel.language] // 语言与内核语言一致
                     )
                 ) { // 可运行的代码块
+                    // TODO: q请求提示信息
+
                     if (!action_run) { // 若运行按钮不存在, 添加该按钮
                         const action_last = block_element.querySelector<HTMLElement>(".protyle-icon--last"); // 最后一个按钮
 
