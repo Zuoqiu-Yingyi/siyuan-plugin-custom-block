@@ -58,6 +58,9 @@ export const DEFAULT_CONFIG: IConfig = {
                 cntrl: true, // ⚙
             },
         },
+        edit: {
+            delay: 125,
+        },
     },
     xterm: {
         options: {

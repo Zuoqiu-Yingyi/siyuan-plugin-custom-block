@@ -123,7 +123,10 @@ export function buildNewCodeCell(
  */
 export function isCodeCell(element: any): boolean {
     return isSiyuanBlock(element)
-        && element?.getAttribute(CONSTANTS.attrs.code.type.key) === CONSTANTS.attrs.code.type.value;
+        && element instanceof HTMLElement
+        && element.getAttribute(CONSTANTS.attrs.code.type.key) === CONSTANTS.attrs.code.type.value
+        && element.dataset.type === "NodeCodeBlock"
+        && element.classList.contains("code-block");
 }
 
 /**
@@ -133,7 +136,9 @@ export function isCodeCell(element: any): boolean {
  */
 export function isOutputCell(element: any): boolean {
     return isSiyuanBlock(element)
-        && element?.getAttribute(CONSTANTS.attrs.output.type.key) === CONSTANTS.attrs.output.type.value;
+        && element instanceof HTMLElement
+        && element.getAttribute(CONSTANTS.attrs.output.type.key) === CONSTANTS.attrs.output.type.value
+        && element.dataset.type === "NodeSuperBlock";
 }
 
 /**
@@ -142,10 +147,5 @@ export function isOutputCell(element: any): boolean {
  * @returns 是否为单元格元素
  */
 export function isCell(element: any): boolean {
-    return isSiyuanBlock(element)
-        && (
-            element?.getAttribute(CONSTANTS.attrs.code.type.key) === CONSTANTS.attrs.code.type.value
-            ||
-            element?.getAttribute(CONSTANTS.attrs.output.type.key) === CONSTANTS.attrs.output.type.value
-        );
+    return isCodeCell(element) || isOutputCell(element);
 }

@@ -1290,7 +1290,6 @@ const handlers = {
     "jupyter.session.kernel.connection.requestComplete": { // 请求自动补全
         this: self,
         async func(
-            clientID: string, // 客户端 ID
             sessionID: string, // 会话 ID
             content: KernelMessage.ICompleteRequestMsg["content"], // 请求内容
         ): Promise<KernelMessage.ICompleteReplyMsg | undefined> {
@@ -1302,7 +1301,6 @@ const handlers = {
     "jupyter.session.kernel.connection.requestInspect": { // 请求上下文参考
         this: self,
         async func(
-            clientID: string, // 客户端 ID
             sessionID: string, // 会话 ID
             content: KernelMessage.IInspectRequestMsg["content"], // 请求内容
         ): Promise<KernelMessage.IInspectReplyMsg | undefined> {
