@@ -51,6 +51,8 @@ export const DEFAULT_CONFIG: IConfig = {
         inspect: {
             detail_level: 1,
         },
+        complete: {
+        },
         import: {
             parser: {
                 xterm: false, // ⚙

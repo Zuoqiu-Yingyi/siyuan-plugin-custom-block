@@ -13,7 +13,9 @@
         "check": "svelte-check --tsconfig ./tsconfig.json"
     },
     "devDependencies": {
+        "@jupyter-lsp/theme-vscode": "3.0.0-rc.0",
         "@jupyterlab/services": "^7.0.5",
+        "@jupyterlab/ui-components": "^4.0.6",
         "@sveltejs/vite-plugin-svelte": "^2.4.5",
         "@tsconfig/svelte": "^5.0.2",
         "less": "^4.2.0",

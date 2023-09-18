@@ -78,11 +78,17 @@ import { sleep } from "@workspace/utils/misc/sleep";
 import { Counter } from "@workspace/utils/misc/iterator";
 import { toUint8Array } from "@workspace/utils/misc/base64";
 import { encode } from "@workspace/utils/misc/base64";
+import { select } from "@workspace/utils/dom/selection";
+import { replaceRangeWithText } from "@workspace/utils/dom/range";
 import uuid from "@workspace/utils/misc/uuid";
 
 import CONSTANTS from "./constants";
 import { DEFAULT_SETTINGS } from "./jupyter/settings";
 import { DEFAULT_CONFIG } from "./configs/default";
+import {
+    LIGHT_ICON_MAP,
+    DARK_ICON_MAP,
+} from "./jupyter/icon";
 import {
     blockDOM2codeCells,
     buildNewCodeCell,
@@ -116,6 +122,10 @@ import type { ComponentEvents } from "svelte";
 import type xterm from "xterm";
 import type { IProtyle } from "siyuan/types/protyle";
 import { deshake } from "@workspace/utils/misc/deshake";
+import { isLightTheme } from "@workspace/utils/siyuan/theme";
+import { isMatchedKeyboardEvent } from "@workspace/utils/shortcut/match";
+import type { IKeyboardStatus } from "@workspace/utils/shortcut";
+import { escapeHTML } from "@workspace/utils/misc/html";
 
 declare var globalThis: ISiyuanGlobal;
 export type PluginHandlers = THandlersWrapper<JupyterClientPlugin["handlers"]>;
@@ -127,6 +137,22 @@ export type TMenuContext = IBlockMenuContext | {
 
 export default class JupyterClientPlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
+    static readonly EDIT_KEYBOARD_EVENT_STATUS: IKeyboardStatus = {
+        type: "keyup",
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+        key: (key: string) => !/^(Escape)$/.test(key),
+    } as const;
+    static readonly EDIT_KEYBOARD_EVENT_COMPLATING_STATUS: IKeyboardStatus = {
+        type: "keyup",
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+        key: (key: string) => /^(\S|Tab|Delete|Backspace)$/.test(key),
+    } as const;
 
     declare public readonly i18n: I18N;
 
@@ -139,6 +165,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     public config: IConfig = DEFAULT_CONFIG;
     protected worker?: InstanceType<typeof Worker>; // worker
     public bridge?: InstanceType<typeof WorkerBridgeMaster>; // worker 桥
+    protected complating: boolean = false; // 菜单已打开
 
     protected editEventHandler!: ReturnType<typeof deshake<(protyle: IProtyle) => Promise<void>>>;
     protected readonly protyles = new WeakMap<IProtyle, Parameters<HTMLElement["addEventListener"]>>(); // 已监听的编辑器对象
@@ -630,7 +657,6 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             }
         }
     }
-
 
     /* 更新编辑事件处理函数 */
     public updateEditEventHandler(delay: number = this.config.jupyter.edit.delay): void {
@@ -1426,21 +1452,154 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
         sessionID: string,
         position: ICodeBlockCursorPosition,
     ): Promise<boolean> {
+        const payload = {
+            code: position.code,
+            cursor_pos: position.offset,
+        };
         const message = await this.bridge?.call<WorkerHandlers["jupyter.session.kernel.connection.requestComplete"]>(
             "jupyter.session.kernel.connection.requestComplete",
             sessionID,
-            {
-                code: position.code,
-                cursor_pos: position.offset,
-            },
+            payload,
         );
-        // this.logger.debug(message);
+        // this.logger.debugs(payload, message);
 
         if (message) {
             switch (message.content.status) {
-                case "ok":
-                    // TODO: 使用菜单实现自动补全
+                case "ok": {
+                    /* 使用菜单实现自动补全 */
+                    const content = message.content;
+                    const menu_items: siyuan.IMenuItemOption[] = [];
+                    const icon_map = isLightTheme()
+                        ? LIGHT_ICON_MAP
+                        : DARK_ICON_MAP;
+
+                    const advices = content.metadata["_jupyter_types_experimental"] as {
+                        start: number,
+                        end: number,
+                        text: string,
+                        type: string,
+                        signature: string,
+                    }[] | void;
+                    if (Array.isArray(advices)
+                        && advices.length > 0
+                    ) {
+                        (advices).reduce((previous, current) => {
+                            if (previous.type !== current.type) {
+                                menu_items.push({ type: "separator" });
+                            }
+
+                            const click = () => this.complete(
+                                position,
+                                current.start,
+                                current.end,
+                                current.text,
+                            );
+                            const item: siyuan.IMenuItemOption = {
+                                label: current.text,
+                                accelerator: fn__code(current.type),
+                                // accelerator: fn__code(current.signature),
+                                click,
+                                submenu: current.signature
+                                    ? [{
+                                        // type: "readonly",
+                                        iconHTML: "", // 移除图标
+                                        label: fn__code(escapeHTML(current.signature)),
+                                        click,
+                                    }]
+                                    : undefined,
+                            };
+                            const icon = icon_map.get(current.type);
+                            if (icon) {
+                                item.iconHTML = icon;
+                            }
+                            else {
+                                switch (current.type) {
+                                    case "magic":
+                                        // item.icon = "icon-jupyter-client-kernel";
+                                        item.icon = "icon-jupyter-client-simple";
+                                        break;
+
+                                    case "path":
+                                        switch (true) {
+                                            case current.text.endsWith("/"):
+                                                item.iconHTML = icon_map.get("folder");
+                                                break;
+
+                                            default:
+                                                item.iconHTML = icon_map.get("file");
+                                                break;
+                                        }
+                                        break;
+
+                                    default:
+                                        item.icon = undefined;
+                                        break;
+                                }
+                            }
+                            menu_items.push(item);
+                            return current;
+                        }, advices[0]);
+                    }
+                    else {
+                        menu_items.push(...content.matches.map(label => ({
+                            label,
+                            click: () => this.complete(
+                                position,
+                                content.cursor_start,
+                                content.cursor_end,
+                                label,
+                            ),
+                        } as siyuan.IMenuItemOption)))
+                    }
+
+                    if (menu_items.length > 0) {
+                        const range = position.current;
+                        const rect: DOMRect = (() => {
+                            var rect: DOMRect | void;
+
+                            rect = range.getBoundingClientRect();
+                            if (rect.x > 0 && rect.y > 0) return rect;
+
+                            rect = range.commonAncestorContainer instanceof Element
+                                ? range.commonAncestorContainer.getBoundingClientRect()
+                                : range.commonAncestorContainer.parentElement?.getBoundingClientRect();
+                            if (rect && rect.x > 0 && rect.y > 0) return rect;
+
+                            return position.container.getBoundingClientRect();
+                        })();
+
+                        const menu = new siyuan.Menu(message.header.msg_id, () => {
+                            this.complating = false;
+                            if (menu.menu.element.lastElementChild instanceof HTMLElement) {
+                                menu.menu.element.lastElementChild.style.maxHeight = "";
+                            }
+                        });
+
+                        // menu_items[0].current = true; // 仅高亮显示, 无法自动获取焦点
+                        menu_items.forEach(item => menu.addItem(item));
+                        // menu_items.forEach(menu.addItem); // 无效
+
+                        this.complating = true;
+                        menu.open({
+                            x: rect.left,
+                            y: rect.bottom,
+                        });
+
+                        /* 调整菜单位置 */
+                        const menu_rect = menu.menu.element.getBoundingClientRect();
+                        if (menu_rect.y !== rect.bottom) {
+                            const items_element = menu.menu.element.lastElementChild;
+                            if (items_element instanceof HTMLElement) {
+                                const max_height = globalThis.innerHeight - rect.bottom - 32;
+
+                                items_element.style.maxHeight = `${max_height}px`;
+                                menu.element.style.top = `${rect.bottom}px`;
+                            }
+                        }
+                    }
+
                     break;
+                }
                 case "abort":
                     this.logger.info(message);
                 case "error":
@@ -1449,6 +1608,27 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             }
         }
         return false;
+    }
+
+    /**
+     * 补全上下文
+     * @param position 光标位置
+     * @param start 光标起始偏移量
+     * @param end 光标末尾偏移量
+     * @param text 补全文本
+     */
+    protected complete(
+        position: ICodeBlockCursorPosition,
+        start: number,
+        end: number,
+        text: string,
+    ): void {
+        select(position.container, { start, end });
+        const range = globalThis.getSelection()?.getRangeAt(0);
+        if (range) {
+            replaceRangeWithText(range, text);
+            select(position.container, { start: start + text.length });
+        }
     }
 
     /**
@@ -1729,7 +1909,7 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
             if (!this.protyles.has(protyle)) { // 未加入监听的编辑器
                 const listener = [
                     "keyup",
-                    e => this.editEventListener(e, protyle),
+                    e => this.editEventListener(e as KeyboardEvent, protyle),
                     {
                         capture: true,
                     },
@@ -1748,12 +1928,22 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
 
     /* 编辑事件监听 */
     protected readonly editEventListener = (
-        e: Event,
+        e: KeyboardEvent,
         protyle: IProtyle,
     ) => {
         // this.logger.debugs(e, protyle);
 
-        this.editEventHandler(protyle);
+        switch (true) {
+            case this.complating // 自动补全状态
+                && isMatchedKeyboardEvent(e, JupyterClientPlugin.EDIT_KEYBOARD_EVENT_COMPLATING_STATUS):
+            case !this.complating // 非自动补全状态
+                && isMatchedKeyboardEvent(e, JupyterClientPlugin.EDIT_KEYBOARD_EVENT_STATUS):
+
+                this.editEventHandler(protyle);
+                break;
+            default:
+                break;
+        }
     }
 
     /* 块菜单菜单弹出事件监听器 */
