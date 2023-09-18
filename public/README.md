@@ -246,6 +246,15 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
 
   * The code cannot be executed until the document is connected to a session (see the *Session Management* section for details)
 
+#### Language Services
+
+* Contextual help
+
+  * The <kbd>Jupyter Contextual Help</kbd> side panel displays contextual information about the current code.
+* Code suggestions and completion
+
+  * When editing in code cells, suggestions for the current code are displayed, and selecting one will complete the code.
+
 #### Import `*.ipynb` Files
 
 * Calling method
@@ -272,6 +281,17 @@ This is a plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan) that c
 
       * When enabled, this plugin will attempt to connect to the Jupyter service
       * When disabled, all sessions created by this plugin will be interrupted and disconnected from the Jupyter service
+    * `Language service call delay`
+
+      * The delay time when calling Jupyter kernel language service to retrieve <kbd>contextual help</kbd> and <kbd>code suggestions</kbd>.
+      * Unit: milliseconds
+      * After entering text in a code cell, there is a certain delay before calling the Jupyter kernel language service.
+
+        * The language service requires support from the corresponding Jupyter kernel session.
+        * Currently supported language services:
+
+          * Retrieve and update the content of the <kbd>Jupyter contextual help</kbd> sidebar.
+          * Display code suggestion list.
   * Server settings
 
     * `Jupyter Server URL`

@@ -137,22 +137,22 @@ export type TMenuContext = IBlockMenuContext | {
 
 export default class JupyterClientPlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
-    static readonly EDIT_KEYBOARD_EVENT_STATUS: IKeyboardStatus = {
+    static readonly EDIT_KEYBOARD_EVENT_STATUS_INSPECT: IKeyboardStatus = {
         type: "keyup",
         altKey: false,
         ctrlKey: false,
         metaKey: false,
         shiftKey: false,
-        key: (key: string) => !/^(Escape)$/.test(key),
-    } as const;
-    static readonly EDIT_KEYBOARD_EVENT_COMPLATING_STATUS: IKeyboardStatus = {
+        key: (key: string) => /^(\S|Tab|Delete|Backspace|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Home|End)$/.test(key),
+    } as const; // 触发上下文帮助的事件
+    static readonly EDIT_KEYBOARD_EVENT_STATUS_COMPLATE: IKeyboardStatus = {
         type: "keyup",
         altKey: false,
         ctrlKey: false,
         metaKey: false,
         shiftKey: false,
         key: (key: string) => /^(\S|Tab|Delete|Backspace)$/.test(key),
-    } as const;
+    } as const; // 触发自动补全的事件
 
     declare public readonly i18n: I18N;
 
@@ -167,7 +167,11 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     public bridge?: InstanceType<typeof WorkerBridgeMaster>; // worker 桥
     protected complating: boolean = false; // 菜单已打开
 
-    protected editEventHandler!: ReturnType<typeof deshake<(protyle: IProtyle) => Promise<void>>>;
+    protected editEventHandler!: ReturnType<typeof deshake<(
+        protyle: IProtyle, // 编辑器
+        inspect: boolean, // 上下文帮助
+        complate: boolean, // 自动补全
+    ) => Promise<void>>>;
     protected readonly protyles = new WeakMap<IProtyle, Parameters<HTMLElement["addEventListener"]>>(); // 已监听的编辑器对象
 
     protected jupyterDock!: {
@@ -388,6 +392,8 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                     await this.gotoBlock(next_cell.id, false);
                 }
                 else { // 不存在下一个代码单元格
+                    if (blocks.cells.length == 0) return; // 仅在当前为代码单元格时才会插入
+
                     /* 插入新代码单元格 */
                     const new_cell = await this.insertNewCodeCell(blocks);
 
@@ -660,23 +666,33 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
 
     /* 更新编辑事件处理函数 */
     public updateEditEventHandler(delay: number = this.config.jupyter.edit.delay): void {
-        this.editEventHandler = deshake(async (protyle: IProtyle) => {
-            const session = this.doc2session.get(protyle.block.rootID!);
-            if (session) { // 当前文档已连接会话
-                const block = getCurrentBlock();
-                if (isCodeCell(block)) { // 当前块是代码单元格
-                    const position = getCodeBlockCursorPosition();
-                    if (position) { // 成功获取光标位置
-                        await Promise.allSettled([
-                            this.requestInspect( // 更新上下文帮助
-                                session.id,
-                                position,
-                            ),
-                            this.requestComplete( // 自动补全
-                                session.id,
-                                position,
-                            ),
-                        ]);
+        this.editEventHandler = deshake(async (
+            protyle: IProtyle,
+            inspect: boolean,
+            complate: boolean,
+        ) => {
+            if (inspect || complate) {
+                const session = this.doc2session.get(protyle.block.rootID!);
+                if (session) { // 当前文档已连接会话
+                    const block = getCurrentBlock();
+                    if (isCodeCell(block)) { // 当前块是代码单元格
+                        const position = getCodeBlockCursorPosition();
+                        if (position) { // 成功获取光标位置
+                            const promises: Promise<any>[] = [];
+                            if (inspect) {
+                                promises.push(this.requestInspect( // 更新上下文帮助
+                                    session.id,
+                                    position,
+                                ));
+                            }
+                            if (complate) {
+                                promises.push(this.requestComplete( // 自动补全
+                                    session.id,
+                                    position,
+                                ));
+                            }
+                            await Promise.allSettled(promises);
+                        }
                     }
                 }
             }
@@ -1554,18 +1570,24 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
 
                     if (menu_items.length > 0) {
                         const range = position.current;
-                        const rect: DOMRect = (() => {
+                        const options: { x: number, y: number } = (() => {
                             var rect: DOMRect | void;
 
                             rect = range.getBoundingClientRect();
-                            if (rect.x > 0 && rect.y > 0) return rect;
+                            if (rect.x > 0 && rect.y > 0) return { x: rect.right, y: rect.bottom };
 
                             rect = range.commonAncestorContainer instanceof Element
                                 ? range.commonAncestorContainer.getBoundingClientRect()
-                                : range.commonAncestorContainer.parentElement?.getBoundingClientRect();
-                            if (rect && rect.x > 0 && rect.y > 0) return rect;
+                                : undefined;
+                            if (rect && rect.x > 0 && rect.y > 0) return { x: rect.right, y: rect.bottom };
 
-                            return position.container.getBoundingClientRect();
+                            rect = range.commonAncestorContainer.parentElement instanceof HTMLSpanElement
+                                ? range.commonAncestorContainer.parentElement?.getBoundingClientRect()
+                                : undefined;
+                            if (rect && rect.x > 0 && rect.y > 0) return { x: rect.right, y: rect.bottom };
+
+                            rect = position.container.getBoundingClientRect();
+                            return { x: rect.left, y: rect.bottom };
                         })();
 
                         const menu = new siyuan.Menu(message.header.msg_id, () => {
@@ -1580,20 +1602,17 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
                         // menu_items.forEach(menu.addItem); // 无效
 
                         this.complating = true;
-                        menu.open({
-                            x: rect.left,
-                            y: rect.bottom,
-                        });
+                        menu.open(options);
 
                         /* 调整菜单位置 */
                         const menu_rect = menu.menu.element.getBoundingClientRect();
-                        if (menu_rect.y !== rect.bottom) {
+                        if (menu_rect.y !== options.y) {
                             const items_element = menu.menu.element.lastElementChild;
                             if (items_element instanceof HTMLElement) {
-                                const max_height = globalThis.innerHeight - rect.bottom - 32;
+                                const max_height = globalThis.innerHeight - options.y - 32;
 
                                 items_element.style.maxHeight = `${max_height}px`;
-                                menu.element.style.top = `${rect.bottom}px`;
+                                menu.element.style.top = `${options.y}px`;
                             }
                         }
                     }
@@ -1625,10 +1644,10 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     ): void {
         select(position.container, { start, end });
         const range = globalThis.getSelection()?.getRangeAt(0);
-        if (range) {
+        if (range && range.toString() !== text) {
             replaceRangeWithText(range, text);
-            select(position.container, { start: start + text.length });
         }
+        select(position.container, { start: start + text.length });
     }
 
     /**
@@ -1933,17 +1952,11 @@ export default class JupyterClientPlugin extends siyuan.Plugin {
     ) => {
         // this.logger.debugs(e, protyle);
 
-        switch (true) {
-            case this.complating // 自动补全状态
-                && isMatchedKeyboardEvent(e, JupyterClientPlugin.EDIT_KEYBOARD_EVENT_COMPLATING_STATUS):
-            case !this.complating // 非自动补全状态
-                && isMatchedKeyboardEvent(e, JupyterClientPlugin.EDIT_KEYBOARD_EVENT_STATUS):
-
-                this.editEventHandler(protyle);
-                break;
-            default:
-                break;
-        }
+        this.editEventHandler(
+            protyle,
+            isMatchedKeyboardEvent(e, JupyterClientPlugin.EDIT_KEYBOARD_EVENT_STATUS_INSPECT),
+            isMatchedKeyboardEvent(e, JupyterClientPlugin.EDIT_KEYBOARD_EVENT_STATUS_COMPLATE),
+        );
     }
 
     /* 块菜单菜单弹出事件监听器 */

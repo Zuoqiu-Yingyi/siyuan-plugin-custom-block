@@ -181,6 +181,28 @@
                         }}
                     />
                 </Item>
+
+                <!-- 语言服务调用延时 -->
+                <Item
+                    title={i18n.settings.jupyterSettings.globalTab.delay.title}
+                    text={i18n.settings.jupyterSettings.globalTab.delay.description}
+                >
+                    <Input
+                        slot="input"
+                        type={ItemType.number}
+                        settingKey="delay"
+                        settingValue={config.jupyter.edit.delay}
+                        limits={{
+                            min: 0,
+                            max: Infinity,
+                            step: 25,
+                        }}
+                        on:changed={async e => {
+                            config.jupyter.edit.delay = e.detail.value;
+                            await updated();
+                        }}
+                    />
+                </Item>
             </div>
 
             <!-- 标签页 2 - 服务设置 -->

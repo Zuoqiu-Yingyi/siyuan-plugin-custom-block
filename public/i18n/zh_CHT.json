@@ -201,6 +201,10 @@
                     "description": "開啟後將嘗試與 Jupyter 服務建立連接",
                     "title": "啟用 Jupyter 客戶端"
                 },
+                "delay": {
+                    "description": "調用 Jupyter 內核語言服務獲取上下文幫助與代碼建議時的延時時間<br/>單位：毫秒",
+                    "title": "語言服務調用延時"
+                },
                 "title": "全局"
             },
             "importTab": {

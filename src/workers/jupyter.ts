@@ -39,6 +39,15 @@ import {
 } from "@/jupyter/parse";
 
 import type {
+    KernelSpec,
+    Kernel,
+    Session,
+    KernelMessage,
+} from "@jupyterlab/services";
+import type { IHeader } from "@jupyterlab/services/lib/kernel/messages";
+import type { IShellFuture } from "@jupyterlab/services/lib/kernel/kernel";
+
+import type {
     IConfig,
     IJupyterParserOptions,
 } from "@/types/config";
@@ -46,18 +55,11 @@ import type {
     IFunction,
     THandlersWrapper,
 } from "@workspace/utils/worker/bridge";
-import type {
-    KernelSpec,
-    Kernel,
-    Session,
-    KernelMessage,
-} from "@jupyterlab/services";
 import type { BlockID } from "@workspace/types/siyuan";
+
 import type { PluginHandlers } from "@/index";
-import type { IHeader } from "@jupyterlab/services/lib/kernel/messages";
 import type { IExecuteContext } from "@/types/jupyter";
 import type { I18N } from "@/utils/i18n";
-import type { IShellFuture } from "@jupyterlab/services/lib/kernel/kernel";
 
 const config: IConfig = DEFAULT_CONFIG;
 const logger = new Logger(`${self.name}-worker:${CONSTANTS.JUPYTER_WORKER_FILE_NAME}`);
