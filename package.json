@@ -11,11 +11,11 @@
         "check": "svelte-check --tsconfig ./tsconfig.json"
     },
     "devDependencies": {
-        "@sveltejs/vite-plugin-svelte": "^2.4.5",
+        "@sveltejs/vite-plugin-svelte": "^2.4.6",
         "@tsconfig/svelte": "^4.0.1",
-        "@types/node": "^20.5.9",
+        "@types/node": "^20.7.1",
         "less": "^4.2.0",
-        "svelte": "^4.2.0",
+        "svelte": "^4.2.1",
         "svelte-preprocess-less": "^0.4.0",
         "typescript": "^5.2.2",
         "vite": "^4.4.9"

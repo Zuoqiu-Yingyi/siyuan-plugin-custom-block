@@ -199,7 +199,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
                         icon: "iconSiYuan",
                         label: this.i18n.menu.openMobildWindow.label,
                         click: (_element) => {
-                            this.openSiyuanDesktopWindow({
+                            this.openSiyuanMobileWindow({
                                 screenX: globalThis.siyuan.coordinates.screenX,
                                 screenY: globalThis.siyuan.coordinates.screenY,
                             });
