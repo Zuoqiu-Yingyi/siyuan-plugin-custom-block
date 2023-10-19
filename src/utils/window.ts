@@ -20,9 +20,9 @@
 import type { Electron } from "@workspace/types/electron";
 import { isElectron } from "@workspace/utils/env/front-end";
 import { merge } from "@workspace/utils/misc/merge";
+import { buildMenuTemplate } from "@workspace/utils/window/menuTemplae";
 
 import type { IWindowParams } from "@/types/config";
-import { createMenuTemplate } from "@/configs/menuTemplae";
 import type WebviewPlugin from "@/index";
 
 /* 菜单栏状态 */
@@ -78,7 +78,7 @@ export function openNewWindow(
 
             /* 是否启用菜单栏 */
             if (params.enableMenuBar) {
-                const menu = Menu.buildFromTemplate(createMenuTemplate(globalThis.process.platform === "darwin", params.alwaysOnTop));
+                const menu = Menu.buildFromTemplate(buildMenuTemplate(params.alwaysOnTop));
                 window.setMenu(menu);
             }
             else {
