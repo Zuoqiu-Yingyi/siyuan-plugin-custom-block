@@ -52,7 +52,7 @@
     let can_back = false; // 能否转到上一页
     let can_forward = false; // 能否转到下一页
     let loading = false; // 页面是否正在加载
-    let address = decodeURI(src); // 地址栏
+    let address = globalThis.decodeURIComponent(src); // 地址栏
     let devtools_opened = false; // 开发者工具是否已打开
 
     let iframe: HTMLIFrameElement; // iframe 标签
@@ -182,7 +182,7 @@
             // plugin.logger.debug(e)
             /* 更新地址栏地址 */
             if (e.isMainFrame) {
-                address = decodeURI(e.url);
+                address = globalThis.decodeURIComponent(e.url);
                 tab.data.href = e.url;
             }
 
@@ -285,7 +285,7 @@
             // plugin.logger.debug(e);
 
             if (e.url) {
-                status = globalThis.decodeURI(e.url);
+                status = globalThis.decodeURIComponent(e.url);
                 if (!status_display) {
                     status_display = true;
                 }
@@ -306,18 +306,20 @@
             // 添加右键菜单
             const items: siyuan.IMenuItemOption[] = [];
 
-            function buildOpenMenuItems(url: string, title: string, action: string): siyuan.IMenuItemOption[] {
+            function buildOpenMenuItems(url: string, title: string, action: string, current: boolean = true): siyuan.IMenuItemOption[] {
                 const items: siyuan.IMenuItemOption[] = [];
 
-                /* 在新页签中打开 */
-                items.push({
-                    icon: "iconFocus",
-                    label: i18n.menu.openTabCurrent.label,
-                    action,
-                    click: () => loadURL(url),
-                });
+                if (current) {
+                    /* 在当前页签中打开 */
+                    items.push({
+                        icon: "icon-webview-click",
+                        label: i18n.menu.openTabCurrent.label,
+                        action,
+                        click: () => loadURL(url),
+                    });
 
-                items.push({ type: "separator" });
+                    items.push({ type: "separator" });
+                }
 
                 /* 在新页签中打开 */
                 items.push({
@@ -464,7 +466,22 @@
                 if (title) {
                     markdown.push(` "${title.replaceAll("\n", "").replaceAll("&", "&amp;").replaceAll('"', "&quot;")}"`);
                 }
+                markdown.push(")");
                 return markdown.join("");
+            }
+
+            function getValidTexts(...args: string[]): string[] {
+                return args.filter(text => !!text);
+            }
+
+            /* 复制划选内容 */
+            if (params.selectionText) {
+                items.push({
+                    icon: "icon-webview-select",
+                    label: i18n.menu.copySelectionText.label,
+                    click: () => clipboard.writeText(params.selectionText),
+                });
+                items.push({ type: "separator" });
             }
 
             switch (params.mediaType) {
@@ -513,11 +530,12 @@
                                 label: i18n.menu.copyLink.label,
                                 accelerator: "Markdown",
                                 click: () => {
+                                    const texts = getValidTexts(params.linkText, params.altText, params.suggestedFilename, params.titleText);
                                     clipboard.writeText(
                                         buildMarkdownLink(
-                                            params.linkText || params.altText || params.suggestedFilename || params.titleText, //
+                                            texts.shift(), //
                                             params.linkURL, //
-                                            params.titleText || params.suggestedFilename || params.altText || params.linkText, //
+                                            texts.pop(), //
                                         ),
                                     );
                                 },
@@ -561,11 +579,17 @@
                                 label: i18n.menu.copyFrame.label,
                                 accelerator: "Markdown",
                                 click: () => {
+                                    const texts = getValidTexts(
+                                        params.linkText, //
+                                        params.altText, //
+                                        params.suggestedFilename, //
+                                        params.titleText, //
+                                    );
                                     clipboard.writeText(
                                         buildMarkdownLink(
-                                            params.linkText || params.altText || params.suggestedFilename || params.titleText, //
+                                            texts.shift(), //
                                             params.frameURL, //
-                                            params.titleText || params.suggestedFilename || params.altText || params.linkText, //
+                                            texts.pop(), //
                                         ),
                                     );
                                 },
@@ -573,7 +597,7 @@
                             break;
                         }
                         default: {
-                            items.push(...buildOpenMenuItems(params.pageURL, title, "iconFile"));
+                            items.push(...buildOpenMenuItems(params.pageURL, title, "iconFile", false));
 
                             items.push({ type: "separator" });
 
@@ -609,10 +633,18 @@
                                 label: i18n.menu.copyPage.label,
                                 accelerator: "Markdown",
                                 click: () => {
-                                    buildMarkdownLink(
-                                        params.linkText || params.altText || params.suggestedFilename || params.titleText, //
-                                        params.pageURL, //
-                                        params.titleText || params.suggestedFilename || params.altText || params.linkText, //
+                                    const texts = getValidTexts(
+                                        params.linkText, //
+                                        params.altText, //
+                                        params.suggestedFilename, //
+                                        params.titleText, //
+                                    );
+                                    clipboard.writeText(
+                                        buildMarkdownLink(
+                                            texts.shift(), //
+                                            params.pageURL, //
+                                            texts.pop(), //
+                                        ),
                                     );
                                 },
                             });
@@ -691,10 +723,18 @@
                         label: i18n.menu.copyImage.label,
                         accelerator: "Markdown",
                         click: () => {
-                            buildMarkdownLink(
-                                params.altText || params.linkText || params.suggestedFilename || params.titleText, //
-                                params.srcURL, //
-                                params.titleText || params.suggestedFilename || params.linkText || params.altText, //
+                            const texts = getValidTexts(
+                                params.altText, //
+                                params.linkText, //
+                                params.suggestedFilename, //
+                                params.titleText, //
+                            );
+                            clipboard.writeText(
+                                buildMarkdownLink(
+                                    texts.shift(), //
+                                    params.srcURL, //
+                                    texts.pop(), //
+                                ),
                             );
                         },
                     });
@@ -739,10 +779,18 @@
                         label: i18n.menu.copyAudio.label,
                         accelerator: "Markdown",
                         click: () => {
-                            buildMarkdownLink(
-                                params.altText || params.linkText || params.suggestedFilename || params.titleText, //
-                                params.srcURL, //
-                                params.titleText || params.suggestedFilename || params.linkText || params.altText, //
+                            const texts = getValidTexts(
+                                params.altText, //
+                                params.linkText, //
+                                params.suggestedFilename, //
+                                params.titleText, //
+                            );
+                            clipboard.writeText(
+                                buildMarkdownLink(
+                                    texts.shift(), //
+                                    params.srcURL, //
+                                    texts.pop(), //
+                                ),
                             );
                         },
                     });
@@ -787,10 +835,18 @@
                         label: i18n.menu.copyVideo.label,
                         accelerator: "Markdown",
                         click: () => {
-                            buildMarkdownLink(
-                                params.altText || params.linkText || params.suggestedFilename || params.titleText, //
-                                params.srcURL, //
-                                params.titleText || params.suggestedFilename || params.linkText || params.altText, //
+                            const texts = getValidTexts(
+                                params.altText, //
+                                params.linkText, //
+                                params.suggestedFilename, //
+                                params.titleText, //
+                            );
+                            clipboard.writeText(
+                                buildMarkdownLink(
+                                    texts.shift(), //
+                                    params.srcURL, //
+                                    texts.pop(), //
+                                ),
                             );
                         },
                     });
@@ -801,16 +857,6 @@
             /* 复制指定字段 */
             items.push({ type: "separator" });
             items.push(...buildCopyMenuItems(params));
-
-            /* 复制划选内容 */
-            if (params.selectionText) {
-                items.push({ type: "separator" });
-                items.push({
-                    icon: "icon-webview-select",
-                    label: i18n.menu.copySelectionText.label,
-                    click: () => clipboard.writeText(params.selectionText),
-                });
-            }
 
             const _items = washMenuItems(items);
             if (_items.length > 0) {

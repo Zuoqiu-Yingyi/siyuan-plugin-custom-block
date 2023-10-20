@@ -58,10 +58,11 @@ import type { IPosition } from "@workspace/utils/dom/position";
 import { washMenuItems } from "@workspace/utils/siyuan/menu/wash";
 
 import icon_webview_anchor from "./assets/symbols/icon-webview-anchor.symbol?raw";
-import icon_webview_title from "./assets/symbols/icon-webview-title.symbol?raw";
-import icon_webview_select from "./assets/symbols/icon-webview-select.symbol?raw";
-import icon_webview_chromium from "./assets/symbols/icon-webview-chromium.symbol?raw";
 import icon_webview_browser from "./assets/symbols/icon-webview-browser.symbol?raw";
+import icon_webview_chromium from "./assets/symbols/icon-webview-chromium.symbol?raw";
+import icon_webview_click from "./assets/symbols/icon-webview-click.symbol?raw";
+import icon_webview_select from "./assets/symbols/icon-webview-select.symbol?raw";
+import icon_webview_title from "./assets/symbols/icon-webview-title.symbol?raw";
 
 import Settings from "./components/Settings.svelte";
 import Webview from "./components/Webview.svelte"
@@ -135,10 +136,11 @@ export default class WebviewPlugin extends siyuan.Plugin {
         /* 注册图标 */
         this.addIcons([
             icon_webview_anchor,
-            icon_webview_title,
-            icon_webview_select,
-            icon_webview_chromium,
             icon_webview_browser,
+            icon_webview_chromium,
+            icon_webview_click,
+            icon_webview_select,
+            icon_webview_title,
         ].join(""));
 
         /**
