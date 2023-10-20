@@ -45,6 +45,7 @@ import type {
     IClickBlockIconEvent,
     IClickEditorTitleIconEvent,
     IOpenMenuBlockRefEvent,
+    IOpenMenuImageEvent,
     IOpenMenuLinkEvent,
 } from "@workspace/types/siyuan/events";
 import type { BlockID } from "@workspace/types/siyuan";
@@ -54,6 +55,8 @@ import { washMenuItems } from "@workspace/utils/siyuan/menu/wash";
 import icon_webview_anchor from "./assets/symbols/icon-webview-anchor.symbol?raw";
 import icon_webview_title from "./assets/symbols/icon-webview-title.symbol?raw";
 import icon_webview_select from "./assets/symbols/icon-webview-select.symbol?raw";
+import icon_webview_chromium from "./assets/symbols/icon-webview-chromium.symbol?raw";
+import icon_webview_browser from "./assets/symbols/icon-webview-browser.symbol?raw";
 
 import Settings from "./components/Settings.svelte";
 import Webview from "./components/Webview.svelte"
@@ -126,6 +129,8 @@ export default class WebviewPlugin extends siyuan.Plugin {
             icon_webview_anchor,
             icon_webview_title,
             icon_webview_select,
+            icon_webview_chromium,
+            icon_webview_browser,
         ].join(""));
 
         /**
@@ -156,7 +161,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
             hotkey: "⌘T", // 默认快捷键
             customHotkey: "", // 自定义快捷键
             callback: () => {
-                this.openWebviewTab("", this.i18n.menu.openNewTab.title);
+                this.openWebviewTab(undefined, this.i18n.menu.openNewTab.title);
             },
         });
 
@@ -181,6 +186,8 @@ export default class WebviewPlugin extends siyuan.Plugin {
                 this.eventBus.on("open-menu-blockref", this.blockRefMenuEventListener);
                 /* 超链接菜单 */
                 this.eventBus.on("open-menu-link", this.linkMenuEventListener);
+                /* 图片菜单 */
+                this.eventBus.on("open-menu-image", this.imageMenuEventListener);
             })
 
     }
@@ -191,7 +198,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
             /* 顶部工具栏菜单 */
             const menu = new siyuan.Menu(this.TOP_BAR_MENU_ID);
             this.tab_bar_item = this.addTopBar({
-                icon: "iconOpenWindow",
+                icon: "icon-webview-chromium",
                 title: this.i18n.displayName,
                 position: "right",
                 callback: (e) => {
@@ -219,6 +226,17 @@ export default class WebviewPlugin extends siyuan.Plugin {
                                 screenX: globalThis.siyuan.coordinates.screenX,
                                 screenY: globalThis.siyuan.coordinates.screenY,
                             });
+                        },
+                    });
+
+                    menu.addSeparator();
+
+                    /* 菜单项 - 打开空白页签窗口 */
+                    menu.addItem({
+                        icon: "iconLayout",
+                        label: this.i18n.menu.openNewTab.label,
+                        click: (_element) => {
+                            this.openWebviewTab(undefined, this.i18n.menu.openNewTab.title);
                         },
                     });
 
@@ -262,6 +280,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
         this.eventBus.off("click-editortitleicon", this.blockMenuEventListener);
         this.eventBus.off("open-menu-blockref", this.blockRefMenuEventListener);
         this.eventBus.off("open-menu-link", this.linkMenuEventListener);
+        this.eventBus.off("open-menu-image", this.imageMenuEventListener);
     }
 
     openSetting(): void {
@@ -312,20 +331,20 @@ export default class WebviewPlugin extends siyuan.Plugin {
      * @param options: 页签其他选项
      */
     public openWebviewTab(
-        href: string,
+        href: string = "about:blank",
         title?: string,
-        icon: string = "iconLanguage",
+        icon: string = "icon-webview-chromium",
         options: object = {},
     ) {
         siyuan.openTab({
             app: this.app,
             custom: {
                 icon,
-                title: title || this.name,
+                title: title || this.displayName,
                 id: this.WEBVIEW_TAB_ID,
                 data: {
                     href,
-                    title: title || this.name,
+                    title: title || this.displayName,
                 },
             },
             keepCursor: false,
@@ -669,7 +688,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
         const submenu: siyuan.IMenuItemOption[] = [
             {
                 /* 在新页签中打开 */
-                icon: "iconMin",
+                icon: "iconAdd",
                 label: this.i18n.menu.openTab.label,
                 click: () => this.openWebviewTab(
                     href,
@@ -749,7 +768,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
         });
 
         e.detail.menu.addItem({
-            icon: "iconLanguage",
+            icon: "icon-webview-chromium",
             label: this.i18n.displayName,
             submenu: washMenuItems(submenu),
         });
@@ -786,16 +805,32 @@ export default class WebviewPlugin extends siyuan.Plugin {
 
             /* 其他超链接 */
             default: {
-                submenu.push(...this.buildOpenLinkSubmenu(link.href, link.title, "iconLanguage"));
+                submenu.push(...this.buildOpenLinkSubmenu(link.href, link.title, "icon-webview-chromium"));
                 break;
             }
         }
 
         e.detail.menu.addItem({
-            icon: "iconLanguage",
+            icon: "icon-webview-chromium",
             label: this.i18n.displayName,
             submenu: washMenuItems(submenu),
         });
+    }
+
+    /* 图片菜单 */
+    protected readonly imageMenuEventListener = (e: IOpenMenuImageEvent) => {
+        // this.logger.debug(e);
+
+        const element = e.detail.element.querySelector("img"); // 图片元素
+        if (element) {
+            const submenu = this.buildOpenLinkSubmenu(element.src, element.title || element.alt, "iconImage");
+
+            e.detail.menu.addItem({
+                icon: "icon-webview-chromium",
+                label: this.i18n.displayName,
+                submenu: washMenuItems(submenu),
+            });
+        }
     }
 
     /* 块菜单 */
@@ -844,7 +879,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
             submenu.push(...this.buildOpenBlockSubmenu(context.id, false));
 
             detail.menu.addItem({
-                icon: "iconLanguage",
+                icon: "icon-webview-chromium",
                 label: this.i18n.displayName,
                 submenu: washMenuItems(submenu),
             });
