@@ -78,13 +78,16 @@
       "label": "在新頁簽中打開"
     },
     "openTabBackground": {
-      "label": "在後台分頁中打開"
+      "label": "在後台頁簽中打開"
     },
     "openTabBottom": {
-      "label": "在分頁下側打開"
+      "label": "在頁簽下側打開"
+    },
+    "openTabCurrent": {
+      "label": "在當前頁簽下打開"
     },
     "openTabRight": {
-      "label": "在分頁右側打開"
+      "label": "在頁簽右側打開"
     }
   },
   "message": {

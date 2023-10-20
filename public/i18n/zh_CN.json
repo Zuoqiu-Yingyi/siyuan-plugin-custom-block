@@ -83,6 +83,9 @@
     "openTabBottom": {
       "label": "在页签下侧打开"
     },
+    "openTabCurrent": {
+      "label": "在当前页签中打开"
+    },
     "openTabRight": {
       "label": "在页签右侧打开"
     }

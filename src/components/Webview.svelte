@@ -311,6 +311,16 @@
 
                 /* 在新页签中打开 */
                 items.push({
+                    icon: "iconFocus",
+                    label: i18n.menu.openTabCurrent.label,
+                    action,
+                    click: () => loadURL(url),
+                });
+
+                items.push({ type: "separator" });
+
+                /* 在新页签中打开 */
+                items.push({
                     icon: "iconAdd",
                     label: i18n.menu.openTab.label,
                     action,

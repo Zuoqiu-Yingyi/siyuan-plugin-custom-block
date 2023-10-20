@@ -75,13 +75,16 @@
       "label": "Open Resource"
     },
     "openTab": {
-      "label": "Open in new tab"
+      "label": "Open in New Tab"
     },
     "openTabBackground": {
-      "label": "Open in background tab"
+      "label": "Open in Background Tab"
     },
     "openTabBottom": {
       "label": "Open Below the Tab"
+    },
+    "openTabCurrent": {
+      "label": "Open in Current Tab"
     },
     "openTabRight": {
       "label": "Open Right the Tab"
