@@ -1,6 +1,54 @@
 {
   "displayName": "網頁視圖",
   "menu": {
+    "copyAlt": {
+      "label": "複製描述"
+    },
+    "copyAudio": {
+      "label": "複製音頻"
+    },
+    "copyFile": {
+      "label": "複製文件"
+    },
+    "copyFileName": {
+      "label": "複製文件名"
+    },
+    "copyFrame": {
+      "label": "複製框架"
+    },
+    "copyFrameAddress": {
+      "label": "複製框架地址"
+    },
+    "copyImage": {
+      "label": "複製圖片"
+    },
+    "copyLink": {
+      "label": "複製鏈接"
+    },
+    "copyLinkAddress": {
+      "label": "複製鏈接地址"
+    },
+    "copyPage": {
+      "label": "複製頁面鏈接"
+    },
+    "copyPageAddress": {
+      "label": "複製頁面地址"
+    },
+    "copyResourceAddress": {
+      "label": "複製資源地址"
+    },
+    "copySelectionText": {
+      "label": "複製劃選文本"
+    },
+    "copyText": {
+      "label": "複製錨文本"
+    },
+    "copyTitle": {
+      "label": "複製標題"
+    },
+    "copyVideo": {
+      "label": "複製視頻"
+    },
     "openByNewWindow": {
       "label": "使用新窗口打開"
     },
@@ -12,6 +60,9 @@
     },
     "openFocusedEditor": {
       "label": "在新窗口打開並聚焦"
+    },
+    "openLink": {
+      "label": "打開鏈接"
     },
     "openMobildWindow": {
       "label": "打開思源移動端窗口"

@@ -1,6 +1,54 @@
 {
   "displayName": "Web Page View",
   "menu": {
+    "copyAlt": {
+      "label": "Copy Description"
+    },
+    "copyAudio": {
+      "label": "Copy Audio"
+    },
+    "copyFile": {
+      "label": "Copy File"
+    },
+    "copyFileName": {
+      "label": "Copy File Name"
+    },
+    "copyFrame": {
+      "label": "Copy Frame"
+    },
+    "copyFrameAddress": {
+      "label": "Copy Frame URL"
+    },
+    "copyImage": {
+      "label": "Copy Image"
+    },
+    "copyLink": {
+      "label": "Copy Link"
+    },
+    "copyLinkAddress": {
+      "label": "Copy Link URL"
+    },
+    "copyPage": {
+      "label": "Copy Page Link"
+    },
+    "copyPageAddress": {
+      "label": "Copy Page URL"
+    },
+    "copyResourceAddress": {
+      "label": "Copy Resource URL"
+    },
+    "copySelectionText": {
+      "label": "Copy Selected Text"
+    },
+    "copyText": {
+      "label": "Copy Anchor Text"
+    },
+    "copyTitle": {
+      "label": "Copy Title"
+    },
+    "copyVideo": {
+      "label": "Copy Video"
+    },
     "openByNewWindow": {
       "label": "Open with New Window"
     },
@@ -12,6 +60,9 @@
     },
     "openFocusedEditor": {
       "label": "Open in a New Window and Focus"
+    },
+    "openLink": {
+      "label": "Open Link"
     },
     "openMobildWindow": {
       "label": "Open SiYuan Mobile Window"

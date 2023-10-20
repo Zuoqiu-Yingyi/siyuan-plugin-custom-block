@@ -48,7 +48,9 @@ import type {
 import type { BlockID } from "@workspace/types/siyuan";
 import type { IPosition } from "@workspace/utils/dom/position";
 
-// import Settings from "@workspace/components/siyuan/setting/Example.svelte";
+import icon_webview_anchor from "./assets/symbols/icon-webview-anchor.symbol?raw";
+import icon_webview_title from "./assets/symbols/icon-webview-title.symbol?raw";
+import icon_webview_select from "./assets/symbols/icon-webview-select.symbol?raw";
 
 import Settings from "./components/Settings.svelte";
 import Webview from "./components/Webview.svelte"
@@ -112,6 +114,14 @@ export default class WebviewPlugin extends siyuan.Plugin {
     }
 
     onload(): void {
+
+        /* 注册图标 */
+        this.addIcons([
+            icon_webview_anchor,
+            icon_webview_title,
+            icon_webview_select,
+        ].join(""));
+
         /**
          * 注册快捷键命令
          * 在 onload 结束后即刻解析, 因此不能在回调函数中注册
@@ -740,14 +750,14 @@ export default class WebviewPlugin extends siyuan.Plugin {
                 submenu.push({
                     icon: "iconOpenWindow",
                     label: this.i18n.menu.openByNewWindow.label,
-                    click: () => this.openWebpageWindow(
+                    click: () => (this.openWebpageWindow(
                         href,
                         link.title,
                         {
                             screenX: globalThis.siyuan.coordinates.screenX,
                             screenY: globalThis.siyuan.coordinates.screenY,
                         },
-                    ),
+                    ), null),
                 });
                 break;
             }
@@ -757,7 +767,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
                 if (FLAG_ELECTRON && FLAG_DESKTOP) {
                     /* 在后台页签中打开 */
                     submenu.push({
-                        icon: "iconFile",
+                        icon: "iconMin",
                         label: this.i18n.menu.openTabBackground.label,
                         click: () => this.openWebviewTab(
                             link.href,
@@ -793,14 +803,14 @@ export default class WebviewPlugin extends siyuan.Plugin {
                 submenu.push({
                     icon: "iconOpenWindow",
                     label: this.i18n.menu.openByNewWindow.label,
-                    click: () => this.openWebpageWindow(
+                    click: () => (this.openWebpageWindow(
                         link.href,
                         link.title,
                         {
                             screenX: globalThis.siyuan.coordinates.screenX,
                             screenY: globalThis.siyuan.coordinates.screenY,
                         },
-                    ),
+                    ), null),
                 });
                 break;
             }

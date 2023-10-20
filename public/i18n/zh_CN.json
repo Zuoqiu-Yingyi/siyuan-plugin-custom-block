@@ -1,6 +1,54 @@
 {
   "displayName": "网页视图",
   "menu": {
+    "copyAlt": {
+      "label": "复制描述"
+    },
+    "copyAudio": {
+      "label": "复制音频"
+    },
+    "copyFile": {
+      "label": "复制文件"
+    },
+    "copyFileName": {
+      "label": "复制文件名"
+    },
+    "copyFrame": {
+      "label": "复制框架"
+    },
+    "copyFrameAddress": {
+      "label": "复制框架地址"
+    },
+    "copyImage": {
+      "label": "复制图片"
+    },
+    "copyLink": {
+      "label": "复制链接"
+    },
+    "copyLinkAddress": {
+      "label": "复制链接地址"
+    },
+    "copyPage": {
+      "label": "复制页面链接"
+    },
+    "copyPageAddress": {
+      "label": "复制页面地址"
+    },
+    "copyResourceAddress": {
+      "label": "复制资源地址"
+    },
+    "copySelectionText": {
+      "label": "复制划选文本"
+    },
+    "copyText": {
+      "label": "复制锚文本"
+    },
+    "copyTitle": {
+      "label": "复制标题"
+    },
+    "copyVideo": {
+      "label": "复制视频"
+    },
     "openByNewWindow": {
       "label": "使用新窗口打开"
     },
@@ -12,6 +60,9 @@
     },
     "openFocusedEditor": {
       "label": "在新窗口打开并聚焦"
+    },
+    "openLink": {
+      "label": "打开链接"
     },
     "openMobildWindow": {
       "label": "打开思源移动端窗口"
