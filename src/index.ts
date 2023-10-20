@@ -26,6 +26,7 @@ import {
 import { Logger } from "@workspace/utils/logger";
 import { isMatchedMouseEvent } from "@workspace/utils/shortcut/match";
 import { merge } from "@workspace/utils/misc/merge";
+import { src2url } from "@workspace/utils/misc/url";
 import { getBlockID } from "@workspace/utils/siyuan/dom";
 import {
     Pathname,
@@ -35,7 +36,10 @@ import {
     parseSiyuanURL,
     parseSiyuanWebURL,
 } from "@workspace/utils/siyuan/url";
-import { pathname2icon, type2icon } from "@workspace/utils/siyuan/icon";
+import {
+    pathname2icon,
+    type2icon,
+} from "@workspace/utils/siyuan/icon";
 import {
     getBlockMenuContext,
 } from "@workspace/utils/siyuan/menu/block";
@@ -45,6 +49,7 @@ import type {
     IClickBlockIconEvent,
     IClickEditorTitleIconEvent,
     IOpenMenuBlockRefEvent,
+    IOpenMenuFileAnnotationRefEvent,
     IOpenMenuImageEvent,
     IOpenMenuLinkEvent,
 } from "@workspace/types/siyuan/events";
@@ -188,6 +193,8 @@ export default class WebviewPlugin extends siyuan.Plugin {
                 this.eventBus.on("open-menu-link", this.linkMenuEventListener);
                 /* 图片菜单 */
                 this.eventBus.on("open-menu-image", this.imageMenuEventListener);
+                /* 资源菜单 */
+                this.eventBus.on("open-menu-fileannotationref", this.fileAnnotationRefMenuEventListener);
             })
 
     }
@@ -281,6 +288,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
         this.eventBus.off("open-menu-blockref", this.blockRefMenuEventListener);
         this.eventBus.off("open-menu-link", this.linkMenuEventListener);
         this.eventBus.off("open-menu-image", this.imageMenuEventListener);
+        this.eventBus.off("open-menu-fileannotationref", this.fileAnnotationRefMenuEventListener);
     }
 
     openSetting(): void {
@@ -830,6 +838,26 @@ export default class WebviewPlugin extends siyuan.Plugin {
                 label: this.i18n.displayName,
                 submenu: washMenuItems(submenu),
             });
+        }
+    }
+
+    /* 图片菜单 */
+    protected readonly fileAnnotationRefMenuEventListener = (e: IOpenMenuFileAnnotationRefEvent) => {
+        // this.logger.debug(e);
+
+        try {
+            const element = e.detail.element;
+            const src = element.dataset.id.replace(/\/\d{14}-[0-9a-z]{7}$/, ""); // 资源文件路径
+            const url = src2url(src);
+            const submenu = this.buildOpenLinkSubmenu(url.href, element.innerText, "iconPDF");
+
+            e.detail.menu.addItem({
+                icon: "icon-webview-chromium",
+                label: this.i18n.displayName,
+                submenu: washMenuItems(submenu),
+            });
+        } catch (error) {
+            this.logger.warn(error);
         }
     }
 
