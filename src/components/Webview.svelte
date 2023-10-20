@@ -27,7 +27,9 @@
     import { washMenuItems } from "@workspace/utils/siyuan/menu/wash";
     import { trimPrefix } from "@workspace/utils/misc/string";
     import { escapeHTML } from "@workspace/utils/misc/html";
-    import * as clipboard from "@workspace/utils/electron/clipboard";
+    import { base64ToDataURL } from "@workspace/utils/misc/dataurl";
+    import clipboard from "@workspace/utils/electron/clipboard";
+    import { nativeImage } from "@workspace/utils/electron";
 
     import type siyuan from "siyuan";
     import type WebviewPlugin from "@/index";
@@ -615,6 +617,35 @@
                     items.push(...buildOpenMenuItems(params.linkURL, title, "iconImage"));
 
                     items.push({ type: "separator" });
+
+                    /* 复制图片 (图片文件) */
+                    items.push({
+                        icon: "iconImage",
+                        label: i18n.menu.copyImage.label,
+                        click: () => {
+                            setTimeout(async () => {
+                                try {
+                                    const response = await plugin.client.forwardProxy({
+                                        headers: [],
+                                        method: "GET",
+                                        responseEncoding: "base64",
+                                        timeout: 60_000,
+                                        url: params.srcURL,
+                                    });
+                                    if (200 <= response.data.status && response.data.status < 300) {
+                                        const data_url = base64ToDataURL(response.data.body, response.data.contentType);
+                                        const image = nativeImage.createFromDataURL(data_url);
+                                        clipboard.writeImage(image);
+                                    }
+                                } catch (error) {
+                                    plugin.logger.warn(error);
+                                } finally {
+                                    menu?.close();
+                                }
+                            });
+                            return true;
+                        },
+                    });
 
                     /* 复制图片 (富文本) */
                     items.push({

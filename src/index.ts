@@ -87,6 +87,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
 
     public readonly siyuan = siyuan;
     public readonly logger: InstanceType<typeof Logger>;
+    public readonly client: InstanceType<typeof sdk.Client>;
 
     protected readonly TOP_BAR_MENU_ID: string;
     protected readonly SETTINGS_DIALOG_ID: string;
@@ -99,6 +100,8 @@ export default class WebviewPlugin extends siyuan.Plugin {
         super(options);
 
         this.logger = new Logger(this.name);
+        this.client = new sdk.Client(undefined, "fetch");
+
         this.TOP_BAR_MENU_ID = `${this.name}-top-bar-menu`;
         this.SETTINGS_DIALOG_ID = `${this.name}-settings-dialog`;
         this.WEBVIEW_TAB_ID = `${this.name}${WebviewPlugin.WEBVIEW_TAB_TYPE}`;
