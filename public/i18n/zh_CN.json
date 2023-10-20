@@ -71,6 +71,9 @@
       "label": "打开新标签页",
       "title": "新标签页"
     },
+    "openResource": {
+      "label": "打开资源"
+    },
     "openTab": {
       "label": "在新页签中打开"
     },

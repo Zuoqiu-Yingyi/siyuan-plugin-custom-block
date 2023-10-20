@@ -71,6 +71,9 @@
       "label": "Open New Tab",
       "title": "New Tab"
     },
+    "openResource": {
+      "label": "Open Resource"
+    },
     "openTab": {
       "label": "Open in new tab"
     },
