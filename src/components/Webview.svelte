@@ -429,7 +429,7 @@
                 /* 复制描述 */
                 if (params.altText) {
                     items.push({
-                        icon: "icon-webview-anchor",
+                        icon: "iconInfo",
                         label: i18n.menu.copyAlt.label,
                         click: () => clipboard.writeText(params.altText),
                     });
@@ -447,7 +447,7 @@
                 /* 复制文件名 */
                 if (params.suggestedFilename) {
                     items.push({
-                        icon: "icon-webview-anchor",
+                        icon: "iconN",
                         label: i18n.menu.copyFileName.label,
                         click: () => clipboard.writeText(params.suggestedFilename),
                     });
