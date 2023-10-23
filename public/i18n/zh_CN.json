@@ -7,6 +7,12 @@
     },
     "displayName": "自定义块样式",
     "menu": {
+        "custom-block-export-disable": {
+            "label": "导出-禁用样式"
+        },
+        "custom-block-export-enable": {
+            "label": "导出-启用样式"
+        },
         "custom-block-fullscreen": {
             "label": "全屏显示"
         },

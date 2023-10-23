@@ -16,18 +16,23 @@
 /* 块粘性显示 */
 :root {
 
-    &[plugin-custom-block~=position-sticky] {
-        .protyle-wysiwyg {
+    &:not([plugin-custom-block-disabled~=position-sticky]) {
 
-            [data-node-id][custom-block-position~=sticky] {
-                position: sticky;
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
+        .protyle-content {
+            .protyle-wysiwyg {
 
-                top: 0;
-                bottom: 0;
-                left: 0;
-                right: 0;
+                [data-node-id][custom-block-position~=sticky] {
+                    position: sticky;
 
-                z-index: var(--custom-block-position-sticky-z-index);
+                    top: 0;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+
+                    z-index: var(--custom-block-position-sticky-z-index);
+                }
             }
         }
     }

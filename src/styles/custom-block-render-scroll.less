@@ -16,35 +16,40 @@
 /* 块过长时设置块内纵向滚动条 */
 :root {
 
-    &[plugin-custom-block~=render-scroll] {
-        .protyle-wysiwyg {
+    &:not([plugin-custom-block-disabled~=render-scroll]) {
 
-            &[custom-block-render~=scroll]>[data-node-id],
-            [custom-block-render~=scroll][data-node-id] {
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
+        .protyle-content {
+            .protyle-wysiwyg {
 
-                // >.protyle-icons,
-                >.protyle-action {
-                    /* 右上角悬浮控件 */
-                    position: sticky;
-                }
+                &[custom-block-render~=scroll]>[data-node-id],
+                [custom-block-render~=scroll][data-node-id] {
 
-                >.protyle-attr {
-                    .protyle-attr--refcount {
-                        /* 块引用数量标示 */
-                        right: 4px;
+                    // >.protyle-icons,
+                    >.protyle-action {
+                        /* 右上角悬浮控件 */
+                        position: sticky;
                     }
-                }
 
-                // 非表格块
-                &:not(.table) {
-                    /* 纵向滚动条 */
-                    overflow-y: auto;
-                    max-height: var(--custom-block-render-scroll-max-height);
+                    >.protyle-attr {
+                        .protyle-attr--refcount {
+                            /* 块引用数量标示 */
+                            right: 4px;
+                        }
+                    }
 
-                    &::-webkit-scrollbar-track {
-                        /* 滚动条轨道样式 */
-                        background-color: var(--b3-scroll-color);
-                        border-radius: var(--b3-border-radius);
+                    // 非表格块
+                    &:not(.table) {
+                        /* 纵向滚动条 */
+                        overflow-y: auto;
+                        max-height: var(--custom-block-render-scroll-max-height);
+
+                        &::-webkit-scrollbar-track {
+                            /* 滚动条轨道样式 */
+                            background-color: var(--b3-scroll-color);
+                            border-radius: var(--b3-border-radius);
+                        }
                     }
                 }
             }

@@ -16,17 +16,22 @@
 /* 表格单元格等宽 */
 
 :root {
-    &[plugin-custom-block~=table-width-equal] {
-        .protyle-wysiwyg {
-            [custom-block-table-width~=equal] {
-                &[data-node-id].table {
-                    table {
-                        /* 等宽 */
-                        table-layout: fixed;
+    &:not([plugin-custom-block-disabled~=table-width-equal]) {
 
-                        td {
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
+        .protyle-content {
+            .protyle-wysiwyg {
+                [custom-block-table-width~=equal] {
+                    &[data-node-id].table {
+                        table {
                             /* 等宽 */
-                            width: var(--custom-block-table-cell-equal-width);
+                            table-layout: fixed;
+
+                            td {
+                                /* 等宽 */
+                                width: var(--custom-block-table-cell-equal-width);
+                            }
                         }
                     }
                 }

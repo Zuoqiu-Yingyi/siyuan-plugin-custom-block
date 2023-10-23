@@ -16,17 +16,22 @@
 /* 全宽显示 */
 
 :root {
-    &[plugin-custom-block~=width-full] {
-        .protyle-wysiwyg {
-            [custom-block-width~=full] {
-                &[data-node-id] {
-                    .iframe-content {
+    &:not([plugin-custom-block-disabled~=width-full]) {
 
-                        &,
-                        >iframe,
-                        >video,
-                        >audio {
-                            width: 100% !important;
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
+        .protyle-content {
+            .protyle-wysiwyg {
+                [custom-block-width~=full] {
+                    &[data-node-id] {
+                        .iframe-content {
+
+                            &,
+                            >iframe,
+                            >video,
+                            >audio {
+                                width: 100% !important;
+                            }
                         }
                     }
                 }

@@ -18,36 +18,41 @@
 /* 显示块内容 */
 :root {
 
-    &[plugin-custom-block~=render-content] {
-        .protyle-wysiwyg {
+    &:not([plugin-custom-block-disabled~=render-content]) {
 
-            &[custom-block-render~=content],
-            [custom-block-render~=content] {
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
+        .protyle-content {
+            .protyle-wysiwyg {
 
-                &[data-node-id],
-                & [data-node-id] {
-                    .render-attr(data-content);
+                &[custom-block-render~=content],
+                [custom-block-render~=content] {
 
-                    /* 块级元素 */
-                    /* HTML 块 */
-                    .protyle-html {
+                    &[data-node-id],
+                    & [data-node-id] {
                         .render-attr(data-content);
-                    }
 
-                    /* 行级元素 */
-                    /* 块引用 */
-                    // 会造成嵌入块面包屑的副作用
-                    // .content(span, data-id);
+                        /* 块级元素 */
+                        /* HTML 块 */
+                        .protyle-html {
+                            .render-attr(data-content);
+                        }
 
-                    span {
-                        /* 超链接 */
-                        .render-attr(data-href);
+                        /* 行级元素 */
+                        /* 块引用 */
+                        // 会造成嵌入块面包屑的副作用
+                        // .content(span, data-id);
 
-                        /* 行级备注 */
-                        .render-attr(data-inline-memo-content);
+                        span {
+                            /* 超链接 */
+                            .render-attr(data-href);
 
-                        /* 公式内容 */
-                        .render-attr(data-content);
+                            /* 行级备注 */
+                            .render-attr(data-inline-memo-content);
+
+                            /* 公式内容 */
+                            .render-attr(data-content);
+                        }
                     }
                 }
             }

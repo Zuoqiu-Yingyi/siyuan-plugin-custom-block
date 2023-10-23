@@ -18,13 +18,18 @@
 /* 显示块序号 */
 :root {
 
-    &[plugin-custom-block~=render-index] {
-        .protyle-wysiwyg {
+    &:not([plugin-custom-block-disabled~=render-index]) {
 
-            &[custom-block-render~=index] {
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
+        .protyle-content {
+            .protyle-wysiwyg {
 
-                >* {
-                    .render-attr(data-node-index, ~"::before");
+                &[custom-block-render~=index] {
+
+                    >* {
+                        .render-attr(data-node-index, ~"::before");
+                    }
                 }
             }
         }
