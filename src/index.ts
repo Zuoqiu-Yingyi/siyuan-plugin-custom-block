@@ -252,30 +252,17 @@ export default class WebviewPlugin extends siyuan.Plugin {
                         },
                     });
 
-                    /* 菜单打开选项 */
-                    const menu_open_options = {
-                        x: 0,
-                        y: 0,
-                        isLeft: true,
-                    };
-
-                    /* 顶栏菜单项项被隐藏 */
-                    if ((e.target as HTMLElement).classList.contains("fn__none")) {
-                        const barPlugins = document.getElementById("barPlugins");
-                        if (barPlugins) {
-                            const rect = barPlugins.getBoundingClientRect();
-                            menu_open_options.x = rect.x + rect.width / 2;
-                            menu_open_options.y = rect.y + rect.height / 2;
-                        }
+                    /* 打开菜单 */
+                    if (FLAG_MOBILE) {
+                        menu.fullscreen();
                     }
                     else {
-                        const rect = this.tab_bar_item.getBoundingClientRect();
-                        menu_open_options.x = rect.x + rect.width / 2;
-                        menu_open_options.y = rect.y + rect.height / 2;
+                        menu.open({
+                            x: globalThis.siyuan?.coordinates?.pageX ?? 0,
+                            y: globalThis.siyuan?.coordinates?.pageY ?? 0,
+                            isLeft: true,
+                        });
                     }
-
-                    /* 打开菜单 */
-                    menu.open(menu_open_options);
                 },
             });
         }
