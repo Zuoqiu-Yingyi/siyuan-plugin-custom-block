@@ -25,26 +25,31 @@
 
 :root {
 
-    &[plugin-custom-block~=render-outline] {
-        .protyle-wysiwyg {
+    &:not([plugin-custom-block-disabled~=render-outline]) {
 
-            // 文档下所有块显示其轮廓
-            &[custom-block-render~=outline] {
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
+        .protyle-content {
+            .protyle-wysiwyg {
 
-                [data-node-id] {
-                    margin: 2px !important;
-                    padding: 2px !important;
+                // 文档下所有块显示其轮廓
+                &[custom-block-render~=outline] {
 
-                    .outline();
+                    [data-node-id] {
+                        margin: 2px !important;
+                        padding: 2px !important;
+
+                        .outline();
+                    }
                 }
-            }
 
-            // 显示该块轮廓
-            [custom-block-render~=outline] {
+                // 显示该块轮廓
+                [custom-block-render~=outline] {
 
-                &[data-node-id] {
+                    &[data-node-id] {
 
-                    .outline();
+                        .outline();
+                    }
                 }
             }
         }

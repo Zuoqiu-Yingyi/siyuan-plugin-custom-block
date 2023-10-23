@@ -30,18 +30,23 @@
 }
 
 :root {
-    &[plugin-custom-block~=writing-mode] {
-        .protyle-wysiwyg {
+    &:not([plugin-custom-block-disabled~=writing-mode]) {
 
-            &,
-            [data-node-id] {
-                .writing-mode(horizontal-tb);
-                .writing-mode(vertical-rl);
-                .writing-mode(vertical-lr);
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
+        .protyle-content {
+            .protyle-wysiwyg {
 
-                // 仅 Firefox 支持
-                .writing-mode(sideways-rl);
-                .writing-mode(sideways-lr);
+                &,
+                [data-node-id] {
+                    .writing-mode(horizontal-tb);
+                    .writing-mode(vertical-rl);
+                    .writing-mode(vertical-lr);
+
+                    // 仅 Firefox 支持
+                    .writing-mode(sideways-rl);
+                    .writing-mode(sideways-lr);
+                }
             }
         }
     }

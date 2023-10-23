@@ -25,7 +25,7 @@ import {
 } from "@/utils/enums";
 
 export const DEFAULT_CONFIG: IConfig = {
-    version: "1.1.1",
+    version: "1.1.2",
     features: [
         { // 自定义块 style 属性
             id: "custom-block-style",
@@ -502,6 +502,57 @@ export const DEFAULT_CONFIG: IConfig = {
                     params: {
                         name: "custom-block-list-view",
                         value: "board",
+                    },
+                },
+            ],
+        },
+        { // 分割线
+            id: "custom-block-separator-4648E408-18B5-4A38-8C0E-343AD852B71A",
+            enable: true,
+            mode: MenuItemMode.separator,
+            multi: true,
+            type: {
+                default: { enable: false },
+                [sdk.siyuan.NodeType.NodeDocument]: { enable: true },
+            },
+        },
+        { // 导出时激活自定义块样式
+            id: "custom-block-export-enable",
+            enable: true,
+            mode: MenuItemMode.button,
+            multi: false,
+            icon: "iconCheck",
+            accelerator: "export: true",
+            type: {
+                default: { enable: false },
+                [sdk.siyuan.NodeType.NodeDocument]: { enable: true },
+            },
+            tasks: [
+                {
+                    type: TaskType.update,
+                    params: {
+                        name: "custom-block-export",
+                        value: "true",
+                    },
+                },
+            ],
+        },
+        { // 导出时禁用自定义块样式
+            id: "custom-block-export-disable",
+            enable: true,
+            mode: MenuItemMode.button,
+            multi: false,
+            icon: "iconUncheck",
+            accelerator: "export: null",
+            type: {
+                default: { enable: false },
+                [sdk.siyuan.NodeType.NodeDocument]: { enable: true },
+            },
+            tasks: [
+                {
+                    type: TaskType.delete,
+                    params: {
+                        name: "custom-block-export",
                     },
                 },
             ],

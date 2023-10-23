@@ -54,7 +54,7 @@ import type { IConfig } from "./types/config";
 
 export default class CustomBlockPlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
-    static readonly ROOT_ATTRIBUTE_NAME = "plugin-custom-block";
+    static readonly ROOT_ATTRIBUTE_NAME = "plugin-custom-block-disabled";
 
     public readonly siyuan = siyuan;
     public readonly logger: InstanceType<typeof Logger>;
@@ -245,8 +245,9 @@ export default class CustomBlockPlugin extends siyuan.Plugin {
 
     /* 更新根节点属性 */
     public updateRootAttr() {
-        const features = this.config.features.filter(feature => feature.enable && feature.style && feature.token); // 激活的功能
-        const tokens = features.map(feature => feature.token); // 激活的功能令牌列表
+        // const features = this.config.features.filter(feature => feature.enable && feature.style && feature.token); // 激活的功能
+        const features = this.config.features.filter(feature => !(feature.enable && feature.style && feature.token)); // 禁用的功能
+        const tokens = features.map(feature => feature.token); // 禁用的功能令牌列表
 
         /* 设置 HTML 根节点的属性 */
         globalThis.document.documentElement.setAttribute(

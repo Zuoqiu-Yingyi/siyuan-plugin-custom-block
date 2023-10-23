@@ -34,9 +34,10 @@
 }
 
 :root {
-    &[plugin-custom-block~=list-view-map] {
+    &:not([plugin-custom-block-disabled~=list-view-map]) {
 
-        .b3-dialog__content,
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
         .protyle-content {
 
             [custom-block-list-view=map] {
