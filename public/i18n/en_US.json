@@ -1,5 +1,14 @@
 {
     "commands": {
+        "openJupyterBrowser": {
+            "text": "Open Jupyter in Browser"
+        },
+        "openJupyterTab": {
+            "text": "Open Jupyter in New Tab"
+        },
+        "openJupyterWindow": {
+            "text": "Open Jupyter in New Window"
+        },
         "runSelectedCells": {
             "text": "Run selected cells"
         },
@@ -197,13 +206,13 @@
                 "title": "Code execution"
             },
             "globalTab": {
-                "enable": {
-                    "description": "Enable to attempt to establish connection with Jupyter service",
-                    "title": "Enable Jupyter client"
-                },
                 "delay": {
                     "description": "The delay time when calling the Jupyter kernel language service to get context help and code suggestions.<br/>Unit: milliseconds",
                     "title": "Language service call delay"
+                },
+                "enable": {
+                    "description": "Enable to attempt to establish connection with Jupyter service",
+                    "title": "Enable Jupyter client"
                 },
                 "title": "Global"
             },

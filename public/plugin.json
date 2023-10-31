@@ -2,8 +2,26 @@
     "name": "jupyter-client",
     "author": "Zuoqiu Yingyi",
     "url": "https://github.com/Zuoqiu-Yingyi/siyuan-plugin-jupyter-client",
-    "version": "0.2.0",
-    "minAppVersion": "2.10.3",
+    "version": "0.2.1",
+    "minAppVersion": "2.10.13",
+    "keywords": [
+        "代码",
+        "程式碼",
+        "执行代码",
+        "執行程式碼",
+        "code",
+        "execute",
+        "jupyter",
+        "notebook",
+        "lab",
+        "hub"
+    ],
+    "backends": [
+        "all"
+    ],
+    "frontends": [
+        "all"
+    ],
     "displayName": {
         "default": "Jupyter Client",
         "zh_CN": "Jupyter 客户端",

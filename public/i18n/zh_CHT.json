@@ -1,5 +1,14 @@
 {
     "commands": {
+        "openJupyterBrowser": {
+            "text": "在瀏覽器中打開 Jupyter"
+        },
+        "openJupyterTab": {
+            "text": "在新頁籤中打開 Jupyter"
+        },
+        "openJupyterWindow": {
+            "text": "在新窗口中打開 Jupyter"
+        },
         "runSelectedCells": {
             "text": "運行所選代碼塊"
         },
@@ -197,13 +206,13 @@
                 "title": "代碼運行"
             },
             "globalTab": {
-                "enable": {
-                    "description": "開啟後將嘗試與 Jupyter 服務建立連接",
-                    "title": "啟用 Jupyter 客戶端"
-                },
                 "delay": {
                     "description": "調用 Jupyter 內核語言服務獲取上下文幫助與代碼建議時的延時時間<br/>單位：毫秒",
                     "title": "語言服務調用延時"
+                },
+                "enable": {
+                    "description": "開啟後將嘗試與 Jupyter 服務建立連接",
+                    "title": "啟用 Jupyter 客戶端"
                 },
                 "title": "全局"
             },

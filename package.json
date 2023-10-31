@@ -1,7 +1,7 @@
 {
     "name": "jupyter-client",
     "private": true,
-    "version": "0.2.0",
+    "version": "0.2.1",
     "type": "module",
     "scripts": {
         "dev": "vite",
@@ -14,18 +14,18 @@
     },
     "devDependencies": {
         "@jupyter-lsp/theme-vscode": "3.0.0-rc.0",
-        "@jupyterlab/services": "^7.0.6",
-        "@jupyterlab/ui-components": "^4.0.6",
+        "@jupyterlab/services": "^7.0.7",
+        "@jupyterlab/ui-components": "^4.0.7",
         "@sveltejs/vite-plugin-svelte": "^2.4.6",
         "@tsconfig/svelte": "^5.0.2",
         "less": "^4.2.0",
         "strip-ansi": "^7.1.0",
-        "svelte": "^4.2.0",
+        "svelte": "^4.2.2",
         "svelte-check": "^2.10.3",
         "svelte-preprocess-less": "^0.4.0",
         "tslib": "^2.6.2",
         "typescript": "^5.2.2",
-        "vite": "^4.4.9",
+        "vite": "^4.5.0",
         "xterm": "^5.3.0",
         "xterm-addon-fit": "^0.7.0"
     },

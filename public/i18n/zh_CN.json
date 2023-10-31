@@ -1,5 +1,14 @@
 {
     "commands": {
+        "openJupyterBrowser": {
+            "text": "在浏览器中打开 Jupyter"
+        },
+        "openJupyterTab": {
+            "text": "在新页签中打开 Jupyter"
+        },
+        "openJupyterWindow": {
+            "text": "在新窗口中打开 Jupyter"
+        },
         "runSelectedCells": {
             "text": "运行所选代码块"
         },
@@ -197,13 +206,13 @@
                 "title": "代码运行"
             },
             "globalTab": {
-                "enable": {
-                    "description": "开启后将尝试与 Jupyter 服务建立连接",
-                    "title": "启用 Jupyter 客户端"
-                },
                 "delay": {
                     "description": "调用 Jupyter 内核语言服务获取上下文帮助与代码建议时的延时时间<br/>单位：毫秒",
                     "title": "语言服务调用延时"
+                },
+                "enable": {
+                    "description": "开启后将尝试与 Jupyter 服务建立连接",
+                    "title": "启用 Jupyter 客户端"
                 },
                 "title": "全局"
             },
