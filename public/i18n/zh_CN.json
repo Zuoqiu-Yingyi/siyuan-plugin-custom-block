@@ -61,6 +61,9 @@
         "custom-block-table-width-equal": {
             "label": "表格-单元格等宽"
         },
+        "custom-block-user-modify": {
+            "label": "只读模式"
+        },
         "custom-block-width-full": {
             "label": "全宽显示"
         },
