@@ -117,6 +117,29 @@ export const DEFAULT_CONFIG: IConfig = {
                 },
             ],
         },
+        { // 滚屏显示
+            id: "custom-block-render-scroll",
+            enable: true,
+            mode: MenuItemMode.button,
+            multi: true,
+            icon: "iconScrollWrapped",
+            accelerator: "render: scroll",
+            style: true,
+            token: "render-scroll",
+            type: {
+                default: { enable: true },
+                [sdk.siyuan.NodeType.NodeTable]: { enable: false },
+            },
+            tasks: [
+                {
+                    type: TaskType.toggle,
+                    params: {
+                        name: "custom-block-render",
+                        token: "scroll",
+                    },
+                },
+            ],
+        },
         { // 分割线
             id: "custom-block-separator-85642773-CEF8-4D0B-AFDF-BC450D162BEB",
             enable: true,
@@ -138,29 +161,6 @@ export const DEFAULT_CONFIG: IConfig = {
                     params: {
                         name: "custom-block-render",
                         token: "danmaku",
-                    },
-                },
-            ],
-        },
-        { // 滚屏显示
-            id: "custom-block-render-scroll",
-            enable: true,
-            mode: MenuItemMode.button,
-            multi: true,
-            icon: "iconScrollWrapped",
-            accelerator: "render: scroll",
-            style: true,
-            token: "render-scroll",
-            type: {
-                default: { enable: true },
-                [sdk.siyuan.NodeType.NodeTable]: { enable: false },
-            },
-            tasks: [
-                {
-                    type: TaskType.toggle,
-                    params: {
-                        name: "custom-block-render",
-                        token: "scroll",
                     },
                 },
             ],
@@ -307,6 +307,29 @@ export const DEFAULT_CONFIG: IConfig = {
                             // "sideways-lr",
                             null,
                         ],
+                    },
+                },
+            ],
+        },
+        { // 只读模式
+            id: "custom-block-user-modify",
+            enable: true,
+            mode: MenuItemMode.button,
+            multi: true,
+            icon: "iconLock",
+            accelerator: "user-modify: read-only",
+            style: true,
+            token: "user-modify",
+            type: {
+                default: { enable: true },
+                [sdk.siyuan.NodeType.NodeDocument]: { enable: false },
+            },
+            tasks: [
+                {
+                    type: TaskType.toggle,
+                    params: {
+                        name: "custom-block-user-modify",
+                        token: "read-only",
                     },
                 },
             ],

@@ -61,6 +61,9 @@
         "custom-block-table-width-equal": {
             "label": "Table - Equally Cells Width"
         },
+        "custom-block-user-modify": {
+            "label": "Read-only Mode"
+        },
         "custom-block-width-full": {
             "label": "Full-width Display"
         },
