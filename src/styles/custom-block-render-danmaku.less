@@ -15,17 +15,23 @@
 
 :root {
 
-    &[plugin-custom-block~=render-danmaku] {
-        .protyle-wysiwyg {
+    #preview,
+    &:not([plugin-custom-block-disabled~=render-danmaku]) {
 
-            &[custom-block-render~=danmaku]>[data-node-id],
-            [custom-block-render~=danmaku][data-node-id] {
-                /* 使用滚动动画 */
-                animation: var(--custom-block-render-danmaku-time) danmaku linear infinite normal;
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
+        .protyle-content {
+            .protyle-wysiwyg {
 
-                &:hover {
-                    /* 鼠标悬浮时暂停 */
-                    animation-play-state: paused;
+                &[custom-block-render~=danmaku]>[data-node-id],
+                [custom-block-render~=danmaku][data-node-id] {
+                    /* 使用滚动动画 */
+                    animation: var(--custom-block-render-danmaku-time) danmaku linear infinite normal;
+
+                    &:hover {
+                        /* 鼠标悬浮时暂停 */
+                        animation-play-state: paused;
+                    }
                 }
             }
         }

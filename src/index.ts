@@ -54,7 +54,7 @@ import type { IConfig } from "./types/config";
 
 export default class CustomBlockPlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
-    static readonly ROOT_ATTRIBUTE_NAME = "plugin-custom-block";
+    static readonly ROOT_ATTRIBUTE_NAME = "plugin-custom-block-disabled";
 
     public readonly siyuan = siyuan;
     public readonly logger: InstanceType<typeof Logger>;
@@ -148,7 +148,21 @@ export default class CustomBlockPlugin extends siyuan.Plugin {
             const submenu: siyuan.IMenuItemOption[] = []; // 下级菜单
 
             /* 获得可使用的功能 */
-            const features = this.config.features.filter(feature => featureFilter(feature, context));
+            const features = this.config.features
+                .filter(feature => featureFilter(feature, context))
+                .filter((feature, index, array) => {
+                    switch (feature.mode) {
+                        case MenuItemMode.separator:
+                            if (index === 0 || index === array.length - 1) { // 移除首尾的分割线
+                                return false;
+                            }
+                            else { // 移除重复的分割线
+                                return array[index - 1].mode !== MenuItemMode.separator;
+                            }
+                        default:
+                            return true;
+                    }
+                });
 
             /* 生成菜单项 */
             features.forEach(feature => {
@@ -231,8 +245,9 @@ export default class CustomBlockPlugin extends siyuan.Plugin {
 
     /* 更新根节点属性 */
     public updateRootAttr() {
-        const features = this.config.features.filter(feature => feature.enable && feature.style && feature.token); // 激活的功能
-        const tokens = features.map(feature => feature.token); // 激活的功能令牌列表
+        // const features = this.config.features.filter(feature => feature.enable && feature.style && feature.token); // 激活的功能
+        const features = this.config.features.filter(feature => !(feature.enable && feature.style && feature.token)); // 禁用的功能
+        const tokens = features.map(feature => feature.token); // 禁用的功能令牌列表
 
         /* 设置 HTML 根节点的属性 */
         globalThis.document.documentElement.setAttribute(

@@ -21,9 +21,10 @@
  */
 
 :root {
-    &[plugin-custom-block~=list-view-table] {
+    &:not([plugin-custom-block-disabled~=list-view-table]) {
 
-        .b3-dialog__content,
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
         .protyle-content {
 
             [custom-block-list-view=table] {

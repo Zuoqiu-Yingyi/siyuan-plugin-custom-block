@@ -18,15 +18,20 @@
 /* 显示块 ID */
 :root {
 
-    &[plugin-custom-block~=render-id] {
-        .protyle-wysiwyg {
+    &:not([plugin-custom-block-disabled~=render-id]) {
 
-            &[custom-block-render~=id],
-            [custom-block-render~=id] {
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
+        .protyle-content {
+            .protyle-wysiwyg {
 
-                &,
-                & * {
-                    .render-attr(data-node-id);
+                &[custom-block-render~=id],
+                [custom-block-render~=id] {
+
+                    &,
+                    & * {
+                        .render-attr(data-node-id);
+                    }
                 }
             }
         }

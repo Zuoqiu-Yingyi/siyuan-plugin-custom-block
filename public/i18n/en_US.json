@@ -7,6 +7,12 @@
     },
     "displayName": "Custom Block Styles",
     "menu": {
+        "custom-block-export-disable": {
+            "label": "Export - Disable Style"
+        },
+        "custom-block-export-enable": {
+            "label": "Export - Enable Style"
+        },
         "custom-block-fullscreen": {
             "label": "Full-screen Display"
         },
@@ -54,6 +60,9 @@
         },
         "custom-block-table-width-equal": {
             "label": "Table - Equally Cells Width"
+        },
+        "custom-block-user-modify": {
+            "label": "Read-only Mode"
         },
         "custom-block-width-full": {
             "label": "Full-width Display"

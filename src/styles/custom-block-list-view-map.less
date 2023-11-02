@@ -34,9 +34,10 @@
 }
 
 :root {
-    &[plugin-custom-block~=list-view-map] {
+    &:not([plugin-custom-block-disabled~=list-view-map]) {
 
-        .b3-dialog__content,
+        body:has(> #preview[custom-block-export]),
+        .b3-dialog__content:has(> #preview[custom-block-export]),
         .protyle-content {
 
             [custom-block-list-view=map] {
@@ -206,7 +207,7 @@
                                     padding: 0;
 
                                     >[contenteditable][spellcheck] {
-                                        white-space: pre; // 保留换行
+                                        white-space: var(--custom-block-list-view-map-white-space);
                                         padding: 0 0.5em;
 
                                         border-radius: var(--custom-block-border-radius);

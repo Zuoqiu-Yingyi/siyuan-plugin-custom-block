@@ -13,42 +13,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-/* 显示块 ID */
-
-.outline() {
-    outline: 1px dotted var(--b3-theme-on-surface);
-
-    &:hover {
-        outline-style: solid;
-    }
-}
-
 :root {
-
-    &:not([plugin-custom-block-disabled~=render-outline]) {
+    &:not([plugin-custom-block-disabled~=user-modify]) {
 
         body:has(> #preview[custom-block-export]),
         .b3-dialog__content:has(> #preview[custom-block-export]),
         .protyle-content {
             .protyle-wysiwyg {
-
-                // 文档下所有块显示其轮廓
-                &[custom-block-render~=outline] {
-
-                    [data-node-id] {
-                        margin: 2px !important;
-                        padding: 2px !important;
-
-                        .outline();
-                    }
-                }
-
-                // 显示该块轮廓
-                [custom-block-render~=outline] {
-
+                [custom-block-user-modify=read-only] {
                     &[data-node-id] {
+                        cursor: not-allowed;
 
-                        .outline();
+                        div[contenteditable=true] {
+                            user-modify: read-only;
+                            -moz-user-modify: read-only;
+                            -webkit-user-modify: read-only;
+                        }
                     }
                 }
             }
