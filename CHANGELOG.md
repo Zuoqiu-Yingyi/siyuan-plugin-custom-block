@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.1.2](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.1.1...v1.1.2) (2023-11-02)
+
+
+### Miscellaneous
+
+* **custom-block:** release v1.1.2 ([5153fc6](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/5153fc6a9a24636c42706281098b36dc9be92b87))
+* **custom-block:** 添加开源许可证 | Add open source license. ([026af8b](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/026af8b3ec3a944037bcfd459345ac3d6474d9aa))
+
+
+### Features
+
+* **custom-block:** 块只读模式 | Block read-only mode. ([8342fd4](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/8342fd43fd165705fa256af3b4e924bb8079e15b))
+* **custom-block:** 添加一个用于在导出时启用/禁用样式的菜单项 | Add a menu item for enabling/disabling styles when exporting. ([6e403ae](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/6e403ae2af6193643d8c9dbff27519ab11860c2c))
+* **custom-block:** 移除重复的分割线 | Remove duplicate separator. ([e57c988](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/e57c9881520215f2b71356955abab61c27c4cec7))
+
+
+### Performance Improvements
+
+* **custom-block:** 调整列表导图视图文本块换行模式 | Adjust the line break mode of the text block in the list mind-map view. ([3cc2525](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/3cc252546b4efb4a25404697082ba0611cca4b45))
+
 ## [1.1.1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.1.0...v1.1.1) (2023-09-07)
 
 
