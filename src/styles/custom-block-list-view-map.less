@@ -172,17 +172,16 @@
                         }
 
                         >[data-node-id] {
+                            margin-left: 2em !important;
 
                             &::before {
                                 /* 去除竖线 */
                                 display: none;
                             }
 
-                            // &.list {
-                            //     display: flex;
-                            //     flex-flow: column wrap;
-                            //     align-content: center;
-                            // }
+                            &.list {
+                                margin-left: 1em !important;
+                            }
 
                             &[data-type="NodeHeading"] {
                                 /* 移除脑图内部标题块的左侧边线 */
