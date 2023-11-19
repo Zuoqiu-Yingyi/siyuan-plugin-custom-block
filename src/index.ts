@@ -81,7 +81,7 @@ import {
 } from "./utils/window";
 
 export default class WebviewPlugin extends siyuan.Plugin {
-    static readonly GLOBAL_CONFIG_NAME = "global-config";
+    static readonly GLOBAL_CONFIG_NAME = "global-config.json";
     static readonly WEBVIEW_TAB_TYPE = "-webview-tag";
 
     declare public readonly i18n: I18N;
@@ -310,7 +310,7 @@ export default class WebviewPlugin extends siyuan.Plugin {
         if (config && config !== this.config) {
             this.config = config;
         }
-        return this.saveData(WebviewPlugin.GLOBAL_CONFIG_NAME, this.config);
+        return this.saveData(WebviewPlugin.GLOBAL_CONFIG_NAME, JSON.stringify(this.config, undefined, 4));
     }
 
     /* 获得 UA */
@@ -551,6 +551,19 @@ export default class WebviewPlugin extends siyuan.Plugin {
         return false;
     }
 
+    /* 是否为有效的静态文件路径 */
+    protected isFilePathnameAvailable(pathname: string, pathnames: IProtocols): boolean {
+        if (isStaticPathname(pathname)) {
+            for (const key in pathnames) {
+                const protocol = pathnames[key];
+                if (protocol.enable && pathname.startsWith(protocol.prefix)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * 获取超链接的元数据
      * @param element: 超链接元素
@@ -560,8 +573,8 @@ export default class WebviewPlugin extends siyuan.Plugin {
         const meta = {
             valid: false, // 是否为有效的超链接
             enabled: false, // 是否为激活的超链接
-            href: undefined, // 超链接目标
-            title: undefined, // 超链接标题/锚文本
+            href: "", // 超链接目标
+            title: "", // 超链接标题/锚文本
         };
         switch (element.localName) {
             case "a":
@@ -918,23 +931,37 @@ export default class WebviewPlugin extends siyuan.Plugin {
             if (!isMatchedMouseEvent(e, this.config.tab.open.mouse)) return;
 
             const meta = this.parseHyperlinkMeta(e.target as HTMLElement, this.config.tab.open.targets);
-
-            /* 判断目标元素是否有效 */
+            
+            /* 判断目标元素是否为有效的超链接 */
             if (meta.valid) {
                 this.logger.info(meta);
-                if (this.isUrlSchemeAvailable(meta.href, this.config.tab.open.protocols)) {
-                    try {
+
+                /* 仅访问允许访问的超链接 */
+                if (meta.enabled) {
+                    const flag_open = (() => {
+                        switch (true) {
+                            case this.isUrlSchemeAvailable(meta.href, this.config.tab.open.protocols):
+                                return true;
+        
+                            case this.isFilePathnameAvailable(meta.href, this.config.tab.open.pathnames):
+                                meta.href = `${globalThis.document.baseURI}${meta.href}`;
+                                return true;
+        
+                            default:
+                                return false;
+                        }
+                    })();
+    
+                    if (flag_open) {
                         e.preventDefault();
                         e.stopPropagation();
-
+    
                         this.openWebviewTab(meta.href, meta.title);
-                    } catch (e) {
-                        this.logger.warn(e);
                     }
                 }
             }
-        } catch (e) {
-            this.logger.warn(e);
+        } catch (error) {
+            this.logger.warn(error);
         }
     }
 
@@ -950,33 +977,49 @@ export default class WebviewPlugin extends siyuan.Plugin {
             if (!isMatchedMouseEvent(e, this.config.window.open.mouse)) return;
 
             const meta = this.parseHyperlinkMeta(e.target as HTMLElement, this.config.window.open.targets);
+            
+            /* 判断目标元素是否为有效的超链接 */
+            if (meta.valid) { // 目标为有效的超链接
+                this.logger.info(meta);
 
-            /* 打开超链接 */
-            if (meta.valid) { // 是否为超链接
-                this.logger.info(meta.href);
+                /* 仅访问允许访问的超链接 */
+                if (meta.enabled) {
+                    const flag_open = (() => {
+                        switch (true) {
+                            case this.isUrlSchemeAvailable(meta.href, this.config.window.open.protocols):
+                                return true;
 
-                /* 仅访问激活的超链接 */
-                if (meta.enabled && this.isUrlSchemeAvailable(meta.href, this.config.window.open.protocols)) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                            case this.isFilePathnameAvailable(meta.href, this.config.window.open.pathnames):
+                                meta.href = `${globalThis.document.baseURI}${meta.href}`;
+                                return true;
 
-                    /* 思源协议 siyuan:// 需要使用单独的方案 */
-                    if (meta.href.startsWith("siyuan://")) {
-                        if (this.config.window.siyuan.enable) {
-                            /* 打开思源编辑器 */
-                            const url = buildSiyuanWebURL(
-                                editorType2Pathname(this.config.window.siyuan.editorType),
-                                parseSiyuanURL(new URL(meta.href)),
-                            );
-                            this.openSiyuanWindow(url, e);
+                            default:
+                                return false;
                         }
-                    }
-                    else {
-                        this.openWindow(meta.href, {
-                            x: e.screenX,
-                            y: e.screenY,
-                            title: meta.title || this.name,
-                        });
+                    })();
+
+                    if (flag_open) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        /* 思源协议 siyuan:// 需要使用单独的方案 */
+                        if (meta.href.startsWith("siyuan://")) {
+                            if (this.config.window.siyuan.enable) {
+                                /* 打开思源编辑器 */
+                                const url = buildSiyuanWebURL(
+                                    editorType2Pathname(this.config.window.siyuan.editorType),
+                                    parseSiyuanURL(new URL(meta.href)),
+                                );
+                                this.openSiyuanWindow(url, e);
+                            }
+                        }
+                        else {
+                            this.openWindow(meta.href, {
+                                x: e.screenX,
+                                y: e.screenY,
+                                title: meta.title || this.name,
+                            });
+                        }
                     }
                 }
             }
@@ -999,7 +1042,6 @@ export default class WebviewPlugin extends siyuan.Plugin {
                     }
                 }
             }
-
         } catch (e) {
             this.logger.warn(e);
         }

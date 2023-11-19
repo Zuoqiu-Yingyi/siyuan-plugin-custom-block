@@ -78,6 +78,52 @@ export const DEFAULT_CONFIG: IConfig = {
                     prefix: "#",
                 },
             },
+            pathnames: {
+                assets: {
+                    enable: false,
+                    prefix: "assets/",
+                },
+                emojies: {
+                    enable: false,
+                    prefix: "emojies/",
+                },
+                plugins: {
+                    enable: false,
+                    prefix: "plugins/",
+                },
+                public: {
+                    enable: false,
+                    prefix: "public/",
+                },
+                snippets: {
+                    enable: false,
+                    prefix: "snippets/",
+                },
+                templates: {
+                    enable: false,
+                    prefix: "templates/",
+                },
+                widgets: {
+                    enable: false,
+                    prefix: "widgets/",
+                },
+                appearance: {
+                    enable: false,
+                    prefix: "appearance/",
+                },
+                export: {
+                    enable: false,
+                    prefix: "export/",
+                },
+                history: {
+                    enable: false,
+                    prefix: "history/",
+                },
+                stage: {
+                    enable: false,
+                    prefix: "stage/",
+                },
+            },
         },
     },
     window: {
@@ -130,6 +176,52 @@ export const DEFAULT_CONFIG: IConfig = {
                 "//": {
                     enable: true,
                     prefix: "//",
+                },
+            },
+            pathnames: {
+                assets: {
+                    enable: false,
+                    prefix: "assets/",
+                },
+                emojies: {
+                    enable: false,
+                    prefix: "emojies/",
+                },
+                plugins: {
+                    enable: false,
+                    prefix: "plugins/",
+                },
+                public: {
+                    enable: false,
+                    prefix: "public/",
+                },
+                snippets: {
+                    enable: false,
+                    prefix: "snippets/",
+                },
+                templates: {
+                    enable: false,
+                    prefix: "templates/",
+                },
+                widgets: {
+                    enable: false,
+                    prefix: "widgets/",
+                },
+                appearance: {
+                    enable: false,
+                    prefix: "appearance/",
+                },
+                export: {
+                    enable: false,
+                    prefix: "export/",
+                },
+                history: {
+                    enable: false,
+                    prefix: "history/",
+                },
+                stage: {
+                    enable: false,
+                    prefix: "stage/",
                 },
             },
         },

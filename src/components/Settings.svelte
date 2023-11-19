@@ -67,7 +67,7 @@
 
     enum TabKey {
         general,
-        protocol,
+        hyperlink,
         shortcut,
         siyuan,
     }
@@ -105,9 +105,9 @@
                 icon: "⚙",
             },
             {
-                key: TabKey.protocol,
-                text: i18n.settings.protocol,
-                name: i18n.settings.protocol,
+                key: TabKey.hyperlink,
+                text: i18n.settings.hyperlink,
+                name: i18n.settings.hyperlink,
                 icon: "🌐",
             },
             {
@@ -125,9 +125,9 @@
                 icon: "⚙",
             },
             {
-                key: TabKey.protocol,
-                text: i18n.settings.protocol,
-                name: i18n.settings.protocol,
+                key: TabKey.hyperlink,
+                text: i18n.settings.hyperlink,
+                name: i18n.settings.hyperlink,
                 icon: "🌐",
             },
             {
@@ -268,11 +268,12 @@
                     />
                 </Item>
             </div>
-            <!-- 标签页 2 - 协议设置 -->
+            <!-- 标签页 2 - 超链接设置 -->
             <div
                 data-type={tabs.tab[1].name}
                 class:fn__none={tabs.tab[1].key !== focusTab}
             >
+                <!-- URL 协议 -->
                 <Group title={i18n.settings.protocols.title}>
                     {#each Object.entries(config.tab.open.protocols) as [key, protocol] (key)}
                         <MiniItem minWidth="8em">
@@ -287,6 +288,31 @@
                                 settingValue={protocol.enable}
                                 on:changed={e => {
                                     protocol.enable = e.detail.value;
+                                    updated();
+                                }}
+                            />
+                        </MiniItem>
+                    {/each}
+                </Group>
+
+                <!-- 资源文件路径名 -->
+                <Group title={i18n.settings.pathnames.title}>
+                    {#each Object.entries(config.tab.open.pathnames) as [key, pathname] (key)}
+                        <MiniItem
+                            minWidth="9em"
+                            marginRight="1em"
+                        >
+                            <code
+                                slot="title"
+                                class="fn__code">{pathname.prefix}</code
+                            >
+                            <Input
+                                slot="input"
+                                type={ItemType.checkbox}
+                                settingKey="Checkbox"
+                                settingValue={pathname.enable}
+                                on:changed={e => {
+                                    pathname.enable = e.detail.value;
                                     updated();
                                 }}
                             />
@@ -370,7 +396,7 @@
                         settingKey="otherHyperlink"
                         settingValue={config.window.open.targets.hyperlink.other}
                         on:changed={e => {
-                            config.window.open.targets.hyperlink.other = e.detail.value;
+                            config.window.open.targets.hyperlink.other.enable = e.detail.value;
                             updated();
                         }}
                     />
@@ -485,11 +511,12 @@
                 </Item>
             </div>
 
-            <!-- 标签页 2 - 协议设置 -->
+            <!-- 标签页 2 - 超链接设置 -->
             <div
                 data-type={tabs.window[1].name}
                 class:fn__none={tabs.window[1].key !== focusTab}
             >
+                <!-- URL 协议 -->
                 <Group title={i18n.settings.protocols.title}>
                     {#each Object.entries(config.window.open.protocols) as [key, protocol] (key)}
                         <MiniItem minWidth="8em">
@@ -504,6 +531,31 @@
                                 settingValue={protocol.enable}
                                 on:changed={e => {
                                     protocol.enable = e.detail.value;
+                                    updated();
+                                }}
+                            />
+                        </MiniItem>
+                    {/each}
+                </Group>
+
+                <!-- 资源文件路径 -->
+                <Group title={i18n.settings.pathnames.title}>
+                    {#each Object.entries(config.window.open.pathnames) as [key, pathname] (key)}
+                        <MiniItem
+                            minWidth="9em"
+                            marginRight="1em"
+                        >
+                            <code
+                                slot="title"
+                                class="fn__code">{pathname.prefix}</code
+                            >
+                            <Input
+                                slot="input"
+                                type={ItemType.checkbox}
+                                settingKey="Checkbox"
+                                settingValue={pathname.enable}
+                                on:changed={e => {
+                                    pathname.enable = e.detail.value;
                                     updated();
                                 }}
                             />

@@ -48,6 +48,7 @@ export interface IOpen {
     mouse: IMouseStatus, // 用于打开的鼠标按键
     targets: ITargets, // 打开的目标类型
     protocols: IProtocols, // 支持的协议
+    pathnames: IProtocols, // 支持的路径名
 }
 
 
