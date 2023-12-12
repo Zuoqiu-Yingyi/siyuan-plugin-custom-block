@@ -59,6 +59,9 @@
     let webview: Electron.WebviewTag; // webview 标签
     let webview_pointer_events_disable = false; // 是否禁用 webview 的鼠标事件
 
+    let mask: HTMLDivElement; // 遮罩
+    let mask_active = false; // 是否激活遮罩
+
     let status_display = false; // 状态栏显示状态
     let status = ""; // 状态栏内容
 
@@ -860,8 +863,13 @@
 
             const _items = washMenuItems(items);
             if (_items.length > 0) {
-                menu = new plugin.siyuan.Menu();
+                menu = new plugin.siyuan.Menu("plugin-webview-menu", () => {
+                    mask_active = false;
+                });
                 _items.forEach(item => menu.addItem(item));
+
+                mask_active = true;
+                mask.focus();
                 menu.open({
                     x: params.x,
                     y: params.y,
@@ -872,10 +880,12 @@
 
     function onmouseenter(e: MouseEvent): void {
         webview_pointer_events_disable = e.button === 0 ? false : true;
-        menu?.close();
     }
     function onmouseleave(e: MouseEvent): void {
         webview_pointer_events_disable = true;
+    }
+    function onMaskClick(e: MouseEvent): void {
+        menu?.close?.();
     }
 </script>
 
@@ -998,6 +1008,13 @@
                 <span>{status}</span>
             </div>
         {/if}
+        <!-- 右键菜单遮罩 (点击后关闭菜单) -->
+        <div
+            bind:this={mask}
+            class="mask"
+            class:mask-active={mask_active}
+            on:click={onMaskClick}
+        />
     </div>
 </Tab>
 
@@ -1015,6 +1032,18 @@
     // }
     .content {
         user-select: none;
+        position: relative;
+    }
+
+    .mask {
+        display: none;
+
+        &.mask-active {
+            display: block;
+            position: absolute;
+            height: 100%;
+            width: 100%;
+        }
     }
 
     .webview-status {
