@@ -10,16 +10,6 @@
         "preview": "vite preview",
         "check": "svelte-check --tsconfig ./tsconfig.json"
     },
-    "devDependencies": {
-        "@sveltejs/vite-plugin-svelte": "^3.0.1",
-        "@tsconfig/svelte": "^4.0.1",
-        "@types/node": "^20.10.4",
-        "less": "^4.2.0",
-        "svelte": "^4.2.8",
-        "svelte-preprocess-less": "^0.4.0",
-        "typescript": "^5.3.3",
-        "vite": "^5.0.8"
-    },
     "dependencies": {
         "@workspace/components": "workspace:^",
         "@workspace/types": "workspace:^",
