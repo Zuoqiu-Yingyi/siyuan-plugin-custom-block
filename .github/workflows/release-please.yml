@@ -14,7 +14,7 @@ permissions:
 
 env:
   PACKAGE_NAME: webview
-  PACKAGE_VERSION: 1.4.0
+  PACKAGE_VERSION: 1.4.1
 
 jobs:
   release-please:
