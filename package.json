@@ -1,7 +1,7 @@
 {
     "name": "jupyter-client",
     "private": true,
-    "version": "0.2.1",
+    "version": "0.2.2",
     "type": "module",
     "scripts": {
         "dev": "vite",
@@ -18,11 +18,11 @@
         "@workspace/utils": "workspace:^"
     },
     "devDependencies": {
-        "@jupyter-lsp/theme-vscode": "3.0.0-rc.0",
-        "@jupyterlab/services": "^7.0.9",
-        "@jupyterlab/ui-components": "^4.0.9",
+        "@jupyter-lsp/theme-vscode": "^3.0.0",
+        "@jupyterlab/services": "^7.0.11",
+        "@jupyterlab/ui-components": "^4.0.11",
         "strip-ansi": "^7.1.0",
         "xterm": "^5.3.0",
-        "xterm-addon-fit": "^0.7.0"
+        "xterm-addon-fit": "^0.8.0"
     }
 }
