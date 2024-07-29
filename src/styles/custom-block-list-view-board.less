@@ -1,15 +1,15 @@
 // Copyright (C) 2023 Zuoqiu Yingyi
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -28,12 +28,12 @@
 // 字看板标题背景颜色
 .board-background-color(@nth, @index) {
     &:nth-child(@{nth}) {
-        >.protyle-action {
+        > .protyle-action {
             // display: none;
             visibility: hidden;
         }
 
-        >[data-node-id]:not(.list) {
+        > [data-node-id]:not(.list) {
             margin-left: 0 !important;
             border-radius: var(--custom-block-border-radius);
             background-color: var(e(%("--b3-font-background%d", @index)));
@@ -42,14 +42,11 @@
 }
 
 :root {
-    &:not([plugin-custom-block-disabled~=list-view-board]) {
-
+    &:not([plugin-custom-block-disabled~="list-view-board"]) {
         body:has(> #preview[custom-block-export]),
         .b3-dialog__content:has(> #preview[custom-block-export]),
         .protyle-content {
-
-            [custom-block-list-view=board] {
-
+            [custom-block-list-view="board"] {
                 // 为列表块设置块属性
                 &,
                 // 为文档块设置块属性
@@ -59,7 +56,7 @@
                         display: flex;
                         overflow-x: auto;
 
-                        >[data-node-id].li {
+                        > [data-node-id].li {
                             /* 子看板 */
                             min-width: var(--custom-block-list-board-min-width);
                             max-width: var(--custom-block-list-board-max-width);
@@ -67,7 +64,7 @@
                             margin-right: 0.25em;
 
                             &[fold="1"] {
-                                >[data-node-id]:not(.list) {
+                                > [data-node-id]:not(.list) {
                                     outline: 2px dashed;
                                 }
                             }
@@ -79,12 +76,12 @@
                                 content: unset;
                             }
 
-                            >[data-node-id].list {
+                            > [data-node-id].list {
                                 /* 子看板内容 */
                                 margin-left: 0 !important;
                                 padding-left: 0 !important;
 
-                                >[data-node-id].li {
+                                > [data-node-id].li {
                                     /* 子看板项 */
                                     margin-top: 0.5em;
                                     border-radius: var(--custom-block-border-radius);
