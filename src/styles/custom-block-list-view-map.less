@@ -1,15 +1,15 @@
 // Copyright (C) 2023 Zuoqiu Yingyi
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -34,17 +34,14 @@
 }
 
 :root {
-    &:not([plugin-custom-block-disabled~=list-view-map]) {
-
+    &:not([plugin-custom-block-disabled~="list-view-map"]) {
         body:has(> #preview[custom-block-export]),
         .b3-dialog__content:has(> #preview[custom-block-export]),
         .protyle-content {
-
-            [custom-block-list-view=map] {
-
+            [custom-block-list-view="map"] {
                 &.protyle-wysiwyg,
                 [data-node-id]:not(.li) {
-                    >[data-node-id].list {
+                    > [data-node-id].list {
                         /* 文档块样式 */
                         overflow-x: auto;
                     }
@@ -57,12 +54,12 @@
                     padding-bottom: 1em;
 
                     &,
-                    &>[data-node-id].li {
-                        >.protyle-attr {
+                    & > [data-node-id].li {
+                        > .protyle-attr {
                             /* 列表块属性标签 */
                             top: 0;
 
-                            >.protyle-attr--refcount {
+                            > .protyle-attr--refcount {
                                 /* 引用数按钮 */
                                 right: 2px;
                             }
@@ -152,14 +149,14 @@
                         }
 
                         &[data-subtype="u"] {
-                            >div.protyle-action {
+                            > div.protyle-action {
                                 /* 无序列表标志 */
                                 top: calc(50%);
                                 left: calc(2em - 20px);
                             }
                         }
 
-                        >div.protyle-action {
+                        > div.protyle-action {
                             /* 表格项标志 */
                             top: calc(50% - 12px);
                             position: absolute;
@@ -168,7 +165,7 @@
                             z-index: 2;
                         }
 
-                        >[data-node-id] {
+                        > [data-node-id] {
                             margin-left: 2em !important;
 
                             &::before {
@@ -202,7 +199,7 @@
                                     /* 段落块/标题块内边距为 0 */
                                     padding: 0;
 
-                                    >[contenteditable][spellcheck] {
+                                    > [contenteditable][spellcheck] {
                                         white-space: var(--custom-block-list-view-map-white-space);
                                         padding: 0 0.5em;
 

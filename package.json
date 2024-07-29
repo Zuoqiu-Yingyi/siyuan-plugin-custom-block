@@ -1,13 +1,15 @@
 {
     "name": "custom-block",
-    "private": true,
-    "version": "1.1.2",
     "type": "module",
+    "version": "1.1.2",
+    "private": true,
     "scripts": {
         "dev": "vite",
         "build": "vite build",
         "build:dev": "vite build --sourcemap inline",
         "preview": "vite preview",
+        "lint": "eslint --max-warnings 0 .",
+        "format": "eslint --fix .",
         "check": "svelte-check --tsconfig ./tsconfig.json"
     },
     "dependencies": {
