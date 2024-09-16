@@ -10,7 +10,7 @@
         "preview": "vite preview",
         "lint": "eslint --max-warnings 0 .",
         "format": "eslint --fix .",
-        "check": "svelte-check --tsconfig ./tsconfig.json"
+        "check:svelte": "svelte-check --tsconfig ./tsconfig.json"
     },
     "dependencies": {
         "@workspace/components": "workspace:^",
