@@ -1,5 +1,62 @@
 # Changelog
 
+## [1.1.3](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.1.2...v1.1.3) (2024-11-20)
+
+
+### Build System
+
+* **svelte:** 修复 Svelte 无法解析 `enum` 等 TypeScript 特性问题 | Fix the issue that Svelte cannot parse TypeScript features such as `enum`. ([c7990e1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/c7990e19e003e6ddb48fbf00940e211008355b95))
+* 提取部分依赖至工作空间 | Extract some dependencies to workspace. ([6bad172](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/6bad172d1d3a3973247d19beddf0b04a231843a4))
+* 提取部分依赖至工作空间 | Extract some dependencies to workspace. ([02f6657](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/02f6657091f486cf4354ac4489045443ef036934))
+* 提取部分依赖至工作空间 | Extract some dependencies to workspace. ([b343497](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/b3434977b5ca7dd6a1b859132d4563ee6acce585))
+* 提取部分依赖至工作空间 | Extract some dependencies to workspace. ([3f8a33d](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/3f8a33d5b966e5ced51706e72e886cd27fae3af4))
+
+
+### Miscellaneous
+
+* **custom-block:** release v1.1.3 ([74235c6](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/74235c6e33a4e8ce78c97e398453b5d31d2a1dc9))
+* **jupyter-client:** release v0.2.2 ([081d7d5](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/081d7d52c860ea23584e27cc8ebd197fb9fcfef2))
+* **main:** release 0.2.1 ([24c6c04](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/24c6c0465e7b01a3ecc24c0b47ef5be63839ca4f))
+* **main:** release 0.2.2 ([1fd151f](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/1fd151fd15f7b9d114dfeb97f4bb4ba50f8b79f0))
+* **main:** release 0.2.3 ([8e73a2e](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/8e73a2ed43a399f35fdfddc52e698205cbcf617f))
+* **manaco-editor:** release v0.2.1 ([857a36f](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/857a36fefeed1ea4c8391c199da97870e4bca059))
+* **monaco-editor:** release v0.2.2 ([b1d4ff6](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/b1d4ff67f884e42b0888793901cd7cbafa3cfce0))
+* **monaco-editor:** release v0.2.4 ([077fc65](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/077fc65a1817c95a9ec9cb08d915eabfc4966ec2))
+* **webview:** release v1.4.1 ([4904d60](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/4904d603408d29d3ad296cea6addab160aa32d6e))
+
+
+### Features
+
+* **inbox:** 添加收集箱客户端 | Add inbox client. ([63d943e](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/63d943e31825ce2e891c277024113cb2247ad04f))
+* **monaco-editor:** 优化云收集箱面板内容查看功能 | Optimize cloud inbox panel content viewing function. ([9dd0c7b](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/9dd0c7b49e707ad997a27db5f1e7dd4cfd9df32e))
+* **monaco-editor:** 优化使用指定字符集打开文件功能 | Optimize the function of opening files using the specified character set. ([f65cb9e](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/f65cb9e33ab8435d65fcfb5872e63202399f4853))
+* **monaco-editor:** 支持使用自定义字符集打开文件 | Support opening files using custom character sets. ([b6ebe15](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/b6ebe15a558e9513c3e41b009ccf4c13ffc59e12))
+* **monaco-editor:** 支持自定义编辑器折行方案 | Support custom editor word wrap scheme. ([95aa1cb](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/95aa1cbe3b0f808a031ae9771525a601271ca79a))
+* **webview:** 支持使用新页签/新窗口打开资源文件超链接 | support opening assets files hyperlinks in new tabs/windows ([233908e](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/233908e87f16b45dfffd344850f7498658cd79f2))
+
+
+### Bug Fixes
+
+* **custom-block:** 修复列表导图视图 | Fix list mind-map view. ([978de9a](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/978de9ab7d2b2e6393d5c04cf673fd86a9dc6401))
+* **custom-block:** 修复列表脑图视图样式 | Fix list mind-map view style. ([c6a5844](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/c6a58443092a34c2b6eef09bafc64005bb1fc52e))
+* **custom-block:** 修复列表表格视图 | Fix list table view. ([4ab12d1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/4ab12d1259d4c71e1a9a26019c0e6b39215c4989))
+* **monaco-editor:** 修复 `Vditor` 编辑器重复加载资源文件问题 | Fix the issue of `Vditor` editor repeatedly loading resource files. ([11b77c5](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/11b77c5980c270ff54c796c3a6e10503ff36d46e))
+* **monaco-editor:** 修复在 `BrowserWindow` 中编辑器无法加载问题 | Fix the issue that the editor cannot be loaded in `BrowserWindow`. ([c8d6c68](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/c8d6c68a6bb2b873512cee28a7ac7e9283a583e7))
+* **monaco-editor:** 修复无法在浏览器环境中正确加载的问题 | Fix the issue that cannot be loaded correctly in the browser environment. ([da13865](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/da1386562cf1cfeaaea95409b74f75a82b146f8f))
+* **monaco-editor:** 修复超链接转义问题 | Fix hyperlink escape issue. ([b62da9c](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/b62da9cbcb745c6c4e0eec649ac01c1456647c58))
+
+
+### Performance Improvements
+
+* **custom-block:** 调整列表脑图视图样式 | Adjust list mind-map view style. ([fb3d133](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/fb3d133cc9f1797648f95df6001a875d10c09285))
+* **webview:** 改进上下文菜单关闭交互 | Improve context menu close interaction. ([8bcb6df](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/8bcb6df0a9fc0b13ff5ac514dffd2a5e225016ed))
+
+
+### Styles
+
+* **custom-block:** 将 `eslint` 配置应用于 `custom-block` 模块 | Apply `eslint` configuration to `custom-block` module ([9f3afcb](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/9f3afcbb99917432a4729c6b3f07b71639809e1f))
+* **monaco-editor:** 将 `eslint` 配置应用于 `monaco-editor` 模块 | Apply `eslint` configuration to `monaco-editor` module ([9f9ffeb](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/9f9ffeb60210e206831ffbd6fbcb8c66a3c74f63))
+
 ## [1.1.2](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.1.1...v1.1.2) (2023-11-02)
 
 
