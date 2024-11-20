@@ -19,7 +19,7 @@ jobs:
       # Checkout
       # REF https://github.com/marketplace/actions/checkout
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # 将要拉取的仓库 | repository will to pull
           repository: Zuoqiu-Yingyi/siyuan-packages-monorepo
@@ -27,10 +27,10 @@ jobs:
       # Install Node.js
       # REF https://github.com/marketplace/actions/setup-node-js-environment
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           # Node.js 版本号 | Node.js version
-          node-version: 20
+          node-version: 22
 
           # Node.js 源 | Node.js registry
           registry-url: https://registry.npmjs.org
@@ -38,11 +38,11 @@ jobs:
       # Install pnpm
       # REF https://github.com/marketplace/actions/setup-pnpm
       - name: Install pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         id: pnpm-install
         with:
           # pnpm 版本号 | pnpm version
-          version: 8
+          version: latest
 
           # 是否安装 npm 包 | if install npm package?
           run_install: false
@@ -57,7 +57,7 @@ jobs:
       # Setup pnpm cache
       # REF https://github.com/marketplace/actions/cache
       - name: Setup pnpm cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -82,7 +82,7 @@ jobs:
       # REF https://github.com/marketplace/actions/github-pages
       - name: Deploy to publish branch
         if: success()
-        uses: crazy-max/ghaction-github-pages@v3
+        uses: crazy-max/ghaction-github-pages@v4
         with:
           # 构建产物目录 | directory of build artifacts
           build_dir: ${{ env.PACKAGE_PATH }}/dist
