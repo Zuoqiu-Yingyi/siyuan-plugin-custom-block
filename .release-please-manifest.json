@@ -1,9 +1,4 @@
 {
-    "packages": {
-        ".": {
-            "package-name": "custom-block",
-            "component": ""
-        }
-    },
+    ".": "1.2.0",
     "release-as": "1.2.0"
 }
