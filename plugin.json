@@ -1,0 +1,71 @@
+{
+    "name": "custom-block",
+    "author": "Zuoqiu Yingyi",
+    "url": "https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block",
+    "version": "1.2.1",
+    "minAppVersion": "3.1.12",
+    "keywords": [
+        "CSS",
+        "属性",
+        "块属性",
+        "塊屬性",
+        "block",
+        "attributes",
+        "样式",
+        "樣式",
+        "style",
+        "列表",
+        "list",
+        "视图",
+        "視圖",
+        "view",
+        "看板",
+        "board",
+        "kanban",
+        "导图",
+        "導圖",
+        "map",
+        "思維導圖",
+        "mind",
+        "脑图",
+        "mindmap",
+        "表格",
+        "table",
+        "弹幕",
+        "彈幕",
+        "danmaku",
+        "bullet",
+        "排版",
+        "Layout"
+    ],
+    "backends": [
+        "all"
+    ],
+    "frontends": [
+        "all"
+    ],
+    "displayName": {
+        "default": "Custom Block Styles",
+        "zh_CN": "自定义块样式",
+        "zh_CHT": "自定義塊樣式"
+    },
+    "description": {
+        "default": "Use custom block attributes to style various blocks.",
+        "zh_CN": "使用自定义块属性设置各种块的样式。",
+        "zh_CHT": "使用自定義塊屬性設定各種塊的樣式。"
+    },
+    "readme": {
+        "default": "README.md",
+        "zh_CN": "README_zh_CN.md",
+        "zh_CHT": "README_zh_CN.md"
+    },
+    "funding": {
+        "openCollective": "",
+        "patreon": "",
+        "github": "",
+        "custom": [
+            "https://afdian.com/a/zuoqiu",
+            "https://ko-fi.com/zuoqiu"
+        ]
+    }
+}
