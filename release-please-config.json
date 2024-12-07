@@ -4,8 +4,8 @@
             "release-as": "1.2.2"
         }
     },
-    "release-type": "node",
     "prerelease": true,
+    "release-type": "node",
     "include-component-in-tag": false,
     "pull-request-header": ":robot: A new release will be created",
     "changelog-sections": [
