@@ -34,9 +34,3 @@ jobs:
 
           # Path to the release-please versions manifest. Defaults to .release-please-manifest.json
           # manifest-file: .release-please-manifest.json
-
-          # If true, do not attempt to create releases. This is useful if splitting release tagging from PR creation.
-          skip-github-release: false
-
-          # If true, do not attempt to create release pull requests. This is useful if splitting release tagging from PR creation.
-          skip-github-pull-request: false
