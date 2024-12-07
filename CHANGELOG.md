@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1 (2024-12-07)
+
+
+### Features
+
+* **custom-block:** 添加表格全宽显示功能 | Add table full width display function. ([b9690a4](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/b9690a466b8efa99330c78e124bd30b85b809e7b))
+
 ## [1.2.0](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/custom-block-v1.1.3...custom-block-v1.2.0) (2024-12-07)
 
 
