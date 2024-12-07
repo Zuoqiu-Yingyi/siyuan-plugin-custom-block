@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.2](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.2.1...v1.2.2) (2024-12-07)
+
+
+### Miscellaneous
+
+* **custom-block:** release v1.2.2 ([1f4cd39](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/1f4cd39c9c9df9e396d22860f697e1fc41e0554d))
+
+
+### Continuous Integration
+
+* 更新 `release-please-action` 配置 | update `release-please-action` configuration ([baa87ac](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/baa87ac1a1936e98563cb151b44a5550d4c4184b))
+
 ## 1.2.1 (2024-12-07)
 
 
