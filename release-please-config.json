@@ -1,4 +1,7 @@
 {
+    "packages": {
+        ".": {}
+    },
     "prerelease": true,
     "release-type": "node",
     "pull-request-header": ":robot: A new release will be created",
