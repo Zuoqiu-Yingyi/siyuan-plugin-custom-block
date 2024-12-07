@@ -26,9 +26,6 @@ jobs:
           # REF https://github.com/marketplace/actions/release-please-action#github-credentials
           token: ${{ secrets.PAT_ACTIONS }}
 
-          # If specified, defines the release strategy to use for the repository. Reference Release types supported
-          release-type: node
-
           # branch to open pull release PR against (detected by default)
           target-branch: main
 
@@ -37,3 +34,9 @@ jobs:
 
           # Path to the release-please versions manifest. Defaults to .release-please-manifest.json
           # manifest-file: .release-please-manifest.json
+
+          # If true, do not attempt to create releases. This is useful if splitting release tagging from PR creation.
+          skip-github-release: false
+
+          # If true, do not attempt to create release pull requests. This is useful if splitting release tagging from PR creation.
+          skip-github-pull-request: false
