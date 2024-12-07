@@ -23,7 +23,7 @@ import {
 import type { IConfig } from "@/types/config";
 
 export const DEFAULT_CONFIG: IConfig = {
-    version: "1.1.3",
+    version: "1.1.6",
     features: [
         { // 自定义块 style 属性
             id: "custom-block-style",
@@ -81,6 +81,7 @@ export const DEFAULT_CONFIG: IConfig = {
                 [sdk.siyuan.NodeType.NodeIFrame]: { enable: true },
                 [sdk.siyuan.NodeType.NodeVideo]: { enable: true },
                 [sdk.siyuan.NodeType.NodeWidget]: { enable: true },
+                [sdk.siyuan.NodeType.NodeTable]: { enable: true },
             },
             tasks: [
                 {
