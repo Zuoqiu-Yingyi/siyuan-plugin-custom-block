@@ -1,7 +1,7 @@
 {
     "packages": {
         ".": {
-            "release-as": "1.2.0",
+            "release-as": "1.2.1",
             "release-type": "node",
             "prerelease": true,
             "include-component-in-tag": false,
