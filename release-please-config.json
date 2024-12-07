@@ -1,7 +1,7 @@
 {
     "packages": {
         ".": {
-            "release-as": "1.2.1"
+            "release-as": "1.2.2"
         }
     },
     "release-type": "node",
