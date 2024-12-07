@@ -23,7 +23,7 @@ import {
 import type { IConfig } from "@/types/config";
 
 export const DEFAULT_CONFIG: IConfig = {
-    version: "1.1.6",
+    version: "1.2.0",
     features: [
         { // 自定义块 style 属性
             id: "custom-block-style",
