@@ -24,7 +24,7 @@ jobs:
       # Checkout
       # REF https://github.com/marketplace/actions/checkout
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: publish
 
@@ -36,7 +36,7 @@ jobs:
       # Get latest release
       # REF https://github.com/marketplace/actions/get-latest-release
       - name: Get latest release
-        uses: pozetroninc/github-action-get-latest-release@v0.7.0
+        uses: pozetroninc/github-action-get-latest-release@v0.8.0
         id: latest-release
         with:
           # 仓库所有者/仓库名 | owner/name
@@ -49,7 +49,7 @@ jobs:
       # Get timestamp
       # REF https://github.com/marketplace/actions/get-timestamp-action
       - name: Get timestamp
-        uses: nanzm/get-time-action@v1.1
+        uses: nanzm/get-time-action@v2
         id: timestamp
         with:
           # 时区 | time zone
@@ -61,7 +61,7 @@ jobs:
       # Release distribution
       # REF https://github.com/marketplace/actions/gh-release
       - name: Release distribution
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           # 发行描述 | description of release
           body: ${{ steps.latest-release.outputs.description }}
