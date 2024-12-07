@@ -1,9 +1,8 @@
 {
     "packages": {
         ".": {
-            "release-type": "node",
-            "package-name": "custom-block",
-            "release-as": "1.2.0"
+            "package-name": "custom-block"
         }
-    }
+    },
+    "release-as": "1.2.0"
 }
