@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.1.3...v1.1.4) (2024-12-07)
+
+
+### Bug Fixes
+
+* **custom-block:** 修复列表看板视图排列样式问题 | Fix the issue of list kanban view arrangement style. ([ce86130](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/ce86130024d18af24962a3c4b3ff268d4ab0b77f))
+
 ## [1.1.3](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.1.2...v1.1.3) (2024-11-20)
 
 
