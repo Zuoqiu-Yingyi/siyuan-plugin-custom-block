@@ -1,9 +1,12 @@
 {
     "packages": {
-        ".": {}
+        ".": {
+            "release-type": "node",
+            "release-as": "1.2.0"
+        }
     },
+    "last-release-sha": "f31437a6e522af54ee900370f319f3f8cfc8c5ed",
     "prerelease": true,
-    "release-type": "node",
     "pull-request-header": ":robot: A new release will be created",
     "changelog-types": [
         {
