@@ -30,16 +30,7 @@ export default defineConfig({
         }),
     ],
     resolve: {
-        alias: {
-            "~": resolve(__dirname, "./"),
-            "@": resolve(__dirname, "./src"),
-            // siyuan-sdk's `browser` field points to an IIFE bundle without ESM exports;
-            // force resolution to the ESM build (`module` field).
-            "@siyuan-community/siyuan-sdk": resolve(
-                __dirname,
-                "../../node_modules/@siyuan-community/siyuan-sdk/dist/index.js",
-            ),
-        },
+        tsconfigPaths: true,
     },
     build: {
         minify: true,
