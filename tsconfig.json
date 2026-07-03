@@ -1,13 +1,12 @@
 {
     "extends": "@workspace/tsconfig/tsconfig.app.json",
     "compilerOptions": {
-        "baseUrl": ".",
         "paths": {
             "~/*": [
                 "./*",
             ],
             "@/*": [
-                "src/*",
+                "./src/*",
             ],
         },
     },
