@@ -19,7 +19,7 @@ jobs:
       # Create release
       # REF https://github.com/marketplace/actions/release-please-action
       - name: Create release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         id: release
         with:
           # A GitHub secret token, the action defaults to using the special secrets.GITHUB_TOKEN
