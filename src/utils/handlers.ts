@@ -64,7 +64,7 @@ export default {
         mount(Item, {
             target: params.element,
             props: {
-                input: true,
+                textarea: true,
                 disabled: !feature.enable,
                 icon: feature.icon,
                 label: plugin.i18n.menu[feature.id].label,
