@@ -21,6 +21,8 @@ import {
     TaskType,
 } from "./enums";
 
+import type siyuan from "siyuan";
+
 import type { IBlockMenuContext } from "@workspace/utils/siyuan/menu/block";
 
 import type CustomBlockPlugin from "@/index";
@@ -43,11 +45,17 @@ function removeToken(tokens: string[], token: string): string[] {
     return tokens.filter((t) => t !== token); // 删除该 token
 }
 
+/* 判断 token 是否存在 */
+function hasToken(tokens: string[], token: string): boolean {
+    return tokens.includes(token);
+}
+
 /* 切换 token */
 function toggleToken(tokens: string[], token: string): string[] {
-    if (tokens.includes(token))
+    if (hasToken(tokens, token))
         return removeToken(tokens, token); // 如果已经存在该 token, 则删除该 token
-    else return insertToken(tokens, token); // 否则插入该 token
+    else
+        return insertToken(tokens, token); // 否则插入该 token
 }
 
 /* 替换 token */
@@ -55,7 +63,33 @@ function replaceToken(tokens: string[], token: string, newToken: string): string
     return tokens.map((t) => t === token ? newToken : t); // 将所有 token 中的 token 替换为 newToken
 }
 
-export default {
+export function patchMenuItem(
+    _plugin: InstanceType<typeof CustomBlockPlugin>, // 插件对象
+    feature: IFeature, // 菜单功能定义
+    context: IBlockMenuContext, // 块菜单上下文
+): Partial<siyuan.IMenu> {
+    // console.debug(context);
+    const item: Partial<siyuan.IMenu> = {};
+
+    const switch_task = feature.tasks?.find((task) => task.type === TaskType.switch);
+    if (switch_task != null) {
+        const value = context.element?.getAttribute(switch_task.params.name) ?? null;
+        item.accelerator = `${feature.accelerator}: ${value}`;
+    }
+
+    const toggle_task = feature.tasks?.find((task) => task.type === TaskType.toggle);
+    if (toggle_task != null) {
+        const value = context.element?.getAttribute(toggle_task.params.name) ?? null;
+        if (value != null) {
+            const tokens = splitToken(value);
+            item.checked = hasToken(tokens, toggle_task.params.token);
+        }
+    }
+
+    return item;
+}
+
+export const handlers = {
     /* 编辑属性 */
     [TaskType.edit]: async (plugin, feature, context, params: { name: string; element: HTMLElement }) => {
         params.element.innerHTML = ""; // 移除菜单项内容

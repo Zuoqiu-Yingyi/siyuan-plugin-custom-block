@@ -26,7 +26,7 @@ import {
 
 } from "@workspace/utils/siyuan/menu/block";
 
-import handlers from "@/utils/handlers";
+import { handlers, patchMenuItem } from "@/utils/handlers";
 
 // REF: https://zhuanlan.zhihu.com/p/401882229
 import menu from "./assets/symbols/icon-custom-block-menu.symbol?raw";
@@ -203,6 +203,11 @@ export default class CustomBlockPlugin extends siyuan.Plugin {
                                     );
                                 }
                             },
+                            ...patchMenuItem(
+                                this,
+                                feature,
+                                context,
+                            ),
                         });
                         break;
                     }
@@ -237,7 +242,7 @@ export default class CustomBlockPlugin extends siyuan.Plugin {
             this.config = config;
         }
         this.updateRootAttr();
-        return this.saveData(CustomBlockPlugin.GLOBAL_CONFIG_NAME, this.config);
+        this.saveData(CustomBlockPlugin.GLOBAL_CONFIG_NAME, this.config);
     }
 
     /* 更新根节点属性 */
