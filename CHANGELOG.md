@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.1](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v2.0.0...v2.0.1) (2026-07-21)
+
+
+### Miscellaneous
+
+* release v1.2.1 ([f8a63fd](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/f8a63fd089def8e186c6dce4bb3812cdb948abf2))
+* release v2.0.1 ([64c1b6d](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/64c1b6d9c8be8a816b209472b2a4b2404c2d437e))
+* **release:** revert version to 2.0.0 in manifest ([1f49f51](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/1f49f516b1655077d64d88c42079dfe7c44efbc7))
+* **release:** update version to 2.0.1 in manifest, package, plugin, and config files ([af97f16](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/af97f169ae65756abb682fa4949ceb278df6ba74))
+
+
+### Features
+
+* **handlers:** add patchMenuItem function and improve token status display ([42a5ef4](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/42a5ef4b53a3790a205281fe53a96ed71b557dfb))
+* **menu:** change input type to textarea in mount props for better user experience ([f08aa36](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/f08aa369ee0d04d29c720e66e98bd178dec4df24))
+
 ## [2.0.0](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v2.0.0...v2.0.0) (2026-07-21)
 
 
