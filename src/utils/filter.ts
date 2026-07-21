@@ -78,7 +78,7 @@ export function featureFilter(feature: IFeature, context: IBlockMenuContext): bo
     }
 
     /* 存在该功能不支持的块 */
-    if (context.blocks.find((block) => !isValidBlock(feature, block)))
+    if (context.blocks.some((block) => !isValidBlock(feature, block)))
         return false;
 
     /* 功能支持所有所选块 */

@@ -40,10 +40,7 @@
         plugin: InstanceType<typeof WebviewPlugin>; // 插件实例
     }
 
-    const {
-        config,
-        plugin,
-    }: IProps = $props();
+    const { config, plugin }: IProps = $props();
 
     const i18n = plugin.i18n as unknown as I18N;
 
@@ -67,12 +64,10 @@
         return i18n.menu[id].label;
     }
 
-    /* eslint-disable no-unused-vars */
-    enum PanelKey {
-        general,
-        feature,
-    }
-    /* eslint-enable no-unused-vars */
+    const PanelKey = {
+        general: "general",
+        feature: "feature",
+    } as const;
 
     const panels_focus_key = PanelKey.general;
     const panels = [

@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import "./styles/index.less";
-
 import { Client } from "@siyuan-community/siyuan-sdk";
 import siyuan from "siyuan";
 import { mount } from "svelte";
@@ -25,12 +23,10 @@ import { mergeIgnoreArray } from "@workspace/utils/misc/merge";
 import { compare } from "@workspace/utils/misc/version";
 import {
     getBlockMenuContext,
-    type BlockMenuDetail,
+
 } from "@workspace/utils/siyuan/menu/block";
 
 import handlers from "@/utils/handlers";
-
-import Settings from "./components/Settings.svelte";
 
 // REF: https://zhuanlan.zhihu.com/p/401882229
 import menu from "./assets/symbols/icon-custom-block-menu.symbol?raw";
@@ -41,7 +37,13 @@ import { DEFAULT_CONFIG } from "./configs/default";
 import { MenuItemMode } from "./utils/enums";
 import { featureFilter } from "./utils/filter";
 
+import Settings from "./components/Settings.svelte";
+
+import type { BlockMenuDetail } from "@workspace/utils/siyuan/menu/block";
+
 import type { IConfig } from "./types/config";
+
+import "./styles/index.less";
 
 export default class CustomBlockPlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
