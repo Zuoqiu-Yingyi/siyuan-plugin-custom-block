@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import { mount } from "svelte";
+
 import Item from "@workspace/components/siyuan/menu/Item.svelte";
 
 import {
@@ -59,7 +61,7 @@ export default {
         params.element.innerHTML = ""; // 移除菜单项内容
 
         /* 挂载一个 svelte 菜单项组件 */
-        const item = new Item({
+        mount(Item, {
             target: params.element,
             props: {
                 input: true,
@@ -67,52 +69,44 @@ export default {
                 icon: feature.icon,
                 label: plugin.i18n.menu[feature.id].label,
                 accelerator: params.name,
+                value: context.element.getAttribute(params.name) || "",
+            },
+            events: {
+                /* 每当 input 中值变化时, 更新该块的 style 属性 */
+                changed: async (e) => {
+                    const attrs = {
+                        [params.name]: e.detail.value,
+                    };
+
+                    const results = await Promise.allSettled(context.blocks.map((block) => plugin.client.setBlockAttrs({
+                        id: block.id,
+                        attrs,
+                    })));
+
+                    if (params.name === "style") { // 块样式无法使用 `setBlockAttrs` 后同步在编辑器中更新
+                        const style = e.detail.value;
+                        results.forEach((result, index) => {
+                            switch (result.status) {
+                                case "fulfilled":
+                                    context.blocks[index]?.element.setAttribute("style", style);
+                                    break;
+
+                                default:
+                                    break;
+                            }
+                        });
+                    }
+                },
             },
         });
 
-        if (params.name === "style") {
-            /* 设置该块的 style 属性 */
-            item.$set({
-                value: context.element.getAttribute(params.name) || "",
-            });
-        }
-        else {
-            /* 异步获取该块的属性 */
-            const response = await plugin.client.getBlockAttrs({
-                id: context.id,
-            });
+        // /* 异步获取该块的属性 */
+        // const response = await plugin.client.getBlockAttrs({
+        //     id: context.id,
+        // });
 
-            /* 设置该块的属性 */
-            item.$set({
-                value: response.data[params.name] || "",
-            });
-        }
-
-        /* 每当 input 中值变化时, 更新该块的 style 属性 */
-        item.$on("changed", async (e) => {
-            const attrs = {
-                [params.name]: e.detail.value,
-            };
-
-            const results = await Promise.allSettled(context.blocks.map((block) => plugin.client.setBlockAttrs({
-                id: block.id,
-                attrs,
-            })));
-
-            if (params.name === "style") { // 块样式无法使用 `setBlockAttrs` 后同步在编辑器中更新
-                const style = e.detail.value;
-                results.forEach((result, index) => {
-                    switch (result.status) {
-                        case "fulfilled":
-                            context.blocks[index]?.element.setAttribute("style", style);
-                            break;
-
-                        default:
-                            break;
-                    }
-                });
-            }
-        });
+        // /* 设置该块的属性 */
+        // item.value = response.data[params.name] || "";
     },
     /* 更新块属性 */
     [TaskType.update]: async (plugin, _feature, context, params: { name: string; value: string }) => {
@@ -130,7 +124,7 @@ export default {
         context.blocks.forEach(async (block) => {
             const response = await plugin.client.getBlockAttrs({ id: block.id });
             const attrs = response.data;
-            if (Object.prototype.hasOwnProperty.call(attrs, params.name)) {
+            if (Object.hasOwn(attrs, params.name)) {
                 /* 如果属性已存在, 则删除属性值 */
                 plugin.client.setBlockAttrs({
                     id: block.id,
@@ -147,7 +141,7 @@ export default {
             const response = await plugin.client.getBlockAttrs({ id: block.id });
             const attrs = response.data;
             let value: string;
-            if (Object.prototype.hasOwnProperty.call(attrs, params.name)) {
+            if (Object.hasOwn(attrs, params.name)) {
                 /* 如果属性已存在, 则切换属性值 */
                 const index = params.values.findIndex((value) => value === attrs[params.name]);
                 value = params.values[(index + 1) % params.values.length]!;
@@ -170,7 +164,7 @@ export default {
             const response = await plugin.client.getBlockAttrs({ id: block.id });
             const attrs = response.data;
             let value: string;
-            if (Object.prototype.hasOwnProperty.call(attrs, params.name)) {
+            if (Object.hasOwn(attrs, params.name)) {
                 /* 属性存在 */
                 const tokens = splitToken(attrs[params.name]!);
                 value = insertToken(tokens, params.token).join(" ");
@@ -193,7 +187,7 @@ export default {
             const response = await plugin.client.getBlockAttrs({ id: block.id });
             const attrs = response.data;
             let value: string;
-            if (Object.prototype.hasOwnProperty.call(attrs, params.name)) {
+            if (Object.hasOwn(attrs, params.name)) {
                 /* 属性存在 */
                 const tokens = splitToken(attrs[params.name]!);
                 value = removeToken(tokens, params.token).join(" ");
@@ -212,7 +206,7 @@ export default {
             const response = await plugin.client.getBlockAttrs({ id: block.id });
             const attrs = response.data;
             let value: string;
-            if (Object.prototype.hasOwnProperty.call(attrs, params.name)) {
+            if (Object.hasOwn(attrs, params.name)) {
                 /* 属性存在 */
                 const tokens = splitToken(attrs[params.name]!);
                 value = toggleToken(tokens, params.token).join(" ");
@@ -235,7 +229,7 @@ export default {
             const response = await plugin.client.getBlockAttrs({ id: block.id });
             const attrs = response.data;
             let value: string;
-            if (Object.prototype.hasOwnProperty.call(attrs, params.name)) {
+            if (Object.hasOwn(attrs, params.name)) {
                 /* 属性存在 */
                 const tokens = splitToken(attrs[params.name]!);
                 value = replaceToken(tokens, params.token, params.newToken).join(" ");

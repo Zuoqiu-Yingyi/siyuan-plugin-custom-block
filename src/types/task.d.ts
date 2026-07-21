@@ -16,8 +16,8 @@
 import type { TaskType } from "@/utils/enums";
 
 /* 块菜单任务 */
-export type Task =
-    | IDeleteTask
+export type Task
+    = IDeleteTask
     | IEditTask
     | IFullscreenTask
     | ISwitchTask

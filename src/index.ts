@@ -13,21 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/* 静态资源 */
-import "./styles/index.less";
-
-/* SDK */
 import { Client } from "@siyuan-community/siyuan-sdk";
 import siyuan from "siyuan";
+import { mount } from "svelte";
 
-/* 工作空间资源 */
 import { FLAG_MOBILE } from "@workspace/utils/env/front-end";
 import { Logger } from "@workspace/utils/logger";
 import { mergeIgnoreArray } from "@workspace/utils/misc/merge";
 import { compare } from "@workspace/utils/misc/version";
 import {
     getBlockMenuContext,
-    type BlockMenuDetail,
+
 } from "@workspace/utils/siyuan/menu/block";
 
 import handlers from "@/utils/handlers";
@@ -37,19 +33,24 @@ import menu from "./assets/symbols/icon-custom-block-menu.symbol?raw";
 import danmaku from "./assets/symbols/icon-custom-block-render-danmaku.symbol?raw";
 import width_auto from "./assets/symbols/icon-custom-block-width-auto.symbol?raw";
 import width_equal from "./assets/symbols/icon-custom-block-width-equal.symbol?raw";
-/* 组件 */
-import Settings from "./components/Settings.svelte";
-/* 项目资源 */
 import { DEFAULT_CONFIG } from "./configs/default";
 import { MenuItemMode } from "./utils/enums";
 import { featureFilter } from "./utils/filter";
 
-/* 类型 */
+import Settings from "./components/Settings.svelte";
+
+import type { BlockMenuDetail } from "@workspace/utils/siyuan/menu/block";
+
 import type { IConfig } from "./types/config";
+
+import "./styles/index.less";
 
 export default class CustomBlockPlugin extends siyuan.Plugin {
     static readonly GLOBAL_CONFIG_NAME = "global-config";
     static readonly ROOT_ATTRIBUTE_NAME = "plugin-custom-block-disabled";
+
+    // @ts-expect-error ignore original type
+    declare public readonly i18n: I18N;
 
     public readonly siyuan = siyuan;
     public readonly logger: InstanceType<typeof Logger>;
@@ -124,14 +125,13 @@ export default class CustomBlockPlugin extends siyuan.Plugin {
         });
         const target = dialog.element.querySelector(`#${plugin.SETTINGS_DIALOG_ID}`);
         if (target) {
-            const settings = new Settings({
+            mount(Settings, {
                 target,
                 props: {
                     config: this.config,
                     plugin: this,
                 },
             });
-            void settings;
         }
     }
 
@@ -142,7 +142,7 @@ export default class CustomBlockPlugin extends siyuan.Plugin {
         const context = getBlockMenuContext(detail); // 获取块菜单上下文
 
         if (context) {
-            const submenu: siyuan.IMenuItemOption[] = []; // 下级菜单
+            const submenu: siyuan.IMenu[] = []; // 下级菜单
 
             /* 获得可使用的功能 */
             const features = this.config.features

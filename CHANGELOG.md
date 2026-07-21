@@ -1,24 +1,5 @@
 # Changelog
 
-## [1.2.2](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/v1.2.1...v1.2.2) (2024-12-07)
-
-
-### Miscellaneous
-
-* **custom-block:** release v1.2.2 ([1f4cd39](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/1f4cd39c9c9df9e396d22860f697e1fc41e0554d))
-
-
-### Continuous Integration
-
-* 更新 `release-please-action` 配置 | update `release-please-action` configuration ([baa87ac](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/baa87ac1a1936e98563cb151b44a5550d4c4184b))
-
-## 1.2.1 (2024-12-07)
-
-
-### Features
-
-* **custom-block:** 添加表格全宽显示功能 | Add table full width display function. ([b9690a4](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/commit/b9690a466b8efa99330c78e124bd30b85b809e7b))
-
 ## [1.2.0](https://github.com/Zuoqiu-Yingyi/siyuan-plugin-custom-block/compare/custom-block-v1.1.3...custom-block-v1.2.0) (2024-12-07)
 
 

@@ -19,7 +19,7 @@ jobs:
       # Create release
       # REF https://github.com/marketplace/actions/release-please-action
       - name: Create release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         id: release
         with:
           # A GitHub secret token, the action defaults to using the special secrets.GITHUB_TOKEN
@@ -30,7 +30,7 @@ jobs:
           target-branch: main
 
           # Path to the release-please config in the repository. Defaults to release-please-config.json
-          # config-file: release-please-config.json
+          config-file: release-please-config.json
 
           # Path to the release-please versions manifest. Defaults to .release-please-manifest.json
-          # manifest-file: .release-please-manifest.json
+          manifest-file: .release-please-manifest.json
