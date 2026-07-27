@@ -33,7 +33,6 @@
 
     import type WebviewPlugin from "@/index";
     import type { IConfig } from "@/types/config";
-    import type { I18N } from "@/utils/i18n";
 
     interface IProps {
         config: IConfig; // 传入的配置项
@@ -42,7 +41,8 @@
 
     const { config, plugin }: IProps = $props();
 
-    const i18n = plugin.i18n as unknown as I18N;
+    // svelte-ignore state_referenced_locally
+    const i18n = plugin.i18n;
 
     function updated() {
         plugin.updateConfig(config);
