@@ -19,7 +19,7 @@
 
 ## USER GUIDE
 
-[简体中文](./public/README_zh_CN.md) \| [English](./public/README.md)
+[简体中文](./public/README.zh-CN.md) \| [English](./public/README.md)
 
 ## DEVELOPER GUIDE
 
