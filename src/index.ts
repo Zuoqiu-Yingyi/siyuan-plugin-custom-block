@@ -25,6 +25,7 @@ import {
     getBlockMenuContext,
 
 } from "@workspace/utils/siyuan/menu/block";
+import { fn__code } from "@workspace/utils/siyuan/text/span";
 
 import { handlers, patchMenuItem } from "@/utils/handlers";
 
@@ -225,7 +226,8 @@ export default class CustomBlockPlugin extends siyuan.Plugin {
 
             detail.menu.addItem({
                 icon: "icon-custom-block-menu",
-                label: this.i18n.displayName,
+                label: this.displayName,
+                accelerator: fn__code(this.name),
                 submenu,
             });
         }
