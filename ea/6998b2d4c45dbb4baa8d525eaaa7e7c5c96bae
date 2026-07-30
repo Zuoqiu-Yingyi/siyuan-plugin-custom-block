@@ -1,0 +1,25 @@
+public/plugin.json
+  s_d1d0ebc32019bb::t_014fc5ebae37fb 49-50,54-55,59-60
+public/README.md
+  s_d1d0ebc32019bb::t_a370663a2b2b2d 16
+src/utils/i18n.ts
+  s_d1d0ebc32019bb::t_6481199d378e3f 21-23
+README.md
+  s_d1d0ebc32019bb::t_a370663a2b2b2d 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.38-trip",
+  "base_commit_sha": "ea6998b2d4c45dbb4baa8d525eaaa7e7c5c96bae",
+  "prompts": {},
+  "sessions": {
+    "s_d1d0ebc32019bb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "822d3ecb-2713-4df1-81b1-00a52ec9ef43",
+        "model": "claude-glm-5.2"
+      },
+      "human_author": "Yingyi / 颖逸 <49649786+Zuoqiu-Yingyi@users.noreply.github.com>"
+    }
+  }
+}
