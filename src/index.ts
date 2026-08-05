@@ -69,7 +69,7 @@ export default class CustomBlockPlugin extends siyuan.Plugin {
         this.SETTINGS_DIALOG_ID = `plugin-${this.name}-settings-dialog`;
     }
 
-    public override onload(): void {
+    public override async onload(): Promise<void> {
         /* 注册图标 */
         this.addIcons([
             menu,
@@ -79,18 +79,18 @@ export default class CustomBlockPlugin extends siyuan.Plugin {
         ].join(""));
 
         /* 加载数据 */
-        this.loadData(CustomBlockPlugin.GLOBAL_CONFIG_NAME)
-            .then((config) => {
-                this.config = mergeIgnoreArray(DEFAULT_CONFIG, config || {}) as IConfig;
-            })
-            .catch((error) => this.logger.error(error))
-            .finally(() => {
-                /* 开始监听块菜单事件 */
-                this.eventBus.on("click-blockicon", this.blockMenuEventListener);
-                this.eventBus.on("click-editortitleicon", this.blockMenuEventListener);
-
-                this.updateRootAttr();
-            });
+        try {
+            this.config = await this.loadData(CustomBlockPlugin.GLOBAL_CONFIG_NAME);
+        }
+        catch (error) {
+            this.logger.error(error);
+        }
+        finally {
+            /* 开始监听块菜单事件 */
+            this.eventBus.on("click-blockicon", this.blockMenuEventListener);
+            this.eventBus.on("click-editortitleicon", this.blockMenuEventListener);
+            this.updateRootAttr();
+        }
     }
 
     public override onLayoutReady(): void {
