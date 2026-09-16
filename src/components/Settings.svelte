@@ -89,77 +89,87 @@
 <Panels
     focus={panels_focus_key}
     {panels}
-    let:focus={focusPanel}
 >
-    <!-- 常规设置面板 -->
-    <Panel display={panels[0].key === focusPanel}>
-        <!-- 重置设置 -->
-        <Item
-            text={i18n.settings.generalSettings.reset.description}
-            title={i18n.settings.generalSettings.reset.title}
-        >
-            <Input
-                slot="input"
-                settingKey="Reset"
-                settingValue={i18n.settings.generalSettings.reset.text}
-                type={ItemType.button}
-                on:clicked={resetOptions}
-            />
-        </Item>
-    </Panel>
+    {#snippet children(focusPanel)}
+        <!-- 常规设置面板 -->
+        <Panel display={panels[0].key === focusPanel}>
+            <!-- 重置设置 -->
+            <Item
+                text={i18n.settings.generalSettings.reset.description}
+                title={i18n.settings.generalSettings.reset.title}
+            >
+                {#snippet input()}
+                    <Input
+                        onClicked={resetOptions}
+                        settingKey="Reset"
+                        settingValue={i18n.settings.generalSettings.reset.text}
+                        type={ItemType.button}
+                    />
+                {/snippet}
+            </Item>
+        </Panel>
 
-    <!-- 功能面板 -->
-    <Panel display={panels[1].key === focusPanel}>
-        {#each config.features as feature, i (i)}
-            <!-- 非分割线 -->
-            {#if feature.mode !== MenuItemMode.separator}
-                <Group title={getMenuLabel(feature.id)}>
-                    <MiniItem minWidth="12em">
-                        <Svg
-                            slot="icon"
-                            className="svg"
-                            icon="#iconMenu"
-                        />
-                        <span slot="title">
-                            {i18n.settings.featureSettings.menu.label}
-                        </span>
-                        <Input
-                            slot="input"
-                            settingKey="Checkbox"
-                            settingValue={feature.enable}
-                            type={ItemType.checkbox}
-                            on:changed={(e) => {
-                                feature.enable = e.detail.value;
-                                updated();
-                            }}
-                        />
-                    </MiniItem>
-                    {#if feature.style !== undefined}
+        <!-- 功能面板 -->
+        <Panel display={panels[1].key === focusPanel}>
+            {#each config.features as feature, i (i)}
+                <!-- 非分割线 -->
+                {#if feature.mode !== MenuItemMode.separator}
+                    <Group title={getMenuLabel(feature.id)}>
                         <MiniItem minWidth="12em">
-                            <Svg
-                                slot="icon"
-                                className="svg"
-                                icon="#iconTheme"
-                            />
-                            <span slot="title">
-                                {i18n.settings.featureSettings.style.label}
-                            </span>
-                            <Input
-                                slot="input"
-                                settingKey="Checkbox"
-                                settingValue={feature.style}
-                                type={ItemType.checkbox}
-                                on:changed={(e) => {
-                                    feature.style = e.detail.value;
-                                    updated();
-                                }}
-                            />
+                            {#snippet icon()}
+                                <Svg
+                                    className="svg"
+                                    icon="#iconMenu"
+                                />
+                            {/snippet}
+                            {#snippet title()}
+                                <span>
+                                    {i18n.settings.featureSettings.menu.label}
+                                </span>
+                            {/snippet}
+                            {#snippet input()}
+                                <Input
+                                    onChanged={(e) => {
+                                        feature.enable = e.value;
+                                        updated();
+                                    }}
+                                    settingKey="Checkbox"
+                                    settingValue={feature.enable}
+                                    type={ItemType.checkbox}
+                                />
+                            {/snippet}
                         </MiniItem>
-                    {/if}
-                </Group>
-            {/if}
-        {/each}
-    </Panel>
+                        {#if feature.style !== undefined}
+                            <MiniItem minWidth="12em">
+                                {#snippet icon()}
+                                    <Svg
+                                        className="svg"
+                                        icon="#iconTheme"
+                                    />
+                                {/snippet}
+                                {#snippet title()}
+                                    <span>
+                                        {i18n.settings.featureSettings.style.label}
+                                    </span>
+                                {/snippet}
+                                {#snippet input()}
+                                    <Input
+                                        onChanged={(e) => {
+                                            feature.style = e.value;
+                                            updated();
+                                        }}
+                                        settingKey="Checkbox"
+                                        settingValue={feature.style}
+                                        type={ItemType.checkbox}
+                                    />
+                                {/snippet}
+                            </MiniItem>
+                        {/if}
+                    </Group>
+                {/if}
+            {/each}
+        </Panel>
+    {/snippet}
 </Panels>
 
 <style lang="less">

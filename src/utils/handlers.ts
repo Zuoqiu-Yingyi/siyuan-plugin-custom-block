@@ -104,12 +104,11 @@ export const handlers = {
                 label: plugin.i18n.menu[feature.id].label,
                 accelerator: params.name,
                 value: context.element.getAttribute(params.name) || "",
-            },
-            events: {
+
                 /* 每当 input 中值变化时, 更新该块的 style 属性 */
-                changed: async (e) => {
+                onChanged: async (e) => {
                     const attrs = {
-                        [params.name]: e.detail.value,
+                        [params.name]: e.value,
                     };
 
                     const results = await Promise.allSettled(context.blocks.map((block) => plugin.client.setBlockAttrs({
@@ -118,7 +117,7 @@ export const handlers = {
                     })));
 
                     if (params.name === "style") { // 块样式无法使用 `setBlockAttrs` 后同步在编辑器中更新
-                        const style = e.detail.value;
+                        const style = e.value;
                         results.forEach((result, index) => {
                             switch (result.status) {
                                 case "fulfilled":
